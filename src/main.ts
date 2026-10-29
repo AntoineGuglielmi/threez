@@ -507,6 +507,8 @@ type SavedGameState = {
   characterOrder?: SurvivorKind[]
   characterIndex?: number
   injuredMovedThisTurn?: boolean
+  phase?: 'draw' | 'actions'
+  survivorCards?: Partial<Record<SurvivorKind, { deck: CorridorCard[]; discard: CorridorCard[]; hand: CorridorCard[] }>>
   zoom: number
   cameraTarget: { x: number; z: number }
   cameraAngle?: number
@@ -571,8 +573,7 @@ const shuffle = <T,>(items: T[]): T[] => {
   return shuffled
 }
 
-// Virtual CC pile: 40 cards, with eight copies of each topology.
-const generatedCorridorDeck = shuffle(
+const createCorridorDeck = () => shuffle(
   (['straight', 'left', 'right', 'tee', 'cross'] as CorridorKind[])
     .flatMap((kind) => Array.from({ length: 8 }, () => createCard(kind))),
 )
@@ -586,7 +587,6 @@ const normalizeSavedCard = (card: CorridorCard): CorridorCard => {
       : createDoorDirections(card.kind, savedDoors.length),
   }
 }
-const corridorDeck: CorridorCard[] = savedGameState ? savedGameState.deck.map(normalizeSavedCard) : generatedCorridorDeck
 const roomStatuses: RoomStatus[] = ['ordinary', 'ordinary', 'ordinary', 'locked', 'trapped']
 const roomDifficulties: RoomDifficulty[] = ['easy', 'medium', 'hard']
 let nextRoomCardId = 1
@@ -613,13 +613,40 @@ const resources: Record<ResourceType, number> = {
 const rooms: RoomTile[] = []
 let currentRoomId: number | null = savedGameState?.currentRoomId ?? null
 if (savedGameState?.nextRoomCardId) nextRoomCardId = savedGameState.nextRoomCardId
-const discardPile: CorridorCard[] = savedGameState ? savedGameState.discard.map(normalizeSavedCard) : []
-let hand: CorridorCard[] = savedGameState ? savedGameState.hand.map(normalizeSavedCard) : []
+type SurvivorCards = { deck: CorridorCard[]; discard: CorridorCard[]; hand: CorridorCard[] }
+const legacyOwner = savedGameState?.activeSurvivorKind ?? 'stealth'
+const survivorCards = {} as Record<SurvivorKind, SurvivorCards>
+for (const kind of ['stealth', 'heavy', 'military', 'scientist', 'injured'] as SurvivorKind[]) {
+  const savedCards = savedGameState?.survivorCards?.[kind]
+  if (savedCards) {
+    survivorCards[kind] = {
+      deck: savedCards.deck.map(normalizeSavedCard),
+      discard: savedCards.discard.map(normalizeSavedCard),
+      hand: savedCards.hand.map(normalizeSavedCard),
+    }
+  } else if (savedGameState && kind === legacyOwner) {
+    survivorCards[kind] = {
+      deck: savedGameState.deck.map(normalizeSavedCard),
+      discard: savedGameState.discard.map(normalizeSavedCard),
+      hand: savedGameState.hand.map(normalizeSavedCard),
+    }
+  } else {
+    survivorCards[kind] = { deck: createCorridorDeck(), discard: [], hand: [] }
+  }
+}
+let corridorDeck = survivorCards[legacyOwner].deck
+let discardPile = survivorCards[legacyOwner].discard
+let hand = survivorCards[legacyOwner].hand
 let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSavedCard(savedGameState.pendingDraw) : null
+let phase: 'draw' | 'actions' = savedGameState ? (savedGameState.phase ?? 'actions') : 'draw'
 let selectedCardId: number | null = null
 let actionsRemaining = savedGameState?.actionsRemaining ?? 7
 let turnNumber = savedGameState?.turnNumber ?? 1
 if (savedGameState) nextCardId = savedGameState.nextCardId
+if (savedGameState) {
+  const highestCardId = Object.values(survivorCards).flatMap((cards) => [...cards.deck, ...cards.discard, ...cards.hand]).reduce((highest, card) => Math.max(highest, card.id), 0)
+  nextCardId = Math.max(nextCardId, highestCardId + 1)
+}
 const boardTiles: BoardTile[] = [{
   x: 0,
   z: 0,
@@ -1026,6 +1053,7 @@ const placeSurvivorModel = (kind: SurvivorKind, makeActive: boolean) => {
 }
 
 const activateSurvivor = (kind: SurvivorKind) => {
+  survivorCards[activeSurvivorKind] = { deck: corridorDeck, discard: discardPile, hand }
   const previousKind = activeSurvivorKind
   const previousModel = characterModels[previousKind]
   const previousPosition = survivorPositions[previousKind]
@@ -1038,6 +1066,9 @@ const activateSurvivor = (kind: SurvivorKind) => {
   previousModel.position.set(previousX, 0.19, previousRoom ? 0 : previousZ)
 
   activeSurvivorKind = kind
+  corridorDeck = survivorCards[kind].deck
+  discardPile = survivorCards[kind].discard
+  hand = survivorCards[kind].hand
   activeCharacter = characterModels[kind]
   const restored = placeSurvivorModel(kind, true)
   currentTile = restored.tile
@@ -1186,26 +1217,25 @@ const confirmPlacement = () => {
   renderGameUi()
 }
 
-const drawCorridorCard = () => {
-  if (actionsRemaining <= 0 || pendingDraw) return
-  if (corridorDeck.length === 0) corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
-  const card = corridorDeck.pop()
-  if (!card) {
-    setStatus('La pioche CC est vide.')
-    return
+const refillHand = () => {
+  if (phase !== 'draw' || activeSurvivorKind === 'injured') return
+  let drawn = 0
+  while (hand.length < 3) {
+    if (corridorDeck.length === 0 && discardPile.length > 0) {
+      corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
+    }
+    const card = corridorDeck.pop()
+    if (!card) break
+    hand.push(card)
+    drawn += 1
   }
-  spendAction()
-  const placement = findPlacement(card)
-  if (placement) {
-    const doors = card.doors.map((direction) => rotateDirection(direction, placement.turns))
-    const group = createCorridorTile(card, placement.x, placement.z, placement.exits, doors)
-    boardTiles.push({ x: placement.x, z: placement.z, kind: card.kind, exits: placement.exits, doors, usedDoors: [], group })
-    pendingDraw = null
-    setStatus(`CC piochée et posée : ${corridorDefinitions[card.kind].label.toLowerCase()}.`)
-  } else {
-    pendingDraw = card
-    setStatus('Impossible de poser cette CC. Défaussez-la ou échangez-la avec une carte en main.')
-  }
+  phase = 'actions'
+  selectedCardId = null
+  placementPreview = null
+  pendingDraw = null
+  setStatus(drawn > 0
+    ? `Main complétée : ${drawn} CC piochée${drawn > 1 ? 's' : ''}. Phase d’actions.`
+    : 'Phase d’actions : votre main contient déjà 3 CC, ou la pioche est épuisée.')
   saveGameState()
   renderGameUi()
 }
@@ -1345,7 +1375,7 @@ const renderRoomControls = () => {
   roomDoorOptionsElement.replaceChildren()
   const currentRoom = currentRoomId === null ? null : rooms.find((room) => room.id === currentRoomId) ?? null
   if (drawRoomButton) {
-    drawRoomButton.disabled = activeSurvivorKind === 'injured' || currentRoomId !== null || getAvailableDoors().length === 0 || roomDeck.length === 0 || pendingRoomDraw !== null
+    drawRoomButton.disabled = phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId !== null || getAvailableDoors().length === 0 || roomDeck.length === 0 || pendingRoomDraw !== null
     drawRoomButton.textContent = pendingRoomDraw ? 'CP piochée · choisir une porte' : 'Piocher une CP'
   }
   if (roomResultElement) roomResultElement.replaceChildren()
@@ -1463,7 +1493,7 @@ const renderGameUi = () => {
     const button = document.createElement('button')
     button.type = 'button'
     button.className = `cc-card${selectedCardId === card.id ? ' is-selected' : ''}`
-    button.disabled = Boolean(pendingDraw) || activeSurvivorKind === 'injured'
+    button.disabled = phase !== 'actions' || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
     button.setAttribute('aria-pressed', String(selectedCardId === card.id))
     const exits = corridorDefinitions[card.kind].exits
     const edgeLines: Record<Direction, string> = {
@@ -1525,7 +1555,11 @@ const renderGameUi = () => {
   const activePlayerRole = document.querySelector<HTMLElement>('.active-player-name small')
   if (activePlayerRole) activePlayerRole.textContent = activeSurvivorKind === 'injured'
     ? 'DÉPLACEMENT · 1 CC'
-    : 'SURVIVANT ACTIF · ' + String(actionsRemaining) + ' ACTIONS'
+    : phase === 'draw' ? 'PHASE 1 · PIOCHE' : 'PHASE 2 · ACTIONS · ' + String(actionsRemaining) + ' RESTANTES'
+  const phaseLabel = document.querySelector<HTMLElement>('#phase-label')
+  if (phaseLabel) phaseLabel.textContent = activeSurvivorKind === 'injured'
+    ? 'Déplacement du Blessé'
+    : phase === 'draw' ? 'Phase 1 — Compléter la main à 3 CC' : 'Phase 2 — Réaliser ses actions'
   const handCount = document.querySelector<HTMLElement>('#cc-hand-count')
   if (handCount) handCount.textContent = `${hand.length} cartes`
   const selectedCard = hand.find((card) => card.id === selectedCardId)
@@ -1543,8 +1577,9 @@ const renderGameUi = () => {
   if (cancelPlacementButton) cancelPlacementButton.disabled = selectedCardId === null
   if (discardButton) discardButton.disabled = !pendingDraw
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
-  if (drawButton) drawButton.disabled = actionsRemaining <= 0 || Boolean(pendingDraw) || (corridorDeck.length === 0 && discardPile.length === 0) || activeSurvivorKind === 'injured'
-  if (endTurnButton) endTurnButton.disabled = Boolean(pendingDraw) || Boolean(pendingRoomDraw)
+  if (drawButton) drawButton.disabled = phase !== 'draw' || hand.length >= 3 || activeSurvivorKind === 'injured' || (corridorDeck.length === 0 && discardPile.length === 0)
+  if (drawButton) drawButton.textContent = phase === 'draw' ? 'Compléter ma main' : 'Pioche terminée'
+  if (endTurnButton) endTurnButton.disabled = phase !== 'actions' || Boolean(pendingDraw) || Boolean(pendingRoomDraw)
   renderRoomControls()
   const resourceCounts: Record<ResourceType, string> = {
     cafe: '#resource-cafe',
@@ -1570,7 +1605,7 @@ unlockRoomButton?.addEventListener('click', unlockCurrentRoom)
 returnRoomButton?.addEventListener('click', returnToCorridor)
 drawRoomButton?.addEventListener('click', drawRoomCard)
 
-drawButton?.addEventListener('click', drawCorridorCard)
+drawButton?.addEventListener('click', refillHand)
 placeButton?.addEventListener('click', () => {
   if (!placementPreview) {
     setStatus('Sélectionnez d’abord un emplacement lumineux sur le plateau.')
@@ -1637,15 +1672,15 @@ endTurnButton?.addEventListener('click', () => {
   placementPreview = null
   activateSurvivor(characterOrder[characterIndex])
   actionsRemaining = activeSurvivorKind === 'injured' ? 1 : 7
-  while (hand.length < 3 && corridorDeck.length > 0) hand.push(corridorDeck.pop()!)
+  phase = activeSurvivorKind === 'injured' ? 'actions' : 'draw'
   setStatus(activeSurvivorKind === 'injured'
     ? 'Tour du Blessé : choisissez une CC adjacente pour le faire avancer d’une seule case.'
-    : `Tour de ${getSurvivorLabel(activeSurvivorKind)} : 7 actions disponibles.`)
+    : `Tour de ${getSurvivorLabel(activeSurvivorKind)} : complétez votre main à 3 CC avant d’agir.`)
   saveGameState()
   renderGameUi()
 })
 
-while (hand.length < 3 && corridorDeck.length > 0) hand.push(corridorDeck.pop()!)
+if (phase === 'draw' && activeSurvivorKind !== 'injured' && hand.length >= 3) phase = 'actions'
 renderGameUi()
 
 const resize = () => {
@@ -1710,6 +1745,8 @@ const saveGameState = () => {
       deck: corridorDeck,
       discard: discardPile,
       hand,
+      survivorCards,
+      phase,
       pendingDraw,
       actionsRemaining,
       turnNumber,
