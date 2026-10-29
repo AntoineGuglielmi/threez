@@ -550,7 +550,7 @@ const opposite: Record<Direction, Direction> = { N: 'S', E: 'W', S: 'N', W: 'E' 
 const rotateDirection = (direction: Direction, turns: number): Direction =>
   directionOrder[(directionOrder.indexOf(direction) + turns + 4) % 4]
 
-let nextCardId = 1
+let nextCardId = savedGameState?.nextCardId ?? 1
 const getWallDirections = (kind: CorridorKind): Direction[] =>
   directionOrder.filter((direction) => !corridorDefinitions[kind].exits.includes(direction))
 
