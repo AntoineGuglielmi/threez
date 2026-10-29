@@ -484,8 +484,9 @@ type CorridorCard = { id: number; kind: CorridorKind; doors: Direction[] }
 type RoomStatus = 'ordinary' | 'locked' | 'trapped'
 type RoomDifficulty = 'easy' | 'medium' | 'hard'
 type ResourceType = 'cafe' | 'croissant' | 'citron' | 'bonbon' | 'munition'
+type RoomRollResult = { resource: ResourceType; value: number; threshold: number; found: boolean }
 type RoomCard = { id: number; status: RoomStatus; difficulty: RoomDifficulty; searched: boolean; unlocked: boolean }
-type SavedRoom = RoomCard & { x: number; z: number; originX: number; originZ: number; direction: Direction }
+type SavedRoom = RoomCard & { x: number; z: number; originX: number; originZ: number; direction: Direction; lastRoll?: RoomRollResult[] }
 type RoomTile = SavedRoom & { group: THREE.Group }
 type BoardTile = { x: number; z: number; kind: CorridorKind | 'start'; exits: Direction[]; doors: Direction[]; usedDoors: Direction[]; group: THREE.Group }
 type PlacementOption = { exits: Direction[]; turns: number }
@@ -909,6 +910,7 @@ const rollRoomDice = (room: RoomTile) => {
   }))
   const found = results.filter((result) => result.value >= result.threshold)
   found.forEach(({ resource }) => { resources[resource] += 1 })
+  room.lastRoll = results.map((result) => ({ ...result, found: result.value >= result.threshold }))
   room.searched = true
   setStatus(found.length
     ? `Fouille ${getDifficultyLabel(room.difficulty).toLowerCase()} : ${results.map((result) => `${resourceLabels[result.resource]} ${result.value}/6`).join(' · ')}. Trouvé : ${found.map(({ resource }) => resourceLabels[resource]).join(', ')}.`
@@ -1156,6 +1158,7 @@ const roomDoorOptionsElement = document.querySelector<HTMLDivElement>('#cp-door-
 const roomDeckCountElement = document.querySelector<HTMLElement>('#cp-deck-count')
 const drawRoomButton = document.querySelector<HTMLButtonElement>('#draw-cp')
 const roomStateElement = document.querySelector<HTMLElement>('#room-state')
+const roomResultElement = document.querySelector<HTMLDivElement>('#room-result')
 const unlockRoomButton = document.querySelector<HTMLButtonElement>('#unlock-room')
 const returnRoomButton = document.querySelector<HTMLButtonElement>('#return-room')
 
@@ -1278,7 +1281,35 @@ const renderRoomControls = () => {
     drawRoomButton.disabled = actionsRemaining <= 0 || currentRoomId !== null || getAvailableDoors().length === 0 || roomDeck.length === 0 || pendingRoomDraw !== null
     drawRoomButton.textContent = pendingRoomDraw ? 'CP piochée · choisir une porte' : 'Piocher une CP'
   }
+  if (roomResultElement) roomResultElement.replaceChildren()
   if (currentRoom) {
+    if (roomResultElement && currentRoom.lastRoll) {
+      const resultHeading = document.createElement('strong')
+      resultHeading.className = 'room-result-heading'
+      resultHeading.textContent = 'Dernière fouille'
+      const diceGrid = document.createElement('div')
+      diceGrid.className = 'room-dice-results'
+      currentRoom.lastRoll.forEach((result) => {
+        const die = document.createElement('div')
+        die.className = `room-die-result${result.found ? ' is-found' : ''}`
+        const name = document.createElement('span')
+        name.textContent = resourceLabels[result.resource]
+        const value = document.createElement('strong')
+        value.textContent = String(result.value)
+        const threshold = document.createElement('small')
+        threshold.textContent = `Seuil ${result.threshold}+`
+        die.append(name, value, threshold)
+        diceGrid.append(die)
+      })
+      roomResultElement.append(resultHeading, diceGrid)
+      const foundResources = currentRoom.lastRoll.filter((result) => result.found)
+      const loot = document.createElement('p')
+      loot.className = 'room-result-loot'
+      loot.textContent = foundResources.length
+        ? `Trouvé : ${foundResources.map((result) => resourceLabels[result.resource]).join(', ')}`
+        : 'Aucune ressource trouvée'
+      roomResultElement.append(loot)
+    }
     const statusLabel = currentRoom.status === 'locked' && currentRoom.unlocked ? 'Déverrouillée' : getRoomStatusLabel(currentRoom.status)
     roomStateElement.textContent = `CP ${String(currentRoom.id).padStart(2, '0')} · ${statusLabel} · ${getDifficultyLabel(currentRoom.difficulty)}${currentRoom.searched ? ' · Déjà fouillée' : ''}`
     if (unlockRoomButton) {
@@ -1579,8 +1610,8 @@ const saveGameState = () => {
       tiles: boardTiles
         .filter((tile): tile is BoardTile & { kind: CorridorKind } => tile.kind !== 'start')
         .map(({ x, z, kind, exits, doors, usedDoors }) => ({ x, z, kind, exits, doors, usedDoors })),
-      rooms: rooms.map(({ id, status, difficulty, searched, unlocked, x, z, originX, originZ, direction }) => ({
-        id, status, difficulty, searched, unlocked, x, z, originX, originZ, direction,
+      rooms: rooms.map(({ id, status, difficulty, searched, unlocked, x, z, originX, originZ, direction, lastRoll }) => ({
+        id, status, difficulty, searched, unlocked, x, z, originX, originZ, direction, lastRoll,
       })),
       currentRoomId,
       resources,
