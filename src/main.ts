@@ -2094,6 +2094,7 @@ const animate = () => {
   camera.updateProjectionMatrix()
   beacon.scale.y = 1 + Math.sin(elapsed * 2.2) * 0.07
   if (placementActions && !placementActions.hidden && placementPreview) {
+    camera.updateMatrixWorld()
     const projected = new THREE.Vector3(placementPreview.x * 1.18, 1.1, placementPreview.z * 1.18).project(camera)
     const sceneBounds = root.parentElement?.getBoundingClientRect()
     if (sceneBounds) {
