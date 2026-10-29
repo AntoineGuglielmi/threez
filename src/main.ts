@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import './style.css'
 import { createScene } from './scene'
-import { directionDelta, directionOrder, opposite, corridorDefinitions, rotateDirection } from './game/directions'
+import { directionDelta, opposite, corridorDefinitions, rotateDirection } from './game/directions'
 import { readSavedGameState, STORAGE_KEY } from './game/persistence'
 import { shuffle } from './game/random'
 import { createCorridorCardFactory } from './game/corridor-cards'
@@ -22,7 +22,7 @@ let activeCharacter = sceneSetup.activeCharacter
 const savedGameState = readSavedGameState()
 
 const corridorCards = createCorridorCardFactory(savedGameState?.nextCardId ?? 1)
-const { getWallDirections, createDoorDirections, createCard, createCorridorDeck, normalizeSavedCard } = corridorCards
+const { createDoorDirections, createCorridorDeck, normalizeSavedCard } = corridorCards
 
 const roomCards = createRoomCardFactory()
 const generatedRoomDeck = roomCards.createDeck()
@@ -38,7 +38,6 @@ const resources: Record<ResourceType, number> = {
 const rooms: RoomTile[] = []
 let currentRoomId: number | null = savedGameState?.currentRoomId ?? null
 if (savedGameState?.nextRoomCardId) roomCards.setNextCardId(savedGameState.nextRoomCardId)
-type SurvivorCards = { deck: CorridorCard[]; discard: CorridorCard[]; hand: CorridorCard[] }
 const legacyOwner = savedGameState?.activeSurvivorKind ?? 'stealth'
 const survivorCards = {} as Record<SurvivorKind, SurvivorCards>
 for (const kind of ['stealth', 'heavy', 'military', 'scientist', 'injured'] as SurvivorKind[]) {
@@ -222,7 +221,7 @@ const getSurvivorTokenPosition = (kind: SurvivorKind): [number, number, number] 
   military: [0.32, 0.19, -0.28],
   scientist: [-0.32, 0.19, 0.36],
   injured: [0.32, 0.19, 0.36],
-})[kind]
+} as const satisfies Record<SurvivorKind, [number, number, number]>)[kind]
 
 const placeSurvivorModel = (kind: SurvivorKind, makeActive: boolean) => {
   const model = characterModels[kind]
@@ -299,7 +298,7 @@ const createGhostTile = () => {
   if (!card) return
   const exits = corridorDefinitions[card.kind].exits.map((direction) => rotateDirection(direction, selectedCardTurns))
   const doors = card.doors.map((direction) => rotateDirection(direction, selectedCardTurns))
-  const ghost = createCorridorTile(card, placementPreview.x, placementPreview.z, exits, doors)
+  const ghost = createCorridorTile(board, materials, card, placementPreview.x, placementPreview.z, exits, doors)
   board.remove(ghost)
   ghost.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return
@@ -430,7 +429,7 @@ const confirmPlacement = () => {
 
   const doors = card.doors.map((direction) => rotateDirection(direction, selectedCardTurns))
   const exits = validCandidate.options[0].exits
-  const group = createCorridorTile(card, x, z, exits, doors)
+  const group = createCorridorTile(board, materials, card, x, z, exits, doors)
   const placedTile: BoardTile = { x, z, kind: card.kind, exits, doors, usedDoors: [], group }
   boardTiles.push(placedTile)
 
@@ -506,7 +505,7 @@ const placeDrawnRoom = (direction: Direction) => {
   const z = currentTile.z + dz
   const card = pendingRoomDraw
   const room: SavedRoom = { ...card, x, z, originX: currentTile.x, originZ: currentTile.z, direction }
-  const group = createRoomTile(room, opposite[direction])
+  const group = createRoomTile(board, materials, room, opposite[direction])
   rooms.push({ ...room, group })
   currentTile.usedDoors.push(direction)
   const doorMesh = currentTile.group.children.find((child) => child.userData.doorDirection === direction)
