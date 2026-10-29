@@ -1,41 +1,16 @@
 import * as THREE from 'three'
 import './style.css'
 import { createScene } from './scene'
+import { directionDelta, directionOrder, opposite, corridorDefinitions, rotateDirection } from './game/directions'
+import { readSavedGameState } from './game/persistence'
+import { shuffle } from './game/random'
 import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomRollResult, RoomStatus, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
 
 let activeSurvivorKind: SurvivorKind = 'stealth'
 const sceneSetup = createScene(activeSurvivorKind)
 const { root, scene, camera, renderer, materials, board, start, activeRing, otherCharacters } = sceneSetup
 let activeCharacter = sceneSetup.activeCharacter
-const STORAGE_KEY = 'threez-game-state-v1'
-const readSavedGameState = (): SavedGameState | null => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as SavedGameState
-    if (!Array.isArray(parsed.tiles) || !parsed.survivor || typeof parsed.zoom !== 'number') return null
-    if (!Array.isArray(parsed.deck) || !Array.isArray(parsed.hand) || !Array.isArray(parsed.discard)) return null
-    return parsed
-  } catch {
-    return null
-  }
-}
 const savedGameState = readSavedGameState()
-
-const directionOrder: Direction[] = ['N', 'E', 'S', 'W']
-const corridorDefinitions: Record<CorridorKind, { label: string; symbol: string; exits: Direction[] }> = {
-  straight: { label: 'Droit', symbol: '│', exits: ['N', 'S'] },
-  left: { label: 'Virage gauche', symbol: '└', exits: ['N', 'W'] },
-  right: { label: 'Virage droite', symbol: '┘', exits: ['N', 'E'] },
-  tee: { label: 'Carrefour en T', symbol: '┬', exits: ['N', 'E', 'W'] },
-  cross: { label: 'Carrefour en croix', symbol: '┼', exits: ['N', 'E', 'S', 'W'] },
-}
-const directionDelta: Record<Direction, [number, number]> = {
-  N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0],
-}
-const opposite: Record<Direction, Direction> = { N: 'S', E: 'W', S: 'N', W: 'E' }
-const rotateDirection = (direction: Direction, turns: number): Direction =>
-  directionOrder[(directionOrder.indexOf(direction) + turns + 4) % 4]
 
 let nextCardId = savedGameState?.nextCardId ?? 1
 const getWallDirections = (kind: CorridorKind): Direction[] =>
@@ -51,15 +26,6 @@ const createCard = (kind?: CorridorKind): CorridorCard => {
   const cardKind = kind ?? kinds[Math.floor(Math.random() * kinds.length)]
   return { id: nextCardId++, kind: cardKind, doors: createDoorDirections(cardKind) }
 }
-const shuffle = <T,>(items: T[]): T[] => {
-  const shuffled = [...items]
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1))
-    ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
-  }
-  return shuffled
-}
-
 const createCorridorDeck = () => shuffle(
   (['straight', 'left', 'right', 'tee', 'cross'] as CorridorKind[])
     .flatMap((kind) => Array.from({ length: 8 }, () => createCard(kind))),
