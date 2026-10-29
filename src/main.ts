@@ -1674,7 +1674,7 @@ endTurnButton?.addEventListener('click', () => {
   placementPreview = null
   activateSurvivor(characterOrder[characterIndex])
   actionsRemaining = activeSurvivorKind === 'injured' ? 1 : 7
-  phase = activeSurvivorKind === 'injured' ? 'actions' : 'draw'
+  phase = activeSurvivorKind === 'injured' || hand.length >= 3 ? 'actions' : 'draw'
   setStatus(activeSurvivorKind === 'injured'
     ? 'Tour du Blessé : choisissez une CC adjacente pour le faire avancer d’une seule case.'
     : `Tour de ${getSurvivorLabel(activeSurvivorKind)} : complétez votre main à 3 CC avant d’agir.`)
