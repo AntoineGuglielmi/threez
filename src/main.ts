@@ -640,6 +640,7 @@ let hand = survivorCards[legacyOwner].hand
 let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSavedCard(savedGameState.pendingDraw) : null
 let phase: 'draw' | 'actions' = savedGameState ? (savedGameState.phase ?? 'actions') : 'draw'
 let selectedCardId: number | null = null
+let selectedCardTurns = 0
 let actionsRemaining = savedGameState?.actionsRemaining ?? 7
 let turnNumber = savedGameState?.turnNumber ?? 1
 if (savedGameState) nextCardId = savedGameState.nextCardId
@@ -1080,7 +1081,7 @@ for (const kind of Object.keys(characterModels) as SurvivorKind[]) {
 }
 activateSurvivor(activeSurvivorKind)
 
-const getPlacements = (card: CorridorCard): PlacementCandidate[] => {
+const getPlacements = (card: CorridorCard, fixedTurns = selectedCardTurns): PlacementCandidate[] => {
   const candidates = new Map<string, PlacementCandidate>()
   const definition = corridorDefinitions[card.kind]
 
@@ -1093,25 +1094,22 @@ const getPlacements = (card: CorridorCard): PlacementCandidate[] => {
 
       const key = `${x},${z}`
       const candidate = candidates.get(key) ?? { x, z, options: [] }
+      const exits = definition.exits.map((direction) => rotateDirection(direction, fixedTurns))
+      if (!exits.includes(opposite[exit])) continue
 
-      for (let turns = 0; turns < 4; turns += 1) {
-        const exits = definition.exits.map((direction) => rotateDirection(direction, turns))
-        if (!exits.includes(opposite[exit])) continue
+      // Every side touching an existing tile must agree on whether a passage exists.
+      const conflictsWithNeighbour = directionOrder.some((direction) => {
+        const [nextX, nextZ] = directionDelta[direction]
+        const neighbour = boardTiles.find((placed) => placed.x === x + nextX && placed.z === z + nextZ)
+        if (!neighbour) return false
+        return exits.includes(direction) !== neighbour.exits.includes(opposite[direction])
+      })
+      if (conflictsWithNeighbour) continue
 
-        const conflictsWithNeighbour = directionOrder.some((direction) => {
-          const [nextX, nextZ] = directionDelta[direction]
-          const neighbour = boardTiles.find((placed) => placed.x === x + nextX && placed.z === z + nextZ)
-          if (!neighbour) return false
-          return exits.includes(direction) !== neighbour.exits.includes(opposite[direction])
-        })
-        if (conflictsWithNeighbour) continue
-
-        const signature = directionOrder.filter((direction) => exits.includes(direction)).join('')
-        if (!candidate.options.some((option) => directionOrder.filter((direction) => option.exits.includes(direction)).join('') === signature)) {
-          candidate.options.push({ exits, turns })
-        }
+      const signature = directionOrder.filter((direction) => exits.includes(direction)).join('')
+      if (!candidate.options.some((option) => directionOrder.filter((direction) => option.exits.includes(direction)).join('') === signature)) {
+        candidate.options.push({ exits, turns: fixedTurns })
       }
-
       if (candidate.options.length > 0) candidates.set(key, candidate)
     }
   }
@@ -1133,7 +1131,7 @@ const updatePlacementHighlights = () => {
   const card = hand.find((item) => item.id === selectedCardId)
   if (!card) return
 
-  const candidates = getPlacements(card)
+  const candidates = getPlacements(card, selectedCardTurns)
   for (const candidate of candidates) {
     const isSelected = placementPreview?.x === candidate.x && placementPreview?.z === candidate.z
     const marker = new THREE.Group()
@@ -1179,6 +1177,17 @@ const updatePlacementHighlights = () => {
         )
         bar.position.set(dx * 0.23, 0.008, dz * 0.23)
         marker.add(bar)
+      }
+      const card = hand.find((item) => item.id === selectedCardId)
+      const doors = card?.doors.map((direction) => rotateDirection(direction, selectedCardTurns)) ?? []
+      for (const direction of doors.filter((item) => !option.exits.includes(item))) {
+        const [dx, dz] = directionDelta[direction]
+        const doorMarker = new THREE.Mesh(
+          new THREE.BoxGeometry(dx === 0 ? 0.22 : 0.055, 0.018, dz === 0 ? 0.22 : 0.055),
+          new THREE.MeshBasicMaterial({ color: '#f0b17a' }),
+        )
+        doorMarker.position.set(dx * 0.43, 0.02, dz * 0.43)
+        marker.add(doorMarker)
       }
     }
 
@@ -1496,6 +1505,7 @@ const renderGameUi = () => {
     button.className = `cc-card${selectedCardId === card.id ? ' is-selected' : ''}`
     button.disabled = phase !== 'actions' || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
     button.setAttribute('aria-pressed', String(selectedCardId === card.id))
+    const cardTurns = selectedCardId === card.id ? selectedCardTurns : 0
     const exits = corridorDefinitions[card.kind].exits
     const edgeLines: Record<Direction, string> = {
       N: '<path d="M20 12H80" />',
@@ -1525,7 +1535,15 @@ const renderGameUi = () => {
       W: '<rect x="9" y="43" width="6" height="14" rx="1" />',
     }
     const doorMarkup = card.doors.filter((direction) => !exits.includes(direction)).map((direction) => doorRects[direction]).join('')
-    button.innerHTML = `<span class="cc-card-index">CC ${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${corridorDefinitions[card.kind].label}, ${card.doors.length} porte${card.doors.length === 1 ? '' : 's'}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><g class="cc-art-doors">${doorMarkup}</g><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></svg><span class="cc-card-name">${corridorDefinitions[card.kind].label} · ${card.doors.length}P</span>`
+    const typeCode: Record<CorridorKind, string> = {
+      straight: 'CC',
+      left: 'CCV',
+      right: 'CCV',
+      tee: 'CCT',
+      cross: 'CCX',
+    }
+    const rotatedArtwork = cardTurns === 0 ? '' : ` transform="rotate(${cardTurns * 90} 50 50)"`
+    button.innerHTML = `<span class="cc-card-index">${typeCode[card.kind]} · ${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${typeCode[card.kind]} — ${corridorDefinitions[card.kind].label}, portes : ${card.doors.length ? card.doors.join(', ') : 'aucune'}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><g${rotatedArtwork}><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><g class="cc-art-doors">${doorMarkup}</g><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></g></svg><span class="cc-card-name">${typeCode[card.kind]} · ${card.doors.length} porte${card.doors.length === 1 ? '' : 's'} ${cardTurns ? `· ${['N','E','S','W'][cardTurns]}` : '· N'}</span>`
     button.addEventListener('click', () => {
       if (selectedCardId === card.id) {
         selectedCardId = null
@@ -1533,11 +1551,12 @@ const renderGameUi = () => {
         setStatus('Sélection annulée.')
       } else {
         selectedCardId = card.id
+        selectedCardTurns = 0
         placementPreview = null
-        const placements = getPlacements(card)
+        const placements = getPlacements(card, selectedCardTurns)
         setStatus(placements.length
-          ? 'Choisissez un emplacement lumineux sur le plateau.'
-          : 'Aucun emplacement compatible pour cette CC.')
+          ? 'Orientation initiale vers le nord. Choisissez un emplacement lumineux, ou changez l’orientation.'
+          : 'Aucune pose possible dans cette orientation. Faites pivoter la carte.')
       }
       renderGameUi()
     })
@@ -1570,9 +1589,9 @@ const renderGameUi = () => {
     placeButton.textContent = hasPreview ? 'Valider la pose' : 'Choisir un emplacement'
   }
   if (rotateButton) {
-    rotateButton.disabled = !hasPreview || (placementPreview?.options.length ?? 0) < 2
-    rotateButton.textContent = hasPreview && placementPreview
-      ? `Orientation ${placementPreview.optionIndex + 1}/${placementPreview.options.length} · ↻`
+    rotateButton.disabled = phase !== 'actions' || selectedCardId === null || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
+    rotateButton.textContent = selectedCardId !== null
+      ? `Orientation ${['N', 'E', 'S', 'W'][selectedCardTurns]} · ↻`
       : 'Changer l’orientation'
   }
   if (cancelPlacementButton) cancelPlacementButton.disabled = selectedCardId === null
@@ -1615,11 +1634,24 @@ placeButton?.addEventListener('click', () => {
   confirmPlacement()
 })
 rotateButton?.addEventListener('click', () => {
-  if (!placementPreview || placementPreview.options.length < 2) return
-  placementPreview.optionIndex = (placementPreview.optionIndex + 1) % placementPreview.options.length
+  if (selectedCardId === null || phase !== 'actions') return
+  selectedCardTurns = (selectedCardTurns + 1) % 4
+  const card = hand.find((item) => item.id === selectedCardId)
+  if (!card) return
+
+  if (placementPreview) {
+    const samePosition = getPlacements(card, selectedCardTurns).find((candidate) =>
+      candidate.x === placementPreview?.x && candidate.z === placementPreview?.z)
+    placementPreview = samePosition
+      ? { ...samePosition, optionIndex: 0 }
+      : null
+  }
+
   updatePlacementHighlights()
   renderGameUi()
-  setStatus(`Orientation ${placementPreview.optionIndex + 1}/${placementPreview.options.length}. Vous pouvez encore changer de case.`)
+  setStatus(placementPreview
+    ? `Orientation ${['N', 'E', 'S', 'W'][selectedCardTurns]} : sorties et portes mises à jour.`
+    : `Orientation ${['N', 'E', 'S', 'W'][selectedCardTurns]}. Choisissez un emplacement compatible.`)
 })
 cancelPlacementButton?.addEventListener('click', () => {
   selectedCardId = null
