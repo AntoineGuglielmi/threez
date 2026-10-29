@@ -13,7 +13,7 @@ const corridorModelsPlugin = () => ({
       if (url.pathname === '/__corridor-models' && request.method === 'GET') {
         try {
           const models = await Promise.all(modelIds.map(async (id) => {
-            const content = JSON.parse(await readFile(path.join(modelsDirectory, `${id}.json`), 'utf8')) as Record<string, string[]>
+            const content = JSON.parse(await readFile(path.join(modelsDirectory, id + '.json'), 'utf8')) as Record<string, string[]>
             return { id, pixels: content[id] }
           }))
           response.setHeader('Content-Type', 'application/json')
@@ -24,7 +24,7 @@ const corridorModelsPlugin = () => ({
         }
         return
       }
-      const match = url.pathname.match(/^\\/__corridor-models\\/([a-z]+-\\d)$/)
+      const match = url.pathname.match(/^\/__corridor-models\/([a-z]+-\d)$/)
       if (match && request.method === 'PUT') {
         const id = match[1] as typeof modelIds[number]
         if (!modelIds.includes(id)) { response.statusCode = 404; response.end('Unknown model'); return }
@@ -37,7 +37,7 @@ const corridorModelsPlugin = () => ({
             response.end('Expected 1024 hexadecimal color values')
             return
           }
-          await writeFile(path.join(modelsDirectory, `${id}.json`), JSON.stringify({ [id]: parsed.pixels }, null, 4) + '\\n', 'utf8')
+          await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: parsed.pixels }, null, 4) + '\n', 'utf8')
           response.setHeader('Content-Type', 'application/json')
           response.end(JSON.stringify({ saved: id }))
         } catch {
