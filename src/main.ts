@@ -1297,6 +1297,10 @@ const returnToCorridor = () => {
 const enterRoom = (room: RoomTile) => {
   if (activeSurvivorKind === 'injured' || currentRoomId !== null) return
   if (room.originX !== currentTile.x || room.originZ !== currentTile.z) return
+  if (room.status === 'trapped' && activeSurvivorKind !== 'stealth') {
+    setStatus('Pièce piégée : seul le Furtif peut y entrer.')
+    return
+  }
 
   if (actionsRemaining <= 0) {
     setStatus('Il ne reste plus d’action pour entrer dans une pièce.')
@@ -1506,6 +1510,12 @@ const renderGameUi = () => {
   actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
   const activePlayerTurn = document.querySelector<HTMLElement>('#active-player-turn')
   if (activePlayerTurn) activePlayerTurn.textContent = String(turnNumber)
+  const activePlayerName = document.querySelector<HTMLElement>('.active-player-name strong')
+  if (activePlayerName) activePlayerName.textContent = getSurvivorLabel(activeSurvivorKind)
+  const activePlayerRole = document.querySelector<HTMLElement>('.active-player-name small')
+  if (activePlayerRole) activePlayerRole.textContent = activeSurvivorKind === 'injured'
+    ? 'DÉPLACEMENT · 1 CC'
+    : 'SURVIVANT ACTIF · ' + String(actionsRemaining) + ' ACTIONS'
   const handCount = document.querySelector<HTMLElement>('#cc-hand-count')
   if (handCount) handCount.textContent = `${hand.length} cartes`
   const selectedCard = hand.find((card) => card.id === selectedCardId)
@@ -1524,7 +1534,7 @@ const renderGameUi = () => {
   if (discardButton) discardButton.disabled = !pendingDraw
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
   if (drawButton) drawButton.disabled = actionsRemaining <= 0 || Boolean(pendingDraw) || (corridorDeck.length === 0 && discardPile.length === 0) || activeSurvivorKind === 'injured'
-  if (endTurnButton) endTurnButton.disabled = Boolean(pendingDraw)
+  if (endTurnButton) endTurnButton.disabled = Boolean(pendingDraw) || Boolean(pendingRoomDraw)
   renderRoomControls()
   const resourceCounts: Record<ResourceType, string> = {
     cafe: '#resource-cafe',
@@ -1839,6 +1849,11 @@ renderer.domElement.addEventListener('click', (event) => {
     const [x, z] = directionDelta[candidate]
     return x === dx && z === dz
   })
+
+  if (activeSurvivorKind === 'injured' && injuredMovedThisTurn) {
+    setStatus('Le Blessé ne peut avancer que d’une seule CC par tour.')
+    return
+  }
 
   if (!direction || Math.abs(dx) + Math.abs(dz) !== 1) {
     root.dataset.selected = 'not-adjacent'
