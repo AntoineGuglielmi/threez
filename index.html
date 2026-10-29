@@ -22,6 +22,30 @@
           <p class="caption-copy">Explorez l'hôpital. Protégez le blessé.</p>
         </div>
         <div id="scene-root"></div>
+        <aside id="game-ui" class="game-panel" aria-label="Gestion des cartes corridor">
+          <div class="panel-heading">
+            <div><p class="eyebrow">PHASE DE JEU</p><h2>Cartes corridor</h2></div>
+            <span class="turn-tag">TOUR 01</span>
+          </div>
+          <div class="actions-block">
+            <div class="actions-label"><span>ACTIONS RESTANTES</span><strong><span id="actions-count">7</span><small> / 7</small></strong></div>
+            <div class="actions-track"><div id="actions-fill"></div></div>
+          </div>
+          <div class="pile-row">
+            <div class="pile-card"><span class="pile-icon">CC</span><span>PIOCHE <b id="cc-deck-count">37</b></span></div>
+            <div class="pile-card"><span class="pile-icon discard-icon">×</span><span>DÉFAUSSE <b id="cc-discard-count">0</b></span></div>
+          </div>
+          <div class="hand-heading"><h3>Votre main</h3><span>3 CC</span></div>
+          <div id="cc-hand" class="cc-hand"></div>
+          <p id="game-status" class="game-status" role="status">Choisissez une CC pour prolonger le couloir, ou piochez-en une.</p>
+          <div class="game-actions">
+            <button id="place-cc" class="action-button primary" disabled>Poser la CC</button>
+            <button id="draw-cc" class="action-button">Piocher une CC</button>
+            <button id="discard-cc" class="action-button subtle" disabled>Défausser la pioche</button>
+            <button id="replace-cc" class="action-button subtle" disabled>Remplacer une CC en main</button>
+          </div>
+          <button id="end-turn" class="end-turn">Terminer le tour <span>↗</span></button>
+        </aside>
         <div class="scene-footer">
           <span><span class="legend-swatch legend-start"></span> Départ · portes barricadées</span>
           <span class="grid-coordinates">BROUILLARD <b>VISIBILITÉ LIMITÉE</b></span>
