@@ -635,6 +635,13 @@ const boardTiles: BoardTile[] = [{
 }]
 
 let currentTile = boardTiles[0]
+const characterModels: Record<SurvivorKind, THREE.Group> = {
+  stealth: activeCharacter,
+  heavy: otherCharacters.find((item) => item.kind === 'heavy')!.character,
+  military: otherCharacters.find((item) => item.kind === 'military')!.character,
+  scientist: otherCharacters.find((item) => item.kind === 'scientist')!.character,
+  injured: otherCharacters.find((item) => item.kind === 'injured')!.character,
+}
 const survivorPositions: Record<SurvivorKind, { x: number; z: number; roomId: number | null }> = {
   stealth: { x: 0, z: 0, roomId: null },
   heavy: { x: 0, z: 0, roomId: null },
@@ -642,367 +649,56 @@ const survivorPositions: Record<SurvivorKind, { x: number; z: number; roomId: nu
   scientist: { x: 0, z: 0, roomId: null },
   injured: { x: 0, z: 0, roomId: null },
 }
-let characterOrder: SurvivorKind[] = savedGameState?.characterOrder ?? ['stealth', ...shuffle(['heavy', 'military', 'scientist'] as const), 'injured']
-let characterIndex = savedGameState?.characterIndex ?? 0
-let injuredMovedThisTurn = savedGameState?.injuredMovedThisTurn ?? false
-let placementPreview: { x: number; z: number; options: PlacementOption[]; optionIndex: number } | null = null
-const placementHighlights = new THREE.Group()
-placementHighlights.name = 'placement-highlights'
-board.add(placementHighlights)
-
-const handElement = document.querySelector<HTMLDivElement>('#cc-hand')
-const deckCountElement = document.querySelector<HTMLElement>('#cc-deck-count')
-const discardCountElement = document.querySelector<HTMLElement>('#cc-discard-count')
-const actionsCountElement = document.querySelector<HTMLElement>('#actions-count')
-const actionsFillElement = document.querySelector<HTMLDivElement>('#actions-fill')
-const statusElement = document.querySelector<HTMLParagraphElement>('#game-status')
-const drawButton = document.querySelector<HTMLButtonElement>('#draw-cc')
-const placeButton = document.querySelector<HTMLButtonElement>('#place-cc')
-const rotateButton = document.querySelector<HTMLButtonElement>('#rotate-cc')
-const cancelPlacementButton = document.querySelector<HTMLButtonElement>('#cancel-placement')
-const discardButton = document.querySelector<HTMLButtonElement>('#discard-cc')
-const replaceButton = document.querySelector<HTMLButtonElement>('#replace-cc')
-const endTurnButton = document.querySelector<HTMLButtonElement>('#end-turn')
-const turnLabel = document.querySelector<HTMLElement>('.turn-tag')
-
-const setStatus = (message: string) => {
-  if (statusElement) statusElement.textContent = message
+if (savedGameState?.survivors) {
+  for (const kind of Object.keys(survivorPositions) as SurvivorKind[]) {
+    const saved = savedGameState.survivors[kind]
+    if (saved) survivorPositions[kind] = { ...saved }
+  }
+} else const placeSurvivorModel = (kind: SurvivorKind, makeActive: boolean) => {
+  const model = characterModels[kind]
+  model.parent?.remove(model)
+  model.scale.setScalar(makeActive ? 0.72 : 0.27)
+  const position = survivorPositions[kind]
+  const tile = boardTiles.find((item) => item.x === position.x && item.z === position.z) ?? boardTiles[0]
+  const room = position.roomId === null ? null : rooms.find((item) => item.id === position.roomId) ?? null
+  const parent = room?.group ?? tile.group
+  parent.add(model)
+  model.position.set(0, 0.19, room ? 0 : 0.16)
+  if (makeActive) {
+    parent.add(activeRing, characterKeyLight, characterFillLight, warmRimLight)
+    activeRing.position.set(0, 0.183, room ? 0 : 0.16)
+  }
+  return { tile, room }
 }
 
-const findPlacement = (card: CorridorCard) => {
-  const definition = corridorDefinitions[card.kind]
-  for (const tile of boardTiles) {
-    for (const exit of tile.exits) {
-      const [dx, dz] = directionDelta[exit]
-      const x = tile.x + dx
-      const z = tile.z + dz
-      if (boardTiles.some((placed) => placed.x === x && placed.z === z) || rooms.some((room) => room.x === x && room.z === z)) continue
-      for (let turns = 0; turns < 4; turns += 1) {
-        const exits = definition.exits.map((direction) => rotateDirection(direction, turns))
-        if (!exits.includes(opposite[exit])) continue
+const activateSurvivor = (kind: SurvivorKind) => {
+  const previousKind = activeSurvivorKind
+  const previousModel = characterModels[previousKind]
+  previousModel.parent?.remove(previousModel, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+  previousModel.scale.setScalar(0.27)
+  const previousPosition = survivorPositions[previousKind]
+  const previousTile = boardTiles.find((tile) => tile.x === previousPosition.x && tile.z === previousPosition.z) ?? currentTile
+  const previousRoom = previousPosition.roomId === null ? null : rooms.find((room) => room.id === previousPosition.roomId) ?? null
+  ;(previousRoom?.group ?? previousTile.group).add(previousModel)
+  previousModel.position.set(0, 0.19, previousRoom ? 0 : 0.16)
 
-        // Every side touching an existing tile must agree on whether a passage exists.
-        const conflictsWithNeighbour = directionOrder.some((direction) => {
-          const [nextX, nextZ] = directionDelta[direction]
-          const neighbour = boardTiles.find((placed) => placed.x === x + nextX && placed.z === z + nextZ)
-          if (!neighbour) return false
-          return exits.includes(direction) !== neighbour.exits.includes(opposite[direction])
-        })
-        if (!conflictsWithNeighbour) return { x, z, exits, turns }
-      }
-    }
-  }
-  return null
+  activeSurvivorKind = kind
+  activeCharacter = characterModels[kind]
+  const restored = placeSurvivorModel(kind, true)
+  currentTile = restored.tile
+  currentRoomId = restored.room?.id ?? null
+  returnRoomButton && (returnRoomButton.hidden = currentRoomId === null)
 }
 
-const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Direction[], doors: Direction[] = [], usedDoors: Direction[] = []) => {
-  const group = new THREE.Group()
-  group.position.set(x * 1.18, 0.025, z * 1.18)
-  // Exits are already rotated into board directions; build the walls in that orientation.
-
-  const base = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.14, 1.18), materials.start)
-  base.position.y = 0.07
-  base.castShadow = true
-  base.receiveShadow = true
-  group.add(base)
-
-  const surface = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.025, 1.08), materials.startTop)
-  surface.position.y = 0.152
-  surface.receiveShadow = true
-  group.add(surface)
-
-  for (let px = -1; px <= 1; px += 1) {
-    for (let pz = -1; pz <= 1; pz += 1) {
-      const panel = new THREE.Mesh(
-        new THREE.BoxGeometry(0.32, 0.009, 0.32),
-        (px + pz) % 2 === 0 ? materials.floorPanel : materials.floorPanelDark,
-      )
-      panel.position.set(px * 0.34, 0.169, pz * 0.34)
-      panel.receiveShadow = true
-      group.add(panel)
-    }
-  }
-
-  const edgeSpecs: Array<{ direction: Direction; position: [number, number, number]; size: [number, number, number] }> = [
-    { direction: 'N', position: [0, 0.31, -0.55], size: [1.08, 0.29, 0.055] },
-    { direction: 'S', position: [0, 0.31, 0.55], size: [1.08, 0.29, 0.055] },
-    { direction: 'E', position: [0.55, 0.31, 0], size: [0.055, 0.29, 1.08] },
-    { direction: 'W', position: [-0.55, 0.31, 0], size: [0.055, 0.29, 1.08] },
-  ]
-  for (const edge of edgeSpecs) {
-    if (exits.includes(edge.direction)) continue
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(...edge.size), materials.corridorWall)
-    wall.position.set(...edge.position)
-    wall.castShadow = true
-    wall.receiveShadow = true
-    group.add(wall)
-  }
-
-  for (const direction of doors.filter((item) => !exits.includes(item))) {
-    const horizontal = direction === 'N' || direction === 'S'
-    const edgeOffset = direction === 'N' ? -0.51 : direction === 'S' ? 0.51 : direction === 'W' ? -0.51 : 0.51
-    const door = new THREE.Group()
-    door.userData.doorDirection = direction
-    door.visible = !usedDoors.includes(direction)
-    door.position.set(horizontal ? 0 : edgeOffset, 0, horizontal ? edgeOffset : 0)
-    const panel = new THREE.Mesh(
-      new THREE.BoxGeometry(horizontal ? 0.48 : 0.045, 0.235, horizontal ? 0.045 : 0.48),
-      new THREE.MeshStandardMaterial({ color: '#79513f', metalness: 0.62, roughness: 0.48 }),
-    )
-    panel.position.y = 0.31
-    panel.castShadow = true
-    panel.receiveShadow = true
-    door.add(panel)
-
-    const frameMaterial = new THREE.MeshStandardMaterial({ color: '#aab5bd', metalness: 0.8, roughness: 0.32 })
-    for (const side of [-1, 1]) {
-      const post = new THREE.Mesh(
-        new THREE.BoxGeometry(horizontal ? 0.035 : 0.065, 0.29, horizontal ? 0.065 : 0.035),
-        frameMaterial,
-      )
-      post.position.set(horizontal ? side * 0.27 : 0, 0.31, horizontal ? 0 : side * 0.27)
-      door.add(post)
-    }
-    const lintel = new THREE.Mesh(
-      new THREE.BoxGeometry(horizontal ? 0.58 : 0.065, 0.035, horizontal ? 0.065 : 0.58),
-      frameMaterial,
-    )
-    lintel.position.y = 0.465
-    door.add(lintel)
-
-    const handle = new THREE.Mesh(
-      new THREE.SphereGeometry(0.018, 8, 6),
-      new THREE.MeshStandardMaterial({ color: '#e5b16c', metalness: 0.6, roughness: 0.35 }),
-    )
-    handle.position.set(horizontal ? 0.16 : 0, 0.31, horizontal ? 0 : 0.16)
-    door.add(handle)
-    group.add(door)
-  }
-
-  for (const direction of exits) {
-    const [dx, dz] = directionDelta[direction]
-    const strip = new THREE.Mesh(
-      new THREE.BoxGeometry(dx === 0 ? 0.76 : 0.035, 0.012, dz === 0 ? 0.76 : 0.035),
-      materials.tileNeon,
-    )
-    strip.position.set(dx * 0.43, 0.18, dz * 0.43)
-    group.add(strip)
-  }
-
-  const marker = new THREE.Mesh(
-    new THREE.BoxGeometry(0.12, 0.025, 0.12),
-    new THREE.MeshBasicMaterial({ color: card.kind === 'cross' ? '#bd7958' : '#75d9ff' }),
-  )
-  marker.position.set(0, 0.19, 0)
-  group.add(marker)
-  board.add(group)
-  return group
+for (const kind of Object.keys(characterModels) as SurvivorKind[]) {
+  if (kind === activeSurvivorKind) continue
+  placeSurvivorModel(kind, false)
 }
-
-
-const createRoomTile = (room: SavedRoom, entryDirection: Direction) => {
-  const group = new THREE.Group()
-  group.position.set(room.x * 1.18, 0.025, room.z * 1.18)
-
-  const base = new THREE.Mesh(
-    new THREE.BoxGeometry(1.18, 0.14, 1.18),
-    new THREE.MeshStandardMaterial({ color: '#382d29', roughness: 0.92 }),
-  )
-  base.position.y = 0.07
-  base.castShadow = true
-  base.receiveShadow = true
-  group.add(base)
-
-  const surface = new THREE.Mesh(
-    new THREE.BoxGeometry(1.08, 0.025, 1.08),
-    new THREE.MeshStandardMaterial({
-      color: room.searched ? '#45464a' : '#494039',
-      emissive: room.searched ? '#101719' : '#25160d',
-      emissiveIntensity: 0.35,
-      roughness: 0.88,
-    }),
-  )
-  surface.position.y = 0.152
-  surface.receiveShadow = true
-  group.add(surface)
-
-  for (let x = -1; x <= 1; x += 1) {
-    for (let z = -1; z <= 1; z += 1) {
-      const panel = new THREE.Mesh(
-        new THREE.BoxGeometry(0.32, 0.009, 0.32),
-        (x + z) % 2 === 0 ? materials.floorPanelDark : materials.floorPanel,
-      )
-      panel.position.set(x * 0.34, 0.169, z * 0.34)
-      group.add(panel)
-    }
-  }
-
-  const edges: Array<{ direction: Direction; position: [number, number, number]; size: [number, number, number] }> = [
-    { direction: 'N', position: [0, 0.31, -0.55], size: [1.08, 0.29, 0.055] },
-    { direction: 'S', position: [0, 0.31, 0.55], size: [1.08, 0.29, 0.055] },
-    { direction: 'E', position: [0.55, 0.31, 0], size: [0.055, 0.29, 1.08] },
-    { direction: 'W', position: [-0.55, 0.31, 0], size: [0.055, 0.29, 1.08] },
-  ]
-  const wallMaterial = new THREE.MeshStandardMaterial({
-    color: '#55463d',
-    metalness: 0.18,
-    roughness: 0.9,
-  })
-  for (const edge of edges) {
-    if (edge.direction === entryDirection) continue
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(...edge.size), wallMaterial)
-    wall.position.set(...edge.position)
-    wall.castShadow = true
-    wall.receiveShadow = true
-    group.add(wall)
-  }
-
-  const entry = edges.find((edge) => edge.direction === entryDirection)
-  if (entry) {
-    const horizontal = entryDirection === 'N' || entryDirection === 'S'
-    const frameMaterial = new THREE.MeshStandardMaterial({ color: '#b27c52', metalness: 0.58, roughness: 0.45 })
-    for (const side of [-1, 1]) {
-      const post = new THREE.Mesh(
-        new THREE.BoxGeometry(horizontal ? 0.045 : 0.07, 0.29, horizontal ? 0.07 : 0.045),
-        frameMaterial,
-      )
-      post.position.set(horizontal ? side * 0.28 : entry.position[0], 0.31, horizontal ? entry.position[2] : side * 0.28)
-      group.add(post)
-    }
-    const lintel = new THREE.Mesh(
-      new THREE.BoxGeometry(horizontal ? 0.6 : 0.07, 0.04, horizontal ? 0.07 : 0.6),
-      frameMaterial,
-    )
-    lintel.position.set(horizontal ? 0 : entry.position[0], 0.47, horizontal ? entry.position[2] : 0)
-    group.add(lintel)
-  }
-
-  const markerColor = room.status === 'locked' ? '#bd7958' : room.status === 'trapped' ? '#e0a45d' : '#75d9ff'
-  const marker = new THREE.Mesh(
-    new THREE.BoxGeometry(0.18, 0.025, 0.18),
-    new THREE.MeshBasicMaterial({ color: markerColor }),
-  )
-  marker.position.set(0, 0.19, 0)
-  group.add(marker)
-
-  if (!room.searched) {
-    const glow = new THREE.PointLight(markerColor, 0.65, 1.8, 1.8)
-    glow.position.set(0, 0.42, 0)
-    group.add(glow)
-  }
-
-  board.add(group)
-  return group
+const legacyPosition = savedGameState?.survivor
+if (legacyPosition && !savedGameState.survivors) {
+  survivorPositions.stealth = { ...legacyPosition, roomId: savedGameState.currentRoomId ?? null }
 }
-
-const getRoomStatusLabel = (status: RoomStatus) => ({
-  ordinary: 'Ordinaire',
-  locked: 'Verrouillée',
-  trapped: 'Piégée',
-})[status]
-
-const getDifficultyLabel = (difficulty: RoomDifficulty) => ({
-  easy: 'Facile',
-  medium: 'Moyenne',
-  hard: 'Difficile',
-})[difficulty]
-
-const resourceLabels: Record<ResourceType, string> = {
-  cafe: 'Café',
-  croissant: 'Croissant',
-  citron: 'Citron',
-  bonbon: 'Bonbon acidulé',
-  munition: 'Munition',
-}
-
-const resourceThresholds: Record<RoomDifficulty, Record<ResourceType, number>> = {
-  easy: { cafe: 4, croissant: 3, citron: 4, bonbon: 3, munition: 4 },
-  medium: { cafe: 5, croissant: 4, citron: 5, bonbon: 4, munition: 5 },
-  hard: { cafe: 6, croissant: 5, citron: 6, bonbon: 5, munition: 6 },
-}
-
-const rollRoomDice = (room: RoomTile) => {
-  const dice = Object.keys(resourceLabels) as ResourceType[]
-  const results = dice.map((resource) => ({
-    resource,
-    value: Math.floor(Math.random() * 6) + 1,
-    threshold: resourceThresholds[room.difficulty][resource],
-  }))
-  const found = results.filter((result) => result.value >= result.threshold)
-  found.forEach(({ resource }) => { resources[resource] += 1 })
-  room.lastRoll = results.map((result) => ({ ...result, found: result.value >= result.threshold }))
-  room.searched = true
-  setStatus(found.length
-    ? `Fouille ${getDifficultyLabel(room.difficulty).toLowerCase()} : ${results.map((result) => `${resourceLabels[result.resource]} ${result.value}/6`).join(' · ')}. Trouvé : ${found.map(({ resource }) => resourceLabels[resource]).join(', ')}.`
-    : `Fouille ${getDifficultyLabel(room.difficulty).toLowerCase()} : ${results.map((result) => `${resourceLabels[result.resource]} ${result.value}/6`).join(' · ')}. Aucune ressource trouvée.`)
-  saveGameState()
-  renderGameUi()
-}
-
-// Setup: two straight corridor cards are placed between the start tile and the unexplored area.
-const setupCorridor = () => {
-  for (let index = 1; index <= 2; index += 1) {
-    const deckIndex = corridorDeck.findIndex((card) => card.kind === 'straight')
-    if (deckIndex < 0) throw new Error('Not enough straight CC cards for setup')
-    const [card] = corridorDeck.splice(deckIndex, 1)
-    const x = 0
-    const z = index
-    const exits: Direction[] = ['N', 'S']
-    const doors: Direction[] = []
-    const group = createCorridorTile(card, x, z, exits, doors)
-    boardTiles.push({ x, z, kind: card.kind, exits, doors, usedDoors: [], group })
-  }
-}
-
-if (savedGameState?.tiles.length) {
-  for (const tile of savedGameState.tiles) {
-    const isInitialCorridor = tile.x === 0 && (tile.z === 1 || tile.z === 2)
-    const savedDoors = isInitialCorridor ? [] : tile.doors ?? []
-    const validWallDoors = savedDoors.filter((direction) => !tile.exits.includes(direction))
-    const doors = validWallDoors.length === savedDoors.length
-      ? validWallDoors
-      : createDoorDirections(tile.kind, savedDoors.length)
-    const card: CorridorCard = { id: nextCardId++, kind: tile.kind, doors }
-    const usedDoors = [...(tile.usedDoors ?? [])]
-    const group = createCorridorTile(card, tile.x, tile.z, tile.exits, doors, usedDoors)
-    boardTiles.push({ ...tile, exits: [...tile.exits], doors: [...doors], usedDoors, group })
-  }
-} else {
-  setupCorridor()
-}
-
-
-if (savedGameState?.rooms) {
-  for (const savedRoom of savedGameState.rooms) {
-    const group = createRoomTile(savedRoom, opposite[savedRoom.direction])
-    rooms.push({ ...savedRoom, group })
-  }
-}
-if (savedGameState?.nextRoomCardId) nextRoomCardId = savedGameState.nextRoomCardId
-
-if (savedGameState?.survivor) {
-  const restoredTile = boardTiles.find(
-    (tile) => tile.x === savedGameState.survivor.x && tile.z === savedGameState.survivor.z,
-  )
-  if (restoredTile) {
-    currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-    restoredTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-    activeCharacter.position.set(0, 0.19, 0.16)
-    activeRing.position.set(0, 0.183, 0.16)
-    currentTile = restoredTile
-  }
-}
-if (currentRoomId !== null) {
-  const restoredRoom = rooms.find((room) => room.id === currentRoomId)
-  if (restoredRoom) {
-    currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-    restoredRoom.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-    activeCharacter.position.set(0, 0.19, 0)
-    activeRing.position.set(0, 0.183, 0)
-  } else {
-    currentRoomId = null
-  }
-}
+activateSurvivor(activeSurvivorKind)
 if (savedGameState) nextCardId = savedGameState.nextCardId
 
 const getPlacements = (card: CorridorCard): PlacementCandidate[] => {
