@@ -93,6 +93,6 @@
         <div class="tile-label" aria-hidden="true"><span class="tile-label-dot"></span> DÉPART <b>CD</b></div>
       </section>
     </main>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module">if (location.pathname === "/pixelart") { await import("/src/pixelart.ts") } else { await import("/src/main.ts") }</script>
   </body>
 </html>

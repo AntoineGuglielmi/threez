@@ -1,113 +1,114 @@
 import './style.css'
+import { CORRIDOR_PIXEL_MODELS, CORRIDOR_PIXEL_SIZE, CORRIDOR_PIXEL_STORAGE_KEY, createDefaultCorridorPixels, type CorridorPixelTemplates } from './game/corridor-pixel-templates'
 
-type Template = { pixels: string[] }
-const SIZE = 32
-const STORAGE_KEY = 'threez:corridor-pixel-templates:v1'
-const palette = ['#171d20','#626b6d','#858b83','#4b5659','#a4a99e','#c2c2b2','#626d6c','#354144','#d0b18a','#76513d','#b47d56','#3f3029','#c0c7bf','#783d3b','#d4c9a9']
-const definitions = [
-  { id: 'straight-0', title: 'Droit', doors: 0 },
-  { id: 'straight-1', title: 'Droit', doors: 1 },
-  { id: 'straight-2', title: 'Droit', doors: 2 },
-  { id: 'turn-0', title: 'Virage', doors: 0 },
-  { id: 'turn-1', title: 'Virage', doors: 1 },
-  { id: 'turn-2', title: 'Virage', doors: 2 },
-  { id: 'tee-0', title: 'T', doors: 0 },
-  { id: 'tee-1', title: 'T', doors: 1 },
-  { id: 'cross-0', title: 'X', doors: 0 },
-] as const
-
-const seed = (id: string): string[] => {
-  const pixels = Array(SIZE * SIZE).fill('#171d20')
-  const [kind] = id.split('-')
-  const paint = (x: number, y: number, color: string) => { if (x >= 0 && x < SIZE && y >= 0 && y < SIZE) pixels[y * SIZE + x] = color }
-  const rect = (x1: number, y1: number, x2: number, y2: number, color: string) => {
-    for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) paint(x,y,color)
-  }
-  const arms: Array<[number,number,number,number]> = [[9,9,22,22]]
-  if (kind === 'straight' || kind === 'tee' || kind === 'cross') arms.push([13,0,18,31])
-  if (kind === 'turn') arms.push([0,13,18,18])
-  if (kind === 'tee' || kind === 'cross') arms.push([0,13,31,18])
-  for (const [x1,y1,x2,y2] of arms) rect(x1,y1,x2,y2,'#626b6d')
-  // Subtle floor variation makes the template immediately editable rather than empty.
-  for (let y=0;y<SIZE;y++) for(let x=0;x<SIZE;x++) if(pixels[y*SIZE+x]==='#626b6d' && (x+y)%7===0) paint(x,y,'#858b83')
-  return pixels
+const readTemplates = (): CorridorPixelTemplates => {
+  try {
+    const raw = localStorage.getItem(CORRIDOR_PIXEL_STORAGE_KEY)
+    return raw ? JSON.parse(raw) as CorridorPixelTemplates : {}
+  } catch { return {} }
 }
-const load = (): Record<string, Template> => {
-  try { const value = localStorage.getItem(STORAGE_KEY); return value ? JSON.parse(value) as Record<string,Template> : {} } catch { return {} }
-}
-const templates = load()
-for (const item of definitions) templates[item.id] ??= { pixels: seed(item.id) }
-const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(templates))
+const templates = readTemplates()
+for (const model of CORRIDOR_PIXEL_MODELS) templates[model.id] ??= createDefaultCorridorPixels(model.id)
+const save = () => localStorage.setItem(CORRIDOR_PIXEL_STORAGE_KEY, JSON.stringify(templates))
 
-const root = document.querySelector<HTMLElement>('#pixelart')
-if (!root) throw new Error('Pixel art root missing')
-root.innerHTML = `
-  <header class="pa-header"><a href="/">← Retour au jeu</a><div><span>THREEZ / OUTIL INTERNE</span><h1>Éditeur de couloirs</h1><p>Chaque modèle est réutilisé par les cartes en jeu.</p></div><button id="pa-reset" type="button">Réinitialiser les modèles</button></header>
-  <main class="pa-layout"><nav class="pa-models" aria-label="Modèles de couloirs"></nav><section class="pa-editor"><div class="pa-editor-heading"><div><span id="pa-kicker"></span><h2 id="pa-title"></h2></div><span id="pa-count"></span></div><div class="pa-workspace"><div id="pa-grid" class="pa-grid" role="grid" aria-label="Grille de pixels"></div><aside class="pa-tools"><h3>Palette</h3><div id="pa-palette" class="pa-palette"></div><label>Couleur personnalisée<input id="pa-custom" type="color" value="#626b6d"></label><button id="pa-clear" type="button">Effacer la grille</button><p>Peins en cliquant ou en glissant sur les pixels. Les changements sont enregistrés automatiquement.</p></aside></div></section></main>
-`
-
-let activeId = definitions[0].id
-let activeColor = palette[1]
-let painting = false
-const nav = root.querySelector<HTMLElement>('.pa-models')!
-const grid = root.querySelector<HTMLElement>('#pa-grid')!
-const title = root.querySelector<HTMLElement>('#pa-title')!
-const kicker = root.querySelector<HTMLElement>('#pa-kicker')!
-const count = root.querySelector<HTMLElement>('#pa-count')!
-const paletteElement = root.querySelector<HTMLElement>('#pa-palette')!
+document.body.className = 'pixelart-page'
+document.body.innerHTML = `
+  <main class="pixelart-app">
+    <header class="pa-header">
+      <a class="pa-back" href="/">← Retour au jeu</a>
+      <div><span class="pa-eyebrow">THREEZ / OUTIL DE CRÉATION</span><h1>Atelier pixel art</h1><p>Crée les visuels des cartes couloir, pixel par pixel.</p></div>
+      <button class="pa-reset" id="pa-reset" type="button">Réinitialiser les modèles</button>
+    </header>
+    <div class="pa-layout">
+      <nav class="pa-model-list" aria-label="Modèles de couloirs"></nav>
+      <section class="pa-editor">
+        <header class="pa-editor-heading"><div><span id="pa-door-count"></span><h2 id="pa-model-name"></h2></div><span>32 × 32 pixels</span></header>
+        <div class="pa-workspace">
+          <div class="pa-canvas-wrap"><div class="pa-grid" role="grid" aria-label="Grille de dessin"></div></div>
+          <aside class="pa-tools">
+            <h3>Couleur</h3><div class="pa-palette"></div>
+            <label class="pa-custom-label">Couleur personnalisée<input id="pa-custom" type="color" value="#626b6d"></label>
+            <div class="pa-tool-actions"><button id="pa-fill" type="button">Remplir</button><button id="pa-clear" type="button">Tout effacer</button></div>
+            <p class="pa-help">Clique sur un pixel pour le colorer. Tu peux aussi maintenir le clic et faire glisser pour dessiner. Les modifications sont sauvegardées automatiquement dans ce navigateur et réutilisées par les cartes du jeu.</p>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </main>`
+const root = document.querySelector<HTMLElement>('.pixelart-app')!
+const nav = root.querySelector<HTMLElement>('.pa-model-list')!
+const grid = root.querySelector<HTMLElement>('.pa-grid')!
+const paletteElement = root.querySelector<HTMLElement>('.pa-palette')!
+const name = root.querySelector<HTMLElement>('#pa-model-name')!
+const doorCount = root.querySelector<HTMLElement>('#pa-door-count')!
+const colors = ['#171d20','#30383b','#354144','#4b5659','#626b6d','#707875','#858b83','#a4a99e','#c2c2b2','#d0b18a','#76513d','#b47d56','#3f3029','#c0c7bf','#783d3b','#a64c47']
+let activeId = CORRIDOR_PIXEL_MODELS[0].id
+let activeColor = colors[4]
+let isPainting = false
 
 const renderNav = () => {
-  nav.innerHTML = definitions.map(item => `<button type="button" data-id="${item.id}" class="${item.id===activeId?'is-active':''}"><span>${item.title}</span><small>${item.doors} porte(s)</small></button>`).join('')
+  nav.innerHTML = CORRIDOR_PIXEL_MODELS.map((model) => `
+    <button type="button" data-model="${model.id}" class="${model.id === activeId ? 'is-active' : ''}">
+      <span>${model.label}</span><small>${model.doors} porte${model.doors > 1 ? 's' : ''}</small>
+    </button>`).join('')
 }
 const renderGrid = () => {
-  const item = definitions.find(entry => entry.id===activeId)!
-  const pixels = templates[activeId].pixels
-  kicker.textContent = item.doors + ' PORTE(S)'
-  title.textContent = item.title
-  count.textContent = SIZE + ' × ' + SIZE + ' pixels'
-  grid.innerHTML = pixels.map((color,index)=>`<button type="button" class="pa-pixel" data-index="${index}" style="background:${color}" aria-label="Pixel ${index%SIZE+1}, ${Math.floor(index/SIZE)+1}"></button>`).join('')
+  const model = CORRIDOR_PIXEL_MODELS.find((item) => item.id === activeId)!
+  name.textContent = model.label
+  doorCount.textContent = `${model.doors} PORTE${model.doors > 1 ? 'S' : ''}`
+  grid.innerHTML = templates[activeId].map((color, index) =>
+    `<button type="button" class="pa-pixel" role="gridcell" data-index="${index}" style="background:${color}" aria-label="Pixel ${index % CORRIDOR_PIXEL_SIZE + 1}, ${Math.floor(index / CORRIDOR_PIXEL_SIZE) + 1}"></button>`,
+  ).join('')
   renderNav()
 }
-const paint = (index:number) => {
-  templates[activeId].pixels[index]=activeColor
-  const pixel=grid.children.item(index) as HTMLElement|null
-  if(pixel) pixel.style.background=activeColor
-  save()
-}
-paletteElement.innerHTML = palette.map(color=>`<button type="button" data-color="${color}" style="--swatch:${color}" aria-label="Couleur ${color}"></button>`).join('')
-
-nav.addEventListener('click',event=>{
-  const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-id]')
-  if(!button)return
-  activeId=button.dataset.id!
+paletteElement.innerHTML = colors.map((color) => `<button type="button" data-color="${color}" style="--swatch:${color}" aria-label="Couleur ${color}"></button>`).join('')
+paletteElement.addEventListener('click', (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-color]')
+  if (!button) return
+  activeColor = button.dataset.color!
+  paletteElement.querySelectorAll('button').forEach((item) => item.classList.toggle('is-active', item === button))
+})
+nav.addEventListener('click', (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-model]')
+  if (!button) return
+  activeId = button.dataset.model!
   renderGrid()
 })
-paletteElement.addEventListener('click',event=>{
-  const button=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-color]')
-  if(!button)return
-  activeColor=button.dataset.color!
-  root.querySelectorAll('[data-color]').forEach(el=>el.classList.toggle('is-active',el===button))
-})
-grid.addEventListener('pointerdown',event=>{
-  const pixel=(event.target as HTMLElement).closest<HTMLElement>('[data-index]')
-  if(!pixel)return
-  painting=true
-  ;(event.target as HTMLElement).setPointerCapture?.((event as PointerEvent).pointerId)
+const paint = (index: number) => {
+  templates[activeId][index] = activeColor
+  const pixel = grid.children.item(index) as HTMLElement | null
+  if (pixel) pixel.style.backgroundColor = activeColor
+  save()
+}
+grid.addEventListener('pointerdown', (event) => {
+  const pixel = (event.target as HTMLElement).closest<HTMLElement>('[data-index]')
+  if (!pixel) return
+  isPainting = true
   paint(Number(pixel.dataset.index))
 })
-grid.addEventListener('pointerover',event=>{
-  if(!painting || (event as PointerEvent).buttons!==1)return
-  const pixel=(event.target as HTMLElement).closest<HTMLElement>('[data-index]')
-  if(pixel)paint(Number(pixel.dataset.index))
+grid.addEventListener('pointerover', (event) => {
+  if (!isPainting || (event as PointerEvent).buttons !== 1) return
+  const pixel = (event.target as HTMLElement).closest<HTMLElement>('[data-index]')
+  if (pixel) paint(Number(pixel.dataset.index))
 })
-window.addEventListener('pointerup',()=>{painting=false})
-root.querySelector<HTMLInputElement>('#pa-custom')!.addEventListener('input',event=>{activeColor=(event.target as HTMLInputElement).value})
-root.querySelector<HTMLButtonElement>('#pa-clear')!.addEventListener('click',()=>{
-  templates[activeId].pixels=Array(SIZE*SIZE).fill('#171d20')
-  save();renderGrid()
+window.addEventListener('pointerup', () => { isPainting = false })
+root.querySelector<HTMLInputElement>('#pa-custom')!.addEventListener('input', (event) => {
+  activeColor = (event.target as HTMLInputElement).value
+  paletteElement.querySelectorAll('button').forEach((item) => item.classList.remove('is-active'))
 })
-root.querySelector<HTMLButtonElement>('#pa-reset')!.addEventListener('click',()=>{
-  for(const item of definitions)templates[item.id]={pixels:seed(item.id)}
-  save();renderGrid()
+root.querySelector<HTMLButtonElement>('#pa-fill')!.addEventListener('click', () => {
+  templates[activeId] = Array(CORRIDOR_PIXEL_SIZE ** 2).fill(activeColor)
+  save()
+  renderGrid()
+})
+root.querySelector<HTMLButtonElement>('#pa-clear')!.addEventListener('click', () => {
+  templates[activeId] = Array(CORRIDOR_PIXEL_SIZE ** 2).fill('#171d20')
+  save()
+  renderGrid()
+})
+root.querySelector<HTMLButtonElement>('#pa-reset')!.addEventListener('click', () => {
+  for (const model of CORRIDOR_PIXEL_MODELS) templates[model.id] = createDefaultCorridorPixels(model.id)
+  save()
+  renderGrid()
 })
 renderGrid()
