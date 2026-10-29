@@ -40,6 +40,26 @@
             <div class="pile-card"><span class="pile-icon">CC</span><span>PIOCHE <b id="cc-deck-count">37</b></span></div>
             <div class="pile-card"><span class="pile-icon discard-icon">×</span><span>DÉFAUSSE <b id="cc-discard-count">0</b></span></div>
           </div>
+          <div class="pile-row cp-pile-row">
+            <div class="pile-card"><span class="pile-icon cp-icon">CP</span><span>PIOCHE PIÈCES <b id="cp-deck-count">24</b></span></div>
+          </div>
+          <section class="room-exploration" aria-label="Exploration des pièces">
+            <div class="hand-heading"><h3>Pièces</h3><span>CP</span></div>
+            <p id="room-state" class="room-state">Vous êtes dans le couloir.</p>
+            <div id="cp-door-options" class="cp-door-options">Cette CC ne possède aucune porte.</div>
+            <button id="unlock-room" class="action-button primary" hidden>Déverrouiller et fouiller · 1 action</button>
+            <button id="return-room" class="action-button subtle" hidden>Retourner dans le couloir · 1 action</button>
+          </section>
+          <section class="resource-inventory" aria-label="Ressources récupérées">
+            <div class="hand-heading"><h3>Ressources</h3><span>INVENTAIRE</span></div>
+            <div class="resource-grid">
+              <span>Café <b id="resource-cafe">0</b></span>
+              <span>Croissant <b id="resource-croissant">0</b></span>
+              <span>Citron <b id="resource-citron">0</b></span>
+              <span>Bonbon acidulé <b id="resource-bonbon">0</b></span>
+              <span>Munition <b id="resource-munition">0</b></span>
+            </div>
+          </section>
           <div class="hand-heading"><h3>Votre main</h3><span>3 CC</span></div>
           <div id="cc-hand" class="cc-hand"></div>
           <p id="game-status" class="game-status" role="status">Choisissez une CC pour afficher les emplacements possibles sur le plateau.</p>
