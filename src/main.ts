@@ -908,7 +908,6 @@ const rollRoomDice = (room: RoomTile) => {
   const found = results.filter((result) => result.value >= result.threshold)
   found.forEach(({ resource }) => { resources[resource] += 1 })
   room.searched = true
-  room.group.remove(...room.group.children.filter((child) => child instanceof THREE.PointLight))
   setStatus(found.length
     ? `Fouille ${getDifficultyLabel(room.difficulty).toLowerCase()} : ${results.map((result) => `${resourceLabels[result.resource]} ${result.value}/6`).join(' · ')}. Trouvé : ${found.map(({ resource }) => resourceLabels[resource]).join(', ')}.`
     : `Fouille ${getDifficultyLabel(room.difficulty).toLowerCase()} : ${results.map((result) => `${resourceLabels[result.resource]} ${result.value}/6`).join(' · ')}. Aucune ressource trouvée.`)
@@ -1490,7 +1489,9 @@ const saveGameState = () => {
       tiles: boardTiles
         .filter((tile): tile is BoardTile & { kind: CorridorKind } => tile.kind !== 'start')
         .map(({ x, z, kind, exits, doors, usedDoors }) => ({ x, z, kind, exits, doors, usedDoors })),
-      rooms: rooms.map(({ group: _group, ...room }) => room),
+      rooms: rooms.map(({ id, status, difficulty, searched, unlocked, x, z, originX, originZ, direction }) => ({
+        id, status, difficulty, searched, unlocked, x, z, originX, originZ, direction,
+      })),
       currentRoomId,
       resources,
       roomDeck, 
