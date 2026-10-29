@@ -417,6 +417,8 @@ activeRing.rotation.x = -Math.PI / 2
 activeRing.position.set(0, 0.183, 0.16)
 start.add(activeRing)
 
+let currentTile = boardTiles[0]
+
 const otherCharacters: Array<{ kind: 'heavy' | 'military' | 'scientist' | 'injured'; character: THREE.Group; position: [number, number, number] }> = [
   { kind: 'heavy', character: createCharacter('heavy'), position: [-0.32, 0.19, -0.28] },
   { kind: 'military', character: createCharacter('military'), position: [0.32, 0.19, -0.28] },
@@ -826,8 +828,13 @@ let targetRotation = 0
 let zoom = 1
 let currentZoom = 1
 
+let pointerDownPosition = { x: 0, y: 0 }
+let hasDragged = false
+
 renderer.domElement.addEventListener('pointerdown', (event) => {
   isDragging = true
+  hasDragged = false
+  pointerDownPosition = { x: event.clientX, y: event.clientY }
   previousPointer = { x: event.clientX, y: event.clientY }
   renderer.domElement.setPointerCapture(event.pointerId)
 })
@@ -835,6 +842,10 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
 renderer.domElement.addEventListener('pointermove', (event) => {
   if (!isDragging) return
   const deltaX = event.clientX - previousPointer.x
+  const deltaY = event.clientY - previousPointer.y
+  if (Math.hypot(event.clientX - pointerDownPosition.x, event.clientY - pointerDownPosition.y) > 5) {
+    hasDragged = true
+  }
   targetRotation += deltaX * 0.003
   previousPointer = { x: event.clientX, y: event.clientY }
 })
@@ -853,12 +864,68 @@ renderer.domElement.addEventListener('wheel', (event) => {
 }, { passive: false })
 
 renderer.domElement.addEventListener('click', (event) => {
+  if (hasDragged) return
+
   const bounds = renderer.domElement.getBoundingClientRect()
   pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1
   pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1
   raycaster.setFromCamera(pointer, camera)
+
   const hits = raycaster.intersectObjects(boardTiles.map((tile) => tile.group), true)
-  root.dataset.selected = hits.length > 0 ? 'start' : 'unknown'
+  const hit = hits[0]
+  if (!hit) {
+    root.dataset.selected = 'unknown'
+    return
+  }
+
+  let hitGroup: THREE.Object3D | null = hit.object
+  while (hitGroup && !boardTiles.some((tile) => tile.group === hitGroup)) {
+    hitGroup = hitGroup.parent
+  }
+  const targetTile = boardTiles.find((tile) => tile.group === hitGroup)
+  if (!targetTile) return
+
+  if (targetTile === currentTile) {
+    root.dataset.selected = 'current-tile'
+    setStatus('Le survivant est déjà sur cette case.')
+    return
+  }
+
+  const dx = targetTile.x - currentTile.x
+  const dz = targetTile.z - currentTile.z
+  const direction = directionOrder.find(([dirX, dirZ]) => {
+    const [x, z] = directionDelta[dirX]
+    return x === dx && z === dz
+  })
+
+  if (!direction || Math.abs(dx) + Math.abs(dz) !== 1) {
+    root.dataset.selected = 'not-adjacent'
+    setStatus('Déplacement impossible : choisissez une case adjacente.')
+    return
+  }
+
+  if (actionsRemaining <= 0) {
+    setStatus('Il ne reste plus d’action pour se déplacer.')
+    return
+  }
+
+  const canPass = currentTile.exits.includes(direction) &&
+    targetTile.exits.includes(opposite[direction])
+  if (!canPass) {
+    root.dataset.selected = 'blocked'
+    setStatus('Passage bloqué : les deux cases ne sont pas reliées par une sortie.')
+    return
+  }
+
+  currentTile.group.remove(activeCharacter, activeRing)
+  targetTile.group.add(activeCharacter, activeRing)
+  activeCharacter.position.set(0, 0.19, 0.16)
+  activeRing.position.set(0, 0.183, 0.16)
+  currentTile = targetTile
+  spendAction()
+  root.dataset.selected = 'current-tile'
+  setStatus(`Déplacement effectué. ${actionsRemaining} action${actionsRemaining > 1 ? 's' : ''} restante${actionsRemaining > 1 ? 's' : ''}.`)
+  renderGameUi()
 })
 
 const clock = new THREE.Clock()
