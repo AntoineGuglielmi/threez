@@ -990,6 +990,7 @@ discardButton?.addEventListener('click', () => {
   discardPile.push(pendingDraw)
   pendingDraw = null
   setStatus('CC piochée défaussée.')
+  saveGameState()
   renderGameUi()
 })
 replaceButton?.addEventListener('click', () => {
@@ -1006,6 +1007,7 @@ replaceButton?.addEventListener('click', () => {
       pendingDraw = null
       selectedCardId = hand[index].id
       setStatus(`CC remplacée. « ${corridorDefinitions[oldCard.kind].label} » défaussée.`)
+      saveGameState()
       renderGameUi()
     }, { once: true })
   })
@@ -1021,6 +1023,7 @@ endTurnButton?.addEventListener('click', () => {
   selectedCardId = null
   placementPreview = null
   setStatus('Nouveau tour : 7 actions. Votre main est prête.')
+  saveGameState()
   renderGameUi()
 })
 
