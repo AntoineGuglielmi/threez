@@ -160,7 +160,11 @@ const addWalls = (pixels: Map<string, string>, exits: Direction[], doors: Direct
 
 const addDoor = (pixels: Map<string, string>, direction: Direction) => {
   const horizontalWall = direction === 'N' || direction === 'S'
-  const inward = direction === 'N' || direction === 'W' ? 1 : -1
+  const inward: [number, number] = direction === 'N' ? [0, 1]
+    : direction === 'S' ? [0, -1]
+      : direction === 'W' ? [1, 0]
+        : [-1, 0]
+  const tangent: [number, number] = horizontalWall ? [1, 0] : [0, 1]
   const wallLine = direction === 'N' || direction === 'W' ? FLOOR_START : FLOOR_END
 
   // Door sill and jambs interrupt the wall instead of sitting on top of it.
@@ -180,22 +184,18 @@ const addDoor = (pixels: Map<string, string>, direction: Direction) => {
     }
   }
 
-  // The open leaf is a small perspective slab. Both long edges and its short
-  // thickness edge remain visible, so it reads as a door rather than a stripe.
-  const hinge = PASSAGE_CENTER - DOOR_HALF_WIDTH + 2
+  // The leaf opens into the corridor. Its two long edges and its short end
+  // are separate pixel lines, giving the door a visible top, bottom and thickness.
+  const hingeOffset = -5
+  const hingeX = horizontalWall ? PASSAGE_CENTER + hingeOffset : wallLine + inward[0]
+  const hingeY = horizontalWall ? wallLine + inward[1] : PASSAGE_CENTER + hingeOffset
   const length = 11
-  const depth = 4
-  const baseX = horizontalWall ? hinge : wallLine + inward
-  const baseY = horizontalWall ? wallLine + inward : hinge
-  const tipX = horizontalWall ? hinge + length : baseX + inward * depth
-  const tipY = horizontalWall ? baseY + inward * depth : hinge + length
-  const depthX = horizontalWall ? 0 : -inward * depth
-  const depthY = horizontalWall ? -inward * depth : 0
+  const width = 3
   const points: Array<[number, number]> = [
-    [baseX, baseY],
-    [tipX, tipY],
-    [tipX + depthX, tipY + depthY],
-    [baseX + depthX, baseY + depthY],
+    [hingeX, hingeY],
+    [hingeX + inward[0] * length + tangent[0], hingeY + inward[1] * length + tangent[1]],
+    [hingeX + inward[0] * length + tangent[0] * (width + 1), hingeY + inward[1] * length + tangent[1] * (width + 1)],
+    [hingeX + tangent[0] * width, hingeY + tangent[1] * width],
   ]
 
   fillPolygon(pixels, points, palette.door)
@@ -203,10 +203,8 @@ const addDoor = (pixels: Map<string, string>, direction: Direction) => {
   line(pixels, ...points[1], ...points[2], palette.doorShadow)
   line(pixels, ...points[2], ...points[3], palette.doorShadow)
   line(pixels, ...points[3], ...points[0], palette.doorLight)
-  setPixel(pixels, baseX, baseY, palette.metal)
-  setPixel(pixels, baseX + (horizontalWall ? 1 : 0), baseY + (horizontalWall ? 0 : 1), palette.doorShadow)
+  setPixel(pixels, hingeX, hingeY, palette.metal)
 }
-
 const addFloorDetails = (pixels: Map<string, string>) => {
   // Broken tile joints follow the floor shape and never cross walls or empty space.
   for (const y of [8, 20, 32, 44, 56]) {
