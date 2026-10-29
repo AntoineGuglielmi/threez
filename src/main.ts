@@ -390,8 +390,9 @@ const createCharacter = (kind: 'stealth' | 'heavy' | 'military' | 'scientist' | 
 
 // The stealth character takes the first turn and is shown at full size.
 // Other survivors remain visible as small tokens around the same starting tile.
-const activeSurvivorKind = 'stealth' as const
-const activeCharacter = createCharacter(activeSurvivorKind)
+type SurvivorKind = 'stealth' | 'heavy' | 'military' | 'scientist' | 'injured'
+let activeSurvivorKind: SurvivorKind = 'stealth'
+let activeCharacter = createCharacter(activeSurvivorKind)
 activeCharacter.position.set(0, 0.19, 0.16)
 activeCharacter.scale.setScalar(0.72)
 start.add(activeCharacter)
@@ -419,7 +420,7 @@ activeRing.position.set(0, 0.183, 0.16)
 start.add(activeRing)
 
 
-const otherCharacters: Array<{ kind: 'heavy' | 'military' | 'scientist' | 'injured'; character: THREE.Group; position: [number, number, number] }> = [
+const otherCharacters: Array<{ kind: Exclude<SurvivorKind, 'stealth'>; character: THREE.Group; position: [number, number, number] }> = [
   { kind: 'heavy', character: createCharacter('heavy'), position: [-0.32, 0.19, -0.28] },
   { kind: 'military', character: createCharacter('military'), position: [0.32, 0.19, -0.28] },
   { kind: 'scientist', character: createCharacter('scientist'), position: [-0.32, 0.19, 0.36] },
@@ -501,6 +502,11 @@ type SavedGameState = {
   pendingRoomDraw?: RoomCard | null
   nextRoomCardId?: number
   survivor: { x: number; z: number }
+  survivors?: Partial<Record<SurvivorKind, { x: number; z: number; roomId: number | null }>>
+  activeSurvivorKind?: SurvivorKind
+  characterOrder?: SurvivorKind[]
+  characterIndex?: number
+  injuredMovedThisTurn?: boolean
   zoom: number
   cameraTarget: { x: number; z: number }
   cameraAngle?: number
@@ -613,6 +619,10 @@ let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSa
 let selectedCardId: number | null = null
 let actionsRemaining = savedGameState?.actionsRemaining ?? 7
 let turnNumber = savedGameState?.turnNumber ?? 1
+if (savedGameState?.activeSurvivorKind && characterOrder.includes(savedGameState.activeSurvivorKind)) {
+  activeSurvivorKind = savedGameState.activeSurvivorKind
+  characterIndex = characterOrder.indexOf(activeSurvivorKind)
+}
 if (savedGameState) nextCardId = savedGameState.nextCardId
 const boardTiles: BoardTile[] = [{
   x: 0,
@@ -625,6 +635,16 @@ const boardTiles: BoardTile[] = [{
 }]
 
 let currentTile = boardTiles[0]
+const survivorPositions: Record<SurvivorKind, { x: number; z: number; roomId: number | null }> = {
+  stealth: { x: 0, z: 0, roomId: null },
+  heavy: { x: 0, z: 0, roomId: null },
+  military: { x: 0, z: 0, roomId: null },
+  scientist: { x: 0, z: 0, roomId: null },
+  injured: { x: 0, z: 0, roomId: null },
+}
+let characterOrder: SurvivorKind[] = savedGameState?.characterOrder ?? ['stealth', ...shuffle(['heavy', 'military', 'scientist'] as const), 'injured']
+let characterIndex = savedGameState?.characterIndex ?? 0
+let injuredMovedThisTurn = savedGameState?.injuredMovedThisTurn ?? false
 let placementPreview: { x: number; z: number; options: PlacementOption[]; optionIndex: number } | null = null
 const placementHighlights = new THREE.Group()
 placementHighlights.name = 'placement-highlights'
@@ -1113,18 +1133,11 @@ const confirmPlacement = () => {
   const placedTile: BoardTile = { x, z, kind: card.kind, exits: option.exits, doors, group }
   boardTiles.push(placedTile)
 
-  // Placing a corridor also moves the active survivor onto it for the same action.
-  currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  placedTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  activeCharacter.position.set(0, 0.19, 0.16)
-  activeRing.position.set(0, 0.183, 0.16)
-  currentTile = placedTile
-
   hand = hand.filter((item) => item.id !== card.id)
-  spendAction()
+  survivorPositions[activeSurvivorKind] = { x, z, roomId: null }
   selectedCardId = null
   placementPreview = null
-  setStatus(`CC « ${corridorDefinitions[card.kind].label} » posée : le survivant s’y déplace. ${actionsRemaining} action${actionsRemaining > 1 ? 's' : ''} restante${actionsRemaining > 1 ? 's' : ''}.`)
+  setStatus(`CC « ${corridorDefinitions[card.kind].label} » posée. Le déplacement reste à effectuer séparément.`)
   saveGameState()
   renderGameUi()
 }
@@ -1172,7 +1185,7 @@ const getAvailableDoors = () => currentTile.doors.filter((direction) => {
 })
 
 const drawRoomCard = () => {
-  if (actionsRemaining <= 0 || currentRoomId !== null || pendingRoomDraw) return
+  if (currentRoomId !== null || pendingRoomDraw) return
   const availableDoors = getAvailableDoors()
   if (availableDoors.length === 0) {
     setStatus('Aucune porte libre pour placer une nouvelle pièce.')
@@ -1191,7 +1204,7 @@ const drawRoomCard = () => {
 }
 
 const placeDrawnRoom = (direction: Direction) => {
-  if (!pendingRoomDraw || currentRoomId !== null || actionsRemaining <= 0) return
+  if (!pendingRoomDraw || currentRoomId !== null) return
   if (!getAvailableDoors().includes(direction)) return
   const [dx, dz] = directionDelta[direction]
   const x = currentTile.x + dx
@@ -1240,6 +1253,7 @@ const returnToCorridor = () => {
   activeCharacter.position.set(0, 0.19, 0.16)
   activeRing.position.set(0, 0.183, 0.16)
   currentRoomId = null
+  survivorPositions[activeSurvivorKind].roomId = null
   spendAction()
   setStatus('Retour dans le couloir.')
   saveGameState()
@@ -1250,7 +1264,13 @@ const enterRoom = (room: RoomTile) => {
   if (currentRoomId !== null) return
   if (room.originX !== currentTile.x || room.originZ !== currentTile.z) return
 
+  if (actionsRemaining <= 0) {
+    setStatus('Il ne reste plus d’action pour entrer dans une pièce.')
+    return
+  }
   currentRoomId = room.id
+  survivorPositions[activeSurvivorKind].roomId = room.id
+  spendAction()
   currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
   room.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
   activeCharacter.position.set(0, 0.19, 0)
@@ -1617,6 +1637,11 @@ const saveGameState = () => {
       roomDeck,
       pendingRoomDraw, 
       survivor: { x: currentTile.x, z: currentTile.z },
+      survivors: survivorPositions,
+      activeSurvivorKind,
+      characterOrder,
+      characterIndex,
+      injuredMovedThisTurn,
       zoom,
       cameraTarget: { x: cameraTarget.x, z: cameraTarget.z },
       cameraAngle: targetCameraAngle,
@@ -1689,7 +1714,7 @@ renderer.domElement.addEventListener('click', (event) => {
   pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1
   raycaster.setFromCamera(pointer, camera)
 
-  if (selectedCardId !== null && !pendingDraw && actionsRemaining > 0) {
+  if (selectedCardId !== null && !pendingDraw) {
     const placementHits = raycaster.intersectObjects(placementHighlights.children, true)
     const markerHit = placementHits.find((hit) => {
       let object: THREE.Object3D | null = hit.object
