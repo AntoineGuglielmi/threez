@@ -420,3 +420,20 @@ button, a { color: inherit; }
   .scene-caption { max-width: 45%; }
   .scene-caption h1 { font-size: 34px; }
 }
+
+
+/* Two-step CC placement controls */
+.placement-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  gap: 6px;
+}
+.placement-controls .action-button {
+  min-width: 0;
+  font-size: 8px;
+  line-height: 1.35;
+}
+.cc-card:focus-visible, .action-button:focus-visible, .end-turn:focus-visible {
+  outline: 2px solid #75d9ff;
+  outline-offset: 2px;
+}
