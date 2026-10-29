@@ -657,7 +657,7 @@ if (savedGameState?.survivors) {
 } else if (savedGameState?.survivor) {
   survivorPositions.stealth = { ...savedGameState.survivor, roomId: savedGameState.currentRoomId ?? null }
 }
-let characterOrder: SurvivorKind[] = savedGameState?.characterOrder ?? ['stealth', ...shuffle(['heavy', 'military', 'scientist'] as const), 'injured']
+let characterOrder: SurvivorKind[] = savedGameState?.characterOrder ?? ['stealth', ...shuffle(['heavy', 'military', 'scientist']), 'injured']
 let characterIndex = savedGameState?.characterIndex ?? 0
 let injuredMovedThisTurn = savedGameState?.injuredMovedThisTurn ?? false
 let placementPreview: { x: number; z: number; options: PlacementOption[]; optionIndex: number } | null = null
