@@ -704,7 +704,29 @@ const renderGameUi = () => {
     button.className = `cc-card${selectedCardId === card.id ? ' is-selected' : ''}`
     button.disabled = actionsRemaining <= 0 || Boolean(pendingDraw)
     button.setAttribute('aria-pressed', String(selectedCardId === card.id))
-    button.innerHTML = `<span class="cc-card-index">CC ${String(index + 1).padStart(2, '0')}</span><span class="cc-card-symbol">${corridorDefinitions[card.kind].symbol}</span><span class="cc-card-name">${corridorDefinitions[card.kind].label}</span>`
+    const exits = corridorDefinitions[card.kind].exits
+    const edgeLines: Record<Direction, string> = {
+      N: '<path d="M20 12H80" />',
+      E: '<path d="M88 20V80" />',
+      S: '<path d="M20 88H80" />',
+      W: '<path d="M12 20V80" />',
+    }
+    const wallLines = directionOrder
+      .filter((direction) => !exits.includes(direction))
+      .map((direction) => edgeLines[direction])
+      .join('')
+    const corridorLines = exits
+      .map((direction) => {
+        const ends: Record<Direction, string> = {
+          N: 'M50 50V12',
+          E: 'M50 50H88',
+          S: 'M50 50V88',
+          W: 'M50 50H12',
+        }
+        return `<path d="${ends[direction]}" />`
+      })
+      .join('')
+    button.innerHTML = `<span class="cc-card-index">CC ${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${corridorDefinitions[card.kind].label}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></svg><span class="cc-card-name">${corridorDefinitions[card.kind].label}</span>`
     button.addEventListener('click', () => {
       selectedCardId = card.id
       renderGameUi()
