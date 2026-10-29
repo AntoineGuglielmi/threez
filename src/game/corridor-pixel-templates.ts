@@ -35,7 +35,7 @@ export const rotateCorridorPixels = (source: string[], turns: number): string[] 
 }
 
 // JSON models are bundled from /references/models and are the single source of truth.
-const modelFiles = import.meta.glob<string[]>('../../references/models/*.json', {
+const modelFiles = import.meta.glob<Record<string, string[]>>('../../references/models/*.json', {
   eager: true,
   import: 'default',
 })
