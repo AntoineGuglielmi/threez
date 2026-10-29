@@ -6,6 +6,9 @@ import { readSavedGameState, STORAGE_KEY } from './game/persistence'
 import { shuffle } from './game/random'
 import { createCorridorCardFactory } from './game/corridor-cards'
 import { createRoomCardFactory } from './game/room-cards'
+import { getAvailableRoomDoors, getCorridorPlacements, resourceLabels, rollRoomSearch } from './game/rules'
+import { createCorridorHandCard } from './ui/corridor-hand-card'
+import { setupBoardViewport } from './ui/board-viewport'
 import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomStatus, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
 
 let activeSurvivorKind: SurvivorKind = 'stealth'
@@ -382,33 +385,13 @@ const getDifficultyLabel = (difficulty: RoomDifficulty) => ({
   hard: 'Difficile',
 })[difficulty]
 
-const resourceLabels: Record<ResourceType, string> = {
-  cafe: 'Café',
-  croissant: 'Croissant',
-  citron: 'Citron',
-  bonbon: 'Bonbon acidulé',
-  munition: 'Munition',
-}
-
-const resourceThresholds: Record<RoomDifficulty, Record<ResourceType, number>> = {
-  easy: { cafe: 4, croissant: 3, citron: 4, bonbon: 3, munition: 4 },
-  medium: { cafe: 5, croissant: 4, citron: 5, bonbon: 4, munition: 5 },
-  hard: { cafe: 6, croissant: 5, citron: 6, bonbon: 5, munition: 6 },
-}
-
 const rollRoomDice = (room: RoomTile) => {
-  const dice = Object.keys(resourceLabels) as ResourceType[]
-  const results = dice.map((resource) => ({
-    resource,
-    value: Math.floor(Math.random() * 6) + 1,
-    threshold: resourceThresholds[room.difficulty][resource],
-  }))
-  const found = results.filter((result) => result.value >= result.threshold)
-  found.forEach(({ resource }) => { resources[resource] += 1 })
-  room.lastRoll = results.map((result) => ({ ...result, found: result.value >= result.threshold }))
+  const { results, found } = rollRoomSearch(room.difficulty)
+  found.forEach((resource) => { resources[resource] += 1 })
+  room.lastRoll = results
   room.searched = true
   setStatus(found.length
-    ? `Fouille ${getDifficultyLabel(room.difficulty).toLowerCase()} : ${results.map((result) => `${resourceLabels[result.resource]} ${result.value}/6`).join(' · ')}. Trouvé : ${found.map(({ resource }) => resourceLabels[resource]).join(', ')}.`
+    ? `Fouille ${getDifficultyLabel(room.difficulty).toLowerCase()} : ${results.map((result) => `${resourceLabels[result.resource]} ${result.value}/6`).join(' · ')}. Trouvé : ${found.map((resource) => resourceLabels[resource]).join(', ')}.`
     : `Fouille ${getDifficultyLabel(room.difficulty).toLowerCase()} : ${results.map((result) => `${resourceLabels[result.resource]} ${result.value}/6`).join(' · ')}. Aucune ressource trouvée.`)
   saveGameState()
   renderGameUi()
@@ -509,41 +492,8 @@ for (const kind of Object.keys(characterModels) as SurvivorKind[]) {
 }
 activateSurvivor(activeSurvivorKind)
 
-const getPlacements = (card: CorridorCard, fixedTurns = selectedCardTurns): PlacementCandidate[] => {
-  const candidates = new Map<string, PlacementCandidate>()
-  const definition = corridorDefinitions[card.kind]
-
-  for (const tile of boardTiles) {
-    for (const exit of tile.exits) {
-      const [dx, dz] = directionDelta[exit]
-      const x = tile.x + dx
-      const z = tile.z + dz
-      if (boardTiles.some((placed) => placed.x === x && placed.z === z) || rooms.some((room) => room.x === x && room.z === z)) continue
-
-      const key = `${x},${z}`
-      const candidate = candidates.get(key) ?? { x, z, options: [] }
-      const exits = definition.exits.map((direction) => rotateDirection(direction, fixedTurns))
-      if (!exits.includes(opposite[exit])) continue
-
-      // Every side touching an existing tile must agree on whether a passage exists.
-      const conflictsWithNeighbour = directionOrder.some((direction) => {
-        const [nextX, nextZ] = directionDelta[direction]
-        const neighbour = boardTiles.find((placed) => placed.x === x + nextX && placed.z === z + nextZ)
-        if (!neighbour) return false
-        return exits.includes(direction) !== neighbour.exits.includes(opposite[direction])
-      })
-      if (conflictsWithNeighbour) continue
-
-      const signature = directionOrder.filter((direction) => exits.includes(direction)).join('')
-      if (!candidate.options.some((option) => directionOrder.filter((direction) => option.exits.includes(direction)).join('') === signature)) {
-        candidate.options.push({ exits, turns: fixedTurns })
-      }
-      if (candidate.options.length > 0) candidates.set(key, candidate)
-    }
-  }
-
-  return [...candidates.values()]
-}
+const getPlacements = (card: CorridorCard, fixedTurns = selectedCardTurns): PlacementCandidate[] =>
+  getCorridorPlacements({ card, turns: fixedTurns, boardTiles, rooms })
 
 const disposeGroup = (group: THREE.Group) => {
   group.traverse((object) => {
@@ -747,14 +697,7 @@ const roomResultElement = document.querySelector<HTMLDivElement>('#room-result')
 const unlockRoomButton = document.querySelector<HTMLButtonElement>('#unlock-room')
 const returnRoomButton = document.querySelector<HTMLButtonElement>('#return-room')
 
-const getAvailableDoors = () => currentTile.doors.filter((direction) => {
-  if (currentTile.usedDoors.includes(direction)) return false
-  const [dx, dz] = directionDelta[direction]
-  const x = currentTile.x + dx
-  const z = currentTile.z + dz
-  return !boardTiles.some((tile) => tile.x === x && tile.z === z) &&
-    !rooms.some((room) => room.x === x && room.z === z)
-})
+const getAvailableDoors = () => getAvailableRoomDoors(currentTile, boardTiles, rooms)
 
 const drawRoomCard = () => {
   if (activeSurvivorKind === 'injured' || currentRoomId !== null || pendingRoomDraw) return
@@ -982,119 +925,33 @@ const renderGameUi = () => {
   if (!handElement || !deckCountElement || !discardCountElement || !actionsCountElement || !actionsFillElement) return
   handElement.replaceChildren()
   hand.forEach((card, index) => {
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.className = `cc-card${selectedCardId === card.id ? ' is-selected' : ''}`
-    button.disabled = phase !== 'actions' || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
-    button.setAttribute('aria-pressed', String(selectedCardId === card.id))
-    const cardTurns = selectedCardId === card.id ? selectedCardTurns : 0
-    const exits = corridorDefinitions[card.kind].exits
-    const edgeLines: Record<Direction, string> = {
-      N: '<path d="M20 12H80" />',
-      E: '<path d="M88 20V80" />',
-      S: '<path d="M20 88H80" />',
-      W: '<path d="M12 20V80" />',
-    }
-    const wallLines = directionOrder
-      .filter((direction) => !exits.includes(direction))
-      .map((direction) => edgeLines[direction])
-      .join('')
-    const corridorLines = exits
-      .map((direction) => {
-        const ends: Record<Direction, string> = {
-          N: 'M50 50V12',
-          E: 'M50 50H88',
-          S: 'M50 50V88',
-          W: 'M50 50H12',
+    const selected = selectedCardId === card.id
+    const cardTurns = selected ? selectedCardTurns : 0
+    const button = createCorridorHandCard({
+      card,
+      index,
+      selected,
+      turns: cardTurns,
+      disabled: phase !== 'actions' || Boolean(pendingDraw) || activeSurvivorKind === 'injured',
+      onSelect: () => {
+        if (selectedCardId === card.id) {
+          selectedCardId = null
+          placementPreview = null
+          setStatus('Sélection annulée.')
+        } else {
+          selectedCardId = card.id
+          selectedCardTurns = 0
+          placementPreview = null
+          const placements = getPlacements(card, selectedCardTurns)
+          setStatus(placements.length
+            ? 'Choisissez un emplacement lumineux sur le plateau.'
+            : 'Aucun emplacement compatible pour cette orientation. Faites pivoter le couloir.')
         }
-        return `<path d="${ends[direction]}" />`
-      })
-      .join('')
-    const doorRects: Record<Direction, string> = {
-      N: '<rect x="43" y="9" width="14" height="6" rx="1" />',
-      E: '<rect x="85" y="43" width="6" height="14" rx="1" />',
-      S: '<rect x="43" y="85" width="14" height="6" rx="1" />',
-      W: '<rect x="9" y="43" width="6" height="14" rx="1" />',
-    }
-    const doorMarkup = card.doors.filter((direction) => !exits.includes(direction)).map((direction) => doorRects[direction]).join('')
-    const rotatedArtwork = cardTurns === 0 ? '' : ` transform="rotate(${cardTurns * 90} 50 50)"`
-    const displayedDoors = card.doors
-      .filter((direction) => !exits.includes(direction))
-      .map((direction) => rotateDirection(direction, cardTurns))
-    const doorLabel = displayedDoors.length ? `Portes : ${displayedDoors.join(' / ')}` : 'Aucune porte'
-    const shapeLabel: Record<CorridorKind, string> = {
-      straight: 'Couloir droit',
-      left: 'Couloir avec virage',
-      right: 'Couloir avec virage',
-      tee: 'Couloir en T',
-      cross: 'Carrefour',
-    }
-    button.innerHTML = `<span class="cc-card-index">${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${shapeLabel[card.kind]}, ${displayedDoors.length ? displayedDoors.join(', ') : 'aucune porte'}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><g${rotatedArtwork}><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><g class="cc-art-doors">${doorMarkup}</g><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></g></svg><span class="cc-card-name">${doorLabel}</span>`
-    button.addEventListener('click', () => {
-      if (selectedCardId === card.id) {
-        selectedCardId = null
-        placementPreview = null
-        setStatus('Sélection annulée.')
-      } else {
-        selectedCardId = card.id
-        selectedCardTurns = 0
-        placementPreview = null
-        const placements = getPlacements(card, selectedCardTurns)
-        setStatus(placements.length
-          ? 'Choisissez un emplacement lumineux sur le plateau.'
-          : 'Aucun emplacement compatible pour cette orientation. Faites pivoter le couloir.')
-      }
-      renderGameUi()
+        renderGameUi()
+      },
     })
     handElement.append(button)
   })
-
-  deckCountElement.textContent = String(corridorDeck.length)
-  discardCountElement.textContent = String(discardPile.length)
-  actionsCountElement.textContent = String(actionsRemaining)
-  if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
-  actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
-  const activePlayerTurn = document.querySelector<HTMLElement>('#active-player-turn')
-  if (activePlayerTurn) activePlayerTurn.textContent = String(turnNumber)
-  const activePlayerName = document.querySelector<HTMLElement>('.active-player-name strong')
-  if (activePlayerName) activePlayerName.textContent = getSurvivorLabel(activeSurvivorKind)
-  const activePlayerRole = document.querySelector<HTMLElement>('.active-player-name small')
-  if (activePlayerRole) activePlayerRole.textContent = activeSurvivorKind === 'injured'
-    ? 'DÉPLACEMENT · 1 COULOIR'
-    : phase === 'draw' ? 'PHASE 1 · PIOCHE' : 'PHASE 2 · ACTIONS · ' + String(actionsRemaining) + ' RESTANTES'
-  const phaseLabel = document.querySelector<HTMLElement>('#phase-label')
-  if (phaseLabel) phaseLabel.textContent = activeSurvivorKind === 'injured'
-    ? 'Déplacement du Blessé'
-    : phase === 'draw' ? 'Phase 1 — Compléter la main à 3 couloirs' : 'Phase 2 — Réaliser ses actions'
-  const handCount = document.querySelector<HTMLElement>('#cc-hand-count')
-  if (handCount) handCount.textContent = `${hand.length} cartes`
-  const selectedCard = hand.find((card) => card.id === selectedCardId)
-  const hasPreview = Boolean(selectedCard && placementPreview)
-  const previewIsValid = Boolean(selectedCard && placementPreview &&
-    getPlacements(selectedCard, selectedCardTurns).some((candidate) => candidate.x === placementPreview?.x && candidate.z === placementPreview?.z))
-  if (placeButton) placeButton.disabled = true
-  if (rotateButton) rotateButton.disabled = true
-  if (placementActions) placementActions.hidden = !hasPreview
-  if (confirmGhostButton) confirmGhostButton.disabled = !previewIsValid
-  if (rotateGhostButton) rotateGhostButton.disabled = !hasPreview
-  if (cancelPlacementButton) cancelPlacementButton.disabled = true
-  if (discardButton) discardButton.disabled = !pendingDraw
-  if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
-  if (drawButton) drawButton.disabled = phase !== 'draw' || hand.length >= 3 || activeSurvivorKind === 'injured'
-  if (drawButton) drawButton.textContent = phase === 'draw' ? 'Compléter ma main' : 'Pioche terminée'
-  if (endTurnButton) endTurnButton.disabled = phase !== 'actions' || Boolean(pendingDraw) || Boolean(pendingRoomDraw)
-  renderRoomControls()
-  const resourceCounts: Record<ResourceType, string> = {
-    cafe: '#resource-cafe',
-    croissant: '#resource-croissant',
-    citron: '#resource-citron',
-    bonbon: '#resource-bonbon',
-    munition: '#resource-munition',
-  }
-  for (const [resource, selector] of Object.entries(resourceCounts) as Array<[ResourceType, string]>) {
-    const element = document.querySelector<HTMLElement>(selector)
-    if (element) element.textContent = String(resources[resource])
-  }
 
   if (pendingDraw) {
     const note = document.createElement('p')
@@ -1214,8 +1071,6 @@ const resize = () => {
 
 const raycaster = new THREE.Raycaster()
 const pointer = new THREE.Vector2()
-let isDragging = false
-let previousPointer = { x: 0, y: 0 }
 let zoom = THREE.MathUtils.clamp(savedGameState?.zoom ?? 1, 1, 3.2)
 let currentZoom = zoom
 const cameraTarget = new THREE.Vector3(savedGameState?.cameraTarget.x ?? 0, 0, savedGameState?.cameraTarget.z ?? 0)
@@ -1275,55 +1130,18 @@ const saveGameState = () => {
   }
 }
 
-let pointerDownPosition = { x: 0, y: 0 }
-let hasDragged = false
-
-renderer.domElement.addEventListener('pointerdown', (event) => {
-  isDragging = true
-  hasDragged = false
-  pointerDownPosition = { x: event.clientX, y: event.clientY }
-  previousPointer = { x: event.clientX, y: event.clientY }
-  renderer.domElement.setPointerCapture(event.pointerId)
+const viewport = setupBoardViewport({
+  element: renderer.domElement,
+  camera,
+  cameraTarget,
+  syncCameraPosition,
+  getZoom: () => zoom,
+  setZoom: (nextZoom) => { zoom = nextZoom },
+  onCameraChange: saveGameState,
 })
-
-renderer.domElement.addEventListener('pointermove', (event) => {
-  if (!isDragging) return
-  const deltaX = event.clientX - previousPointer.x
-  const deltaY = event.clientY - previousPointer.y
-  if (Math.hypot(event.clientX - pointerDownPosition.x, event.clientY - pointerDownPosition.y) > 5) {
-    hasDragged = true
-  }
-  const worldPerPixel = (camera.top - camera.bottom) / camera.zoom / renderer.domElement.clientHeight
-  camera.updateMatrixWorld()
-  const screenRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0)
-  screenRight.y = 0
-  screenRight.normalize()
-  const screenUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1)
-  screenUp.y = 0
-  screenUp.normalize()
-  cameraTarget.addScaledVector(screenRight, -deltaX * worldPerPixel)
-  cameraTarget.addScaledVector(screenUp, deltaY * worldPerPixel)
-  syncCameraPosition()
-  saveGameState()
-  previousPointer = { x: event.clientX, y: event.clientY }
-})
-
-renderer.domElement.addEventListener('pointerup', () => {
-  isDragging = false
-})
-
-renderer.domElement.addEventListener('pointercancel', () => {
-  isDragging = false
-})
-
-renderer.domElement.addEventListener('wheel', (event) => {
-  event.preventDefault()
-  zoom = THREE.MathUtils.clamp(zoom + event.deltaY * -0.0015, 1, 3.2)
-  saveGameState()
-}, { passive: false })
 
 renderer.domElement.addEventListener('click', (event) => {
-  if (hasDragged) return
+  if (viewport.hasDragged()) return
   if (phase === 'draw' && activeSurvivorKind !== 'injured') {
     setStatus('Terminez d’abord la phase de pioche en complétant votre main à 3 couloirs.')
     return
