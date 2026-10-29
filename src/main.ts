@@ -1213,6 +1213,20 @@ const unlockCurrentRoom = () => {
   rollRoomDice(room)
 }
 
+const searchCurrentRoomAgain = () => {
+  if (currentRoomId === null || actionsRemaining <= 0) return
+  const room = rooms.find((item) => item.id === currentRoomId)
+  if (!room || !room.searched || (room.status === 'locked' && !room.unlocked)) return
+  if (room.status === 'trapped' && activeSurvivorKind !== 'stealth') {
+    setStatus('Pièce piégée : seul le survivant furtif peut la fouiller.')
+    return
+  }
+
+  spendAction()
+  setStatus('Nouvelle fouille en cours…')
+  rollRoomDice(room)
+}
+
 const returnToCorridor = () => {
   if (currentRoomId === null || actionsRemaining <= 0) return
   currentTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
@@ -1241,9 +1255,20 @@ const renderRoomControls = () => {
       returnRoomButton.hidden = false
       returnRoomButton.disabled = actionsRemaining <= 0
     }
-    roomDoorOptionsElement.textContent = currentRoom.status === 'locked' && !currentRoom.unlocked
-      ? 'La porte est verrouillée.'
-      : currentRoom.searched ? 'Cette pièce a déjà été fouillée.' : 'La pièce attend d’être fouillée.'
+    if (currentRoom.status === 'locked' && !currentRoom.unlocked) {
+      roomDoorOptionsElement.textContent = 'La porte est verrouillée.'
+    } else if (currentRoom.searched) {
+      const searchAgainButton = document.createElement('button')
+      searchAgainButton.type = 'button'
+      searchAgainButton.className = 'action-button primary'
+      searchAgainButton.disabled = actionsRemaining <= 0 ||
+        (currentRoom.status === 'trapped' && activeSurvivorKind !== 'stealth')
+      searchAgainButton.textContent = 'Fouiller à nouveau · 1 action'
+      searchAgainButton.addEventListener('click', searchCurrentRoomAgain)
+      roomDoorOptionsElement.append(searchAgainButton)
+    } else {
+      roomDoorOptionsElement.textContent = 'La pièce attend d’être fouillée.'
+    }
     return
   }
   if (unlockRoomButton) unlockRoomButton.hidden = true
