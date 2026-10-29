@@ -1239,6 +1239,34 @@ const returnToCorridor = () => {
   renderGameUi()
 }
 
+const enterRoom = (room: RoomTile) => {
+  if (currentRoomId !== null || actionsRemaining <= 0) return
+  if (room.originX !== currentTile.x || room.originZ !== currentTile.z) return
+
+  currentRoomId = room.id
+  currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+  room.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+  activeCharacter.position.set(0, 0.19, 0)
+  activeRing.position.set(0, 0.183, 0)
+  spendAction()
+  selectedCardId = null
+  placementPreview = null
+
+  if (room.status === 'locked' && !room.unlocked) {
+    setStatus('Pièce verrouillée. Déverrouillez-la pour pouvoir la fouiller.')
+  } else if (room.status === 'trapped' && activeSurvivorKind !== 'stealth') {
+    setStatus('Pièce piégée : seul le survivant furtif peut la fouiller.')
+  } else if (!room.searched) {
+    setStatus('Vous entrez dans la pièce. Fouille en cours…')
+    rollRoomDice(room)
+    return
+  } else {
+    setStatus('Vous entrez dans une pièce déjà fouillée.')
+  }
+  saveGameState()
+  renderGameUi()
+}
+
 const renderRoomControls = () => {
   if (roomDeckCountElement) roomDeckCountElement.textContent = String(roomDeck.length)
   if (!roomDoorOptionsElement || !roomStateElement) return
@@ -1246,7 +1274,7 @@ const renderRoomControls = () => {
   const currentRoom = currentRoomId === null ? null : rooms.find((room) => room.id === currentRoomId) ?? null
   if (currentRoom) {
     const statusLabel = currentRoom.status === 'locked' && currentRoom.unlocked ? 'Déverrouillée' : getRoomStatusLabel(currentRoom.status)
-    roomStateElement.textContent = `CP ${String(currentRoom.id).padStart(2, '0')} · ${statusLabel} · ${getDifficultyLabel(currentRoom.difficulty)}${currentRoom.searched ? ' · Fouillée' : ''}`
+    roomStateElement.textContent = `CP ${String(currentRoom.id).padStart(2, '0')} · ${statusLabel} · ${getDifficultyLabel(currentRoom.difficulty)}${currentRoom.searched ? ' · Déjà fouillée' : ''}`
     if (unlockRoomButton) {
       unlockRoomButton.hidden = currentRoom.status !== 'locked' || currentRoom.unlocked
       unlockRoomButton.disabled = actionsRemaining <= 0
@@ -1256,24 +1284,26 @@ const renderRoomControls = () => {
       returnRoomButton.disabled = actionsRemaining <= 0
     }
     if (currentRoom.status === 'locked' && !currentRoom.unlocked) {
-      roomDoorOptionsElement.textContent = 'La porte est verrouillée.'
+      roomDoorOptionsElement.textContent = 'Porte verrouillée'
+    } else if (currentRoom.status === 'trapped' && activeSurvivorKind !== 'stealth') {
+      roomDoorOptionsElement.textContent = 'Piège : seul le survivant furtif peut fouiller cette pièce.'
     } else if (currentRoom.searched) {
       const searchAgainButton = document.createElement('button')
       searchAgainButton.type = 'button'
       searchAgainButton.className = 'action-button primary'
-      searchAgainButton.disabled = actionsRemaining <= 0 ||
-        (currentRoom.status === 'trapped' && activeSurvivorKind !== 'stealth')
+      searchAgainButton.disabled = actionsRemaining <= 0
       searchAgainButton.textContent = 'Fouiller à nouveau · 1 action'
       searchAgainButton.addEventListener('click', searchCurrentRoomAgain)
       roomDoorOptionsElement.append(searchAgainButton)
     } else {
-      roomDoorOptionsElement.textContent = 'La pièce attend d’être fouillée.'
+      roomDoorOptionsElement.textContent = 'Pièce non fouillée'
     }
     return
   }
+
   if (unlockRoomButton) unlockRoomButton.hidden = true
   if (returnRoomButton) returnRoomButton.hidden = true
-  roomStateElement.textContent = 'Vous êtes dans le couloir.'
+  const adjacentRooms = rooms.filter((room) => room.originX === currentTile.x && room.originZ === currentTile.z)
   const availableDoors = currentTile.doors.filter((direction) => {
     if (currentTile.usedDoors.includes(direction)) return false
     const [dx, dz] = directionDelta[direction]
@@ -1282,21 +1312,46 @@ const renderRoomControls = () => {
     return !boardTiles.some((tile) => tile.x === x && tile.z === z) &&
       !rooms.some((room) => room.x === x && room.z === z)
   })
-  if (availableDoors.length === 0) {
-    roomDoorOptionsElement.textContent = currentTile.doors.length
-      ? 'Aucune porte inutilisée accessible sur cette CC.'
-      : 'Cette CC ne possède aucune porte.'
-    return
+
+  if (adjacentRooms.length > 0) {
+    roomStateElement.textContent = adjacentRooms.length === 1 ? 'Pièce adjacente' : 'Pièces adjacentes'
+    adjacentRooms.forEach((room) => {
+      const card = document.createElement('div')
+      card.className = 'room-property-card'
+      const statusLabel = room.status === 'locked' && room.unlocked ? 'Déverrouillée' : getRoomStatusLabel(room.status)
+      const heading = document.createElement('strong')
+      heading.textContent = `CP ${String(room.id).padStart(2, '0')}`
+      const properties = document.createElement('span')
+      properties.textContent = `${statusLabel} · ${getDifficultyLabel(room.difficulty)} · ${room.searched ? 'Déjà fouillée' : 'Non fouillée'}`
+      card.append(heading, properties)
+      const enterButton = document.createElement('button')
+      enterButton.type = 'button'
+      enterButton.className = 'action-button primary'
+      enterButton.disabled = actionsRemaining <= 0
+      enterButton.textContent = 'Entrer dans la pièce · 1 action'
+      enterButton.addEventListener('click', () => enterRoom(room))
+      card.append(enterButton)
+      roomDoorOptionsElement.append(card)
+    })
+  } else {
+    roomStateElement.textContent = 'Aucune pièce à proximité'
   }
+
   availableDoors.forEach((direction) => {
     const button = document.createElement('button')
     button.type = 'button'
-    button.className = 'action-button primary'
+    button.className = 'action-button subtle'
     button.disabled = actionsRemaining <= 0
     button.textContent = `Explorer la porte ${direction} · 1 action`
     button.addEventListener('click', () => exploreDoor(direction))
     roomDoorOptionsElement.append(button)
   })
+
+  if (adjacentRooms.length === 0 && availableDoors.length === 0) {
+    roomDoorOptionsElement.textContent = currentTile.doors.length
+      ? 'Aucune porte inutilisée'
+      : 'Aucune porte sur cette CC'
+  }
 }
 
 const renderGameUi = () => {
@@ -1362,8 +1417,10 @@ const renderGameUi = () => {
   actionsCountElement.textContent = String(actionsRemaining)
   if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
   actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
-  const handCount = document.querySelector<HTMLElement>('.hand-heading > span')
-  if (handCount) handCount.textContent = `${hand.length} CC`
+  const activePlayerTurn = document.querySelector<HTMLElement>('#active-player-turn')
+  if (activePlayerTurn) activePlayerTurn.textContent = String(turnNumber)
+  const handCount = document.querySelector<HTMLElement>('#cc-hand-count')
+  if (handCount) handCount.textContent = `${hand.length} cartes`
   const selectedCard = hand.find((card) => card.id === selectedCardId)
   const hasPreview = Boolean(selectedCard && placementPreview)
   if (placeButton) {
