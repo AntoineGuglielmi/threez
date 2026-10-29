@@ -37,9 +37,13 @@
           </div>
           <div class="hand-heading"><h3>Votre main</h3><span>3 CC</span></div>
           <div id="cc-hand" class="cc-hand"></div>
-          <p id="game-status" class="game-status" role="status">Choisissez une CC pour prolonger le couloir, ou piochez-en une.</p>
+          <p id="game-status" class="game-status" role="status">Choisissez une CC pour afficher les emplacements possibles sur le plateau.</p>
           <div class="game-actions">
-            <button id="place-cc" class="action-button primary" disabled>Poser la CC</button>
+            <button id="place-cc" class="action-button primary" disabled>Choisir un emplacement</button>
+            <div class="placement-controls">
+              <button id="rotate-cc" class="action-button" disabled>Changer l’orientation</button>
+              <button id="cancel-placement" class="action-button subtle" disabled>Annuler la pose</button>
+            </div>
             <button id="draw-cc" class="action-button">Piocher une CC</button>
             <button id="discard-cc" class="action-button subtle" disabled>Défausser la pioche</button>
             <button id="replace-cc" class="action-button subtle" disabled>Remplacer une CC en main</button>
