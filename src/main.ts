@@ -1543,7 +1543,12 @@ const renderGameUi = () => {
       cross: 'CCX',
     }
     const rotatedArtwork = cardTurns === 0 ? '' : ` transform="rotate(${cardTurns * 90} 50 50)"`
-    button.innerHTML = `<span class="cc-card-index">${typeCode[card.kind]} · ${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${typeCode[card.kind]} — ${corridorDefinitions[card.kind].label}, portes : ${card.doors.length ? card.doors.join(', ') : 'aucune'}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><g${rotatedArtwork}><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><g class="cc-art-doors">${doorMarkup}</g><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></g></svg><span class="cc-card-name">${typeCode[card.kind]} · ${card.doors.length} porte${card.doors.length === 1 ? '' : 's'} ${cardTurns ? `· ${['N','E','S','W'][cardTurns]}` : '· N'}</span>`
+    const displayedDoors = card.doors
+      .filter((direction) => !exits.includes(direction))
+      .map((direction) => rotateDirection(direction, cardTurns))
+    const orientationLabel = ['N', 'E', 'S', 'W'][cardTurns]
+    const doorLabel = displayedDoors.length ? displayedDoors.join(' / ') : 'SANS PORTE'
+    button.innerHTML = `<span class="cc-card-index">${typeCode[card.kind]} · ${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${typeCode[card.kind]} — ${corridorDefinitions[card.kind].label}, portes : ${displayedDoors.length ? displayedDoors.join(', ') : 'aucune'}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><g${rotatedArtwork}><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><g class="cc-art-doors">${doorMarkup}</g><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></g></svg><span class="cc-card-name">${doorLabel} · ${orientationLabel}</span>`
     button.addEventListener('click', () => {
       if (selectedCardId === card.id) {
         selectedCardId = null
