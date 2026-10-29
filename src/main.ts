@@ -635,6 +635,22 @@ const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Dir
   return group
 }
 
+// Setup: two straight corridor cards are placed between the start tile and the unexplored area.
+const setupCorridor = () => {
+  for (let index = 1; index <= 2; index += 1) {
+    const deckIndex = corridorDeck.findIndex((card) => card.kind === 'straight')
+    if (deckIndex < 0) throw new Error('Not enough straight CC cards for setup')
+    const [card] = corridorDeck.splice(deckIndex, 1)
+    const x = 0
+    const z = index
+    const exits: Direction[] = ['N', 'S']
+    const group = createCorridorTile(card, x, z, exits)
+    boardTiles.push({ x, z, kind: card.kind, exits, group })
+  }
+}
+
+setupCorridor()
+
 const spendAction = () => {
   actionsRemaining = Math.max(0, actionsRemaining - 1)
   if (actionsRemaining === 0) setStatus('Plus d’actions. Terminez le tour pour continuer.')
