@@ -4,6 +4,7 @@ import { createScene } from './scene'
 import { directionDelta, directionOrder, opposite, corridorDefinitions, rotateDirection } from './game/directions'
 import { readSavedGameState } from './game/persistence'
 import { shuffle } from './game/random'
+import { createCorridorCardFactory } from './game/corridor-cards'
 import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomRollResult, RoomStatus, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
 
 let activeSurvivorKind: SurvivorKind = 'stealth'
@@ -12,34 +13,9 @@ const { root, scene, camera, renderer, materials, board, start, activeRing, othe
 let activeCharacter = sceneSetup.activeCharacter
 const savedGameState = readSavedGameState()
 
-let nextCardId = savedGameState?.nextCardId ?? 1
-const getWallDirections = (kind: CorridorKind): Direction[] =>
-  directionOrder.filter((direction) => !corridorDefinitions[kind].exits.includes(direction))
+const corridorCards = createCorridorCardFactory(savedGameState?.nextCardId ?? 1)
+const { getWallDirections, createDoorDirections, createCard, createCorridorDeck, normalizeSavedCard } = corridorCards
 
-const createDoorDirections = (kind: CorridorKind, requestedCount = Math.floor(Math.random() * 3)): Direction[] => {
-  const availableWalls = shuffle(getWallDirections(kind))
-  return availableWalls.slice(0, Math.min(requestedCount, 2, availableWalls.length))
-}
-
-const createCard = (kind?: CorridorKind): CorridorCard => {
-  const kinds = Object.keys(corridorDefinitions) as CorridorKind[]
-  const cardKind = kind ?? kinds[Math.floor(Math.random() * kinds.length)]
-  return { id: nextCardId++, kind: cardKind, doors: createDoorDirections(cardKind) }
-}
-const createCorridorDeck = () => shuffle(
-  (['straight', 'left', 'right', 'tee', 'cross'] as CorridorKind[])
-    .flatMap((kind) => Array.from({ length: 8 }, () => createCard(kind))),
-)
-const normalizeSavedCard = (card: CorridorCard): CorridorCard => {
-  const savedDoors = card.doors ?? []
-  const validWallDoors = savedDoors.filter((direction) => getWallDirections(card.kind).includes(direction))
-  return {
-    ...card,
-    doors: validWallDoors.length === savedDoors.length
-      ? validWallDoors
-      : createDoorDirections(card.kind, savedDoors.length),
-  }
-}
 const roomStatuses: RoomStatus[] = ['ordinary', 'ordinary', 'ordinary', 'locked', 'trapped']
 const roomDifficulties: RoomDifficulty[] = ['easy', 'medium', 'hard']
 let nextRoomCardId = 1
@@ -96,10 +72,10 @@ let selectedCardId: number | null = null
 let selectedCardTurns = 0
 let actionsRemaining = savedGameState?.actionsRemaining ?? 7
 let turnNumber = savedGameState?.turnNumber ?? 1
-if (savedGameState) nextCardId = savedGameState.nextCardId
+if (savedGameState) corridorCards.setNextCardId(savedGameState.nextCardId)
 if (savedGameState) {
   const highestCardId = Object.values(survivorCards).flatMap((cards) => [...cards.deck, ...cards.discard, ...cards.hand]).reduce((highest, card) => Math.max(highest, card.id), 0)
-  nextCardId = Math.max(nextCardId, highestCardId + 1)
+  corridorCards.setNextCardId(Math.max(corridorCards.getNextCardId(), highestCardId + 1))
 }
 const boardTiles: BoardTile[] = [{
   x: 0,
@@ -472,7 +448,7 @@ if (savedGameState?.tiles.length) {
     const doors = validWallDoors.length === savedDoors.length
       ? validWallDoors
       : createDoorDirections(tile.kind, savedDoors.length)
-    const card: CorridorCard = { id: nextCardId++, kind: tile.kind, doors }
+    const card: CorridorCard = { id: corridorCards.allocateCardId(), kind: tile.kind, doors }
     const usedDoors = [...(tile.usedDoors ?? [])]
     const group = createCorridorTile(card, tile.x, tile.z, tile.exits, doors, usedDoors)
     boardTiles.push({ ...tile, exits: [...tile.exits], doors: [...doors], usedDoors, group })
@@ -1302,7 +1278,7 @@ const saveGameState = () => {
       pendingDraw,
       actionsRemaining,
       turnNumber,
-      nextCardId,
+      nextCardId: corridorCards.getNextCardId(),
       nextRoomCardId,
     } satisfies SavedGameState))
   } catch {
