@@ -528,12 +528,18 @@ const rotateDirection = (direction: Direction, turns: number): Direction =>
   directionOrder[(directionOrder.indexOf(direction) + turns + 4) % 4]
 
 let nextCardId = 1
+const getWallDirections = (kind: CorridorKind): Direction[] =>
+  directionOrder.filter((direction) => !corridorDefinitions[kind].exits.includes(direction))
+
+const createDoorDirections = (kind: CorridorKind, requestedCount = Math.floor(Math.random() * 3)): Direction[] => {
+  const availableWalls = shuffle(getWallDirections(kind))
+  return availableWalls.slice(0, Math.min(requestedCount, 2, availableWalls.length))
+}
+
 const createCard = (kind?: CorridorKind): CorridorCard => {
   const kinds = Object.keys(corridorDefinitions) as CorridorKind[]
   const cardKind = kind ?? kinds[Math.floor(Math.random() * kinds.length)]
-  const exits = corridorDefinitions[cardKind].exits
-  const doorCount = Math.floor(Math.random() * 3)
-  return { id: nextCardId++, kind: cardKind, doors: shuffle(exits).slice(0, doorCount) }
+  return { id: nextCardId++, kind: cardKind, doors: createDoorDirections(cardKind) }
 }
 const shuffle = <T,>(items: T[]): T[] => {
   const shuffled = [...items]
@@ -549,10 +555,16 @@ const generatedCorridorDeck = shuffle(
   (['straight', 'left', 'right', 'tee', 'cross'] as CorridorKind[])
     .flatMap((kind) => Array.from({ length: 8 }, () => createCard(kind))),
 )
-const normalizeSavedCard = (card: CorridorCard): CorridorCard => ({
-  ...card,
-  doors: card.doors ?? shuffle(corridorDefinitions[card.kind].exits).slice(0, Math.floor(Math.random() * 3)),
-})
+const normalizeSavedCard = (card: CorridorCard): CorridorCard => {
+  const savedDoors = card.doors ?? []
+  const validWallDoors = savedDoors.filter((direction) => getWallDirections(card.kind).includes(direction))
+  return {
+    ...card,
+    doors: validWallDoors.length === savedDoors.length
+      ? validWallDoors
+      : createDoorDirections(card.kind, savedDoors.length),
+  }
+}
 const corridorDeck: CorridorCard[] = savedGameState ? savedGameState.deck.map(normalizeSavedCard) : generatedCorridorDeck
 const discardPile: CorridorCard[] = savedGameState ? savedGameState.discard.map(normalizeSavedCard) : []
 let hand: CorridorCard[] = savedGameState ? savedGameState.hand.map(normalizeSavedCard) : []
@@ -664,7 +676,7 @@ const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Dir
     group.add(wall)
   }
 
-  for (const direction of doors.filter((item) => exits.includes(item))) {
+  for (const direction of doors.filter((item) => !exits.includes(item))) {
     const horizontal = direction === 'N' || direction === 'S'
     const edgeOffset = direction === 'N' ? -0.51 : direction === 'S' ? 0.51 : direction === 'W' ? -0.51 : 0.51
     const door = new THREE.Group()
@@ -732,7 +744,7 @@ const setupCorridor = () => {
     const x = 0
     const z = index
     const exits: Direction[] = ['N', 'S']
-    const doors = card.doors.filter((direction) => exits.includes(direction))
+    const doors = card.doors.filter((direction) => !exits.includes(direction))
     const group = createCorridorTile(card, x, z, exits, doors)
     boardTiles.push({ x, z, kind: card.kind, exits, doors, group })
   }
@@ -740,7 +752,11 @@ const setupCorridor = () => {
 
 if (savedGameState?.tiles.length) {
   for (const tile of savedGameState.tiles) {
-    const doors = tile.doors ?? []
+    const savedDoors = tile.doors ?? []
+    const validWallDoors = savedDoors.filter((direction) => !tile.exits.includes(direction))
+    const doors = validWallDoors.length === savedDoors.length
+      ? validWallDoors
+      : createDoorDirections(tile.kind, savedDoors.length)
     const card: CorridorCard = { id: nextCardId++, kind: tile.kind, doors }
     const group = createCorridorTile(card, tile.x, tile.z, tile.exits, doors)
     boardTiles.push({ ...tile, exits: [...tile.exits], doors: [...doors], group })
@@ -969,7 +985,7 @@ const renderGameUi = () => {
       S: '<rect x="43" y="85" width="14" height="6" rx="1" />',
       W: '<rect x="9" y="43" width="6" height="14" rx="1" />',
     }
-    const doorMarkup = card.doors.map((direction) => doorRects[direction]).join('')
+    const doorMarkup = card.doors.filter((direction) => !exits.includes(direction)).map((direction) => doorRects[direction]).join('')
     button.innerHTML = `<span class="cc-card-index">CC ${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${corridorDefinitions[card.kind].label}, ${card.doors.length} porte${card.doors.length === 1 ? '' : 's'}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><g class="cc-art-doors">${doorMarkup}</g><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></svg><span class="cc-card-name">${corridorDefinitions[card.kind].label} · ${card.doors.length}P</span>`
     button.addEventListener('click', () => {
       if (selectedCardId === card.id) {
