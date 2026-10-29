@@ -1412,11 +1412,11 @@ const renderRoomControls = () => {
     roomStateElement.textContent = `CP ${String(currentRoom.id).padStart(2, '0')} · ${statusLabel} · ${getDifficultyLabel(currentRoom.difficulty)}${currentRoom.searched ? ' · Déjà fouillée' : ''}`
     if (unlockRoomButton) {
       unlockRoomButton.hidden = currentRoom.status !== 'locked' || currentRoom.unlocked
-      unlockRoomButton.disabled = actionsRemaining <= 0
+      unlockRoomButton.disabled = phase !== 'actions' || actionsRemaining <= 0
     }
     if (returnRoomButton) {
       returnRoomButton.hidden = false
-      returnRoomButton.disabled = actionsRemaining <= 0
+      returnRoomButton.disabled = phase !== 'actions' || actionsRemaining <= 0
     }
     if (currentRoom.status === 'locked' && !currentRoom.unlocked) {
       roomDoorOptionsElement.textContent = 'Porte verrouillée'
@@ -1426,7 +1426,7 @@ const renderRoomControls = () => {
       const searchButton = document.createElement('button')
       searchButton.type = 'button'
       searchButton.className = 'action-button primary'
-      searchButton.disabled = actionsRemaining <= 0
+      searchButton.disabled = phase !== 'actions' || actionsRemaining <= 0
       searchButton.textContent = currentRoom.searched ? 'Fouiller à nouveau · 1 action' : 'Fouiller · 1 action'
       searchButton.addEventListener('click', searchCurrentRoomAgain)
       roomDoorOptionsElement.append(searchButton)
@@ -1453,7 +1453,7 @@ const renderRoomControls = () => {
       const enterButton = document.createElement('button')
       enterButton.type = 'button'
       enterButton.className = 'action-button primary'
-      enterButton.disabled = actionsRemaining <= 0
+      enterButton.disabled = phase !== 'actions' || actionsRemaining <= 0
       enterButton.textContent = 'Entrer dans la pièce'
       enterButton.addEventListener('click', () => enterRoom(room))
       card.append(enterButton)
