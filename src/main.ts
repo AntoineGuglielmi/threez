@@ -417,7 +417,6 @@ activeRing.rotation.x = -Math.PI / 2
 activeRing.position.set(0, 0.183, 0.16)
 start.add(activeRing)
 
-let currentTile = boardTiles[0]
 
 const otherCharacters: Array<{ kind: 'heavy' | 'military' | 'scientist' | 'injured'; character: THREE.Group; position: [number, number, number] }> = [
   { kind: 'heavy', character: createCharacter('heavy'), position: [-0.32, 0.19, -0.28] },
@@ -530,6 +529,8 @@ const boardTiles: BoardTile[] = [{
   exits: ['S'],
   group: start,
 }]
+
+let currentTile = boardTiles[0]
 
 const handElement = document.querySelector<HTMLDivElement>('#cc-hand')
 const deckCountElement = document.querySelector<HTMLElement>('#cc-deck-count')
