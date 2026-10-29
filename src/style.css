@@ -235,8 +235,20 @@ button, a { color: inherit; }
 }
 
 .toolbar-message { color: #9a9ca4; text-align: center; }
-.toolbar-build { color: #c0c2c9; }
-.toolbar-build span { margin: 0 5px; color: var(--accent); }
+.toolbar-build { display: flex; align-items: center; gap: 5px; color: #c0c2c9; }
+.toolbar-build > span { margin: 0 5px; color: var(--accent); }
+.reset-button {
+  margin-left: 14px;
+  padding: 7px 10px;
+  border: 1px solid rgba(189, 121, 88, 0.45);
+  background: rgba(189, 121, 88, 0.08);
+  color: #d69a7a;
+  font: 500 9px var(--mono);
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+.reset-button:hover { background: rgba(189, 121, 88, 0.18); }
+.reset-button:focus-visible { outline: 2px solid #bd7958; outline-offset: 2px; }
 
 @media (max-width: 720px) {
   .game { grid-template-rows: 58px minmax(0, 1fr) 42px; padding: 0 16px; }
