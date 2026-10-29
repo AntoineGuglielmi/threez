@@ -492,3 +492,26 @@ button, a { color: inherit; }
   .camera-controls { top: 24px; left: auto; right: 0; gap: 4px; }
   .camera-controls button { width: 27px; height: 26px; }
 }
+
+
+/* CP room exploration and resource inventory */
+.cp-pile-row { margin-top: -7px; margin-bottom: 12px; }
+.cp-icon { border-color: rgba(189, 121, 88, .5); color: #d69a7a; background: linear-gradient(135deg, #3c2920, #171312); }
+.room-exploration, .resource-inventory { padding-top: 12px; border-top: 1px solid var(--line); }
+.room-exploration { margin-top: 12px; }
+.room-state { margin: 8px 0; color: #d2b39d; font: 9px/1.5 var(--mono); }
+.cp-door-options { display: grid; gap: 5px; color: #777f89; font: 9px/1.5 var(--mono); }
+.cp-door-options .action-button { text-align: left; }
+.room-exploration > .action-button { margin-top: 6px; }
+.resource-inventory { margin-top: 12px; }
+.resource-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.resource-grid span { display: flex; justify-content: space-between; gap: 6px; padding: 6px 7px; border: 1px solid rgba(208, 213, 224, .09); color: #9299a2; font-size: 9px; }
+.resource-grid b { color: #e0e2e6; font: 11px var(--mono); }
+.resource-grid span:last-child { grid-column: 1 / -1; }
+.game-panel { scrollbar-width: thin; scrollbar-color: #343940 transparent; }
+@media (max-width: 900px) {
+  .cp-pile-row { margin-top: -4px; margin-bottom: 8px; }
+  .room-exploration, .resource-inventory { padding-top: 8px; margin-top: 8px; }
+  .resource-grid { gap: 4px; }
+  .resource-grid span { padding: 5px 6px; }
+}
