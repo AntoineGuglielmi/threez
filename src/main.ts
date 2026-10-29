@@ -842,6 +842,7 @@ const confirmPlacement = () => {
   selectedCardId = null
   placementPreview = null
   setStatus(`CC « ${corridorDefinitions[card.kind].label} » posée : le survivant s’y déplace. ${actionsRemaining} action${actionsRemaining > 1 ? 's' : ''} restante${actionsRemaining > 1 ? 's' : ''}.`)
+  saveGameState()
   renderGameUi()
 }
 
@@ -864,6 +865,7 @@ const drawCorridorCard = () => {
     pendingDraw = card
     setStatus('Impossible de poser cette CC. Défaussez-la ou échangez-la avec une carte en main.')
   }
+  saveGameState()
   renderGameUi()
 }
 
@@ -1195,6 +1197,7 @@ renderer.domElement.addEventListener('click', (event) => {
   spendAction()
   root.dataset.selected = 'current-tile'
   setStatus(`Déplacement effectué. ${actionsRemaining} action${actionsRemaining > 1 ? 's' : ''} restante${actionsRemaining > 1 ? 's' : ''}.`)
+  saveGameState()
   renderGameUi()
 })
 
