@@ -1215,7 +1215,6 @@ const unlockCurrentRoom = () => {
   if (!room || room.status !== 'locked' || room.unlocked) return
   room.unlocked = true
   spendAction()
-  spendAction()
   setStatus('Porte déverrouillée. Vous pouvez maintenant la fouiller.')
   saveGameState()
   renderGameUi()
