@@ -229,6 +229,190 @@ for (const x of [-0.38, 0.38]) {
   }
 }
 
+// Survivors are simple low-poly figures built from primitives, so they stay editable in code.
+const characterMaterials = {
+  hood: new THREE.MeshStandardMaterial({ color: '#17232b', roughness: 0.92 }),
+  stealthCloth: new THREE.MeshStandardMaterial({ color: '#263d49', roughness: 0.86 }),
+  skin: new THREE.MeshStandardMaterial({ color: '#b77f64', roughness: 0.92 }),
+  skinShadow: new THREE.MeshStandardMaterial({ color: '#523d37', roughness: 0.98 }),
+  heavyCloth: new THREE.MeshStandardMaterial({ color: '#665447', roughness: 0.95 }),
+  heavyVest: new THREE.MeshStandardMaterial({ color: '#34383a', roughness: 0.95 }),
+  military: new THREE.MeshStandardMaterial({ color: '#46543b', roughness: 0.94 }),
+  militaryDark: new THREE.MeshStandardMaterial({ color: '#303a2c', roughness: 0.98 }),
+  beret: new THREE.MeshStandardMaterial({ color: '#743c3e', roughness: 0.9 }),
+  labCoat: new THREE.MeshStandardMaterial({ color: '#d5d8d6', roughness: 0.92 }),
+  labShadow: new THREE.MeshStandardMaterial({ color: '#7f9399', roughness: 0.85 }),
+  shirt: new THREE.MeshStandardMaterial({ color: '#4d4641', roughness: 0.95 }),
+  trousers: new THREE.MeshStandardMaterial({ color: '#34373b', roughness: 0.98 }),
+  boot: new THREE.MeshStandardMaterial({ color: '#17191b', roughness: 0.95 }),
+  glasses: new THREE.MeshStandardMaterial({ color: '#202a31', metalness: 0.65, roughness: 0.3 }),
+  lens: new THREE.MeshStandardMaterial({ color: '#8ec7d8', metalness: 0.25, roughness: 0.2 }),
+  activeRing: new THREE.MeshBasicMaterial({ color: '#75d9ff' }),
+}
+
+const makePart = (
+  parent: THREE.Group,
+  geometry: THREE.BufferGeometry,
+  material: THREE.Material,
+  position: [number, number, number],
+  rotation: [number, number, number] = [0, 0, 0],
+) => {
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.position.set(...position)
+  mesh.rotation.set(...rotation)
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+  parent.add(mesh)
+  return mesh
+}
+
+const createCharacter = (kind: 'stealth' | 'heavy' | 'military' | 'scientist' | 'injured') => {
+  const character = new THREE.Group()
+  const torsoMaterials = {
+    stealth: characterMaterials.stealthCloth,
+    heavy: characterMaterials.heavyCloth,
+    military: characterMaterials.military,
+    scientist: characterMaterials.labCoat,
+    injured: characterMaterials.shirt,
+  }
+  const torsoMaterial = torsoMaterials[kind]
+  const torsoWidth = kind === 'heavy' ? 0.28 : kind === 'scientist' ? 0.19 : 0.21
+  const torsoHeight = kind === 'injured' ? 0.27 : 0.31
+  const lean = kind === 'injured' ? -0.22 : 0
+
+  // Legs and boots. The injured survivor's uneven stance hints at his limp.
+  for (const side of [-1, 1]) {
+    const legX = side * (kind === 'heavy' ? 0.085 : 0.06)
+    const legRotation = kind === 'injured' && side === 1 ? -0.22 : 0
+    makePart(
+      character,
+      new THREE.BoxGeometry(kind === 'heavy' ? 0.09 : 0.065, 0.2, 0.075),
+      kind === 'military' ? characterMaterials.militaryDark : characterMaterials.trousers,
+      [legX, 0.115, side === 1 && kind === 'injured' ? 0.055 : 0],
+      [legRotation, 0, 0],
+    )
+    makePart(
+      character,
+      new THREE.BoxGeometry(0.085, 0.055, 0.13),
+      characterMaterials.boot,
+      [legX, 0.035, 0.025],
+      [0, 0, kind === 'injured' && side === 1 ? -0.18 : 0],
+    )
+  }
+
+  // Torso, shoulders and arms.
+  makePart(
+    character,
+    new THREE.BoxGeometry(torsoWidth, torsoHeight, 0.13),
+    torsoMaterial,
+    [0, 0.34, 0],
+    [0, 0, lean],
+  )
+
+  if (kind === 'heavy') {
+    makePart(character, new THREE.BoxGeometry(0.39, 0.13, 0.16), characterMaterials.heavyVest, [0, 0.47, 0])
+    makePart(character, new THREE.BoxGeometry(0.22, 0.2, 0.145), characterMaterials.heavyVest, [0, 0.34, 0.075])
+  } else if (kind === 'military') {
+    makePart(character, new THREE.BoxGeometry(0.24, 0.11, 0.15), characterMaterials.militaryDark, [0, 0.39, 0.075])
+    for (const side of [-1, 1]) {
+      makePart(character, new THREE.BoxGeometry(0.065, 0.075, 0.035), characterMaterials.heavyCloth, [side * 0.105, 0.33, 0.09])
+    }
+  } else if (kind === 'scientist') {
+    // Open lab coat panels and a dark shirt give the silhouette a clear white coat.
+    makePart(character, new THREE.BoxGeometry(0.075, 0.28, 0.035), characterMaterials.labShadow, [-0.055, 0.34, 0.078])
+    makePart(character, new THREE.BoxGeometry(0.075, 0.28, 0.035), characterMaterials.labShadow, [0.055, 0.34, 0.078])
+  } else if (kind === 'injured') {
+    makePart(character, new THREE.BoxGeometry(0.07, 0.1, 0.035), characterMaterials.skinShadow, [0.07, 0.39, 0.08])
+  }
+
+  for (const side of [-1, 1]) {
+    const shoulderX = side * (kind === 'heavy' ? 0.19 : kind === 'scientist' ? 0.13 : 0.14)
+    makePart(
+      character,
+      new THREE.BoxGeometry(kind === 'heavy' ? 0.11 : 0.075, 0.22, 0.085),
+      kind === 'scientist' ? characterMaterials.labCoat : torsoMaterial,
+      [shoulderX, 0.34, 0],
+      [0, 0, side * (kind === 'injured' ? 0.2 : 0.08)],
+    )
+      .geometry.computeBoundingSphere()
+  }
+
+  // Head and face.
+  const headY = kind === 'heavy' ? 0.59 : 0.585
+  makePart(
+    character,
+    new THREE.SphereGeometry(kind === 'heavy' ? 0.105 : 0.09, 10, 8),
+    kind === 'stealth' ? characterMaterials.hood : characterMaterials.skin,
+    [0, headY, 0.015],
+  )
+
+  if (kind === 'stealth') {
+    makePart(character, new THREE.ConeGeometry(0.145, 0.25, 7), characterMaterials.hood, [0, 0.64, -0.015])
+    makePart(character, new THREE.BoxGeometry(0.105, 0.045, 0.075), characterMaterials.skinShadow, [0, 0.555, 0.083])
+  } else {
+    // Simple facial planes and eyes keep each silhouette readable at small scale.
+    makePart(character, new THREE.BoxGeometry(0.052, 0.018, 0.012), characterMaterials.skinShadow, [-0.03, headY + 0.005, 0.095])
+    makePart(character, new THREE.BoxGeometry(0.052, 0.018, 0.012), characterMaterials.skinShadow, [0.03, headY + 0.005, 0.095])
+  }
+
+  if (kind === 'military') {
+    makePart(character, new THREE.SphereGeometry(0.105, 10, 6), characterMaterials.beret, [0, 0.665, 0.005], [0, 0, -0.1])
+    makePart(character, new THREE.BoxGeometry(0.12, 0.025, 0.08), characterMaterials.beret, [0, 0.635, 0.02])
+  }
+
+  if (kind === 'scientist') {
+    // Bald scalp, unmistakable glasses and a white coat.
+    makePart(character, new THREE.SphereGeometry(0.092, 10, 8), characterMaterials.skin, [0, 0.61, 0.015])
+    for (const side of [-1, 1]) {
+      makePart(character, new THREE.BoxGeometry(0.06, 0.045, 0.018), characterMaterials.glasses, [side * 0.033, 0.615, 0.099])
+      makePart(character, new THREE.BoxGeometry(0.043, 0.028, 0.008), characterMaterials.lens, [side * 0.033, 0.615, 0.11])
+    }
+    makePart(character, new THREE.BoxGeometry(0.025, 0.012, 0.015), characterMaterials.glasses, [0, 0.615, 0.104])
+  }
+
+  if (kind === 'injured') {
+    // A crooked walking stick makes the limp legible even when the figure is tiny.
+    makePart(character, new THREE.CylinderGeometry(0.009, 0.009, 0.34, 5), characterMaterials.woodLight, [0.18, 0.19, 0.035], [0, 0, -0.12])
+    makePart(character, new THREE.BoxGeometry(0.07, 0.025, 0.025), characterMaterials.woodLight, [0.18, 0.35, 0.035])
+    makePart(character, new THREE.BoxGeometry(0.1, 0.04, 0.07), characterMaterials.skinShadow, [0, 0.47, 0.04], [0, 0, -0.15])
+  }
+
+  // Tiny colour accents help the roles read clearly in the isometric view.
+  if (kind === 'stealth') {
+    makePart(character, new THREE.BoxGeometry(0.045, 0.13, 0.045), characterMaterials.heavyVest, [0.105, 0.34, -0.015], [0, 0, -0.1])
+  }
+
+  return character
+}
+
+// The stealth character takes the first turn and is shown at full size.
+// Other survivors remain visible as small tokens around the same starting tile.
+const activeCharacter = createCharacter('stealth')
+activeCharacter.position.set(0, 0.19, 0.16)
+activeCharacter.scale.setScalar(0.72)
+start.add(activeCharacter)
+
+const activeRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.2, 0.235, 32),
+  characterMaterials.activeRing,
+)
+activeRing.rotation.x = -Math.PI / 2
+activeRing.position.set(0, 0.183, 0.16)
+start.add(activeRing)
+
+const otherCharacters: Array<{ kind: 'heavy' | 'military' | 'scientist' | 'injured'; character: THREE.Group; position: [number, number, number] }> = [
+  { kind: 'heavy', character: createCharacter('heavy'), position: [-0.32, 0.19, -0.28] },
+  { kind: 'military', character: createCharacter('military'), position: [0.32, 0.19, -0.28] },
+  { kind: 'scientist', character: createCharacter('scientist'), position: [-0.32, 0.19, 0.36] },
+  { kind: 'injured', character: createCharacter('injured'), position: [0.32, 0.19, 0.36] },
+]
+
+for (const { character, position } of otherCharacters) {
+  character.position.set(...position)
+  character.scale.setScalar(0.27)
+  start.add(character)
+}
+
 // Barricaded hospital entrance.
 const framePosts = [-0.34, 0.34]
 for (const x of framePosts) {
