@@ -1201,6 +1201,16 @@ renderer.domElement.addEventListener('click', (event) => {
   renderGameUi()
 })
 
+document.querySelector<HTMLButtonElement>('#reset-game')?.addEventListener('click', () => {
+  const confirmed = window.confirm('Réinitialiser la partie ? Le plateau actuel sera perdu.')
+  if (!confirmed) return
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } finally {
+    window.location.reload()
+  }
+})
+
 const clock = new THREE.Clock()
 const animate = () => {
   requestAnimationFrame(animate)
