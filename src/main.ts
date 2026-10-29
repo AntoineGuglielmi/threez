@@ -1000,7 +1000,7 @@ const rollRoomDice = (room: RoomTile) => {
 const setupCorridor = () => {
   for (let index = 1; index <= 2; index += 1) {
     const deckIndex = corridorDeck.findIndex((card) => card.kind === 'straight')
-    if (deckIndex < 0) throw new Error('Not enough straight CC cards for setup')
+    if (deckIndex < 0) throw new Error('Not enough straight corridor cards for setup')
     const [card] = corridorDeck.splice(deckIndex, 1)
     const x = 0
     const z = index
@@ -1347,7 +1347,7 @@ const drawRoomCard = () => {
   }
   const card = roomDeck.pop()
   if (!card) {
-    setStatus('La pioche CP est vide.')
+    setStatus('La pioche de pièces est vide.')
     renderGameUi()
     return
   }
@@ -1458,7 +1458,7 @@ const renderRoomControls = () => {
   const currentRoom = currentRoomId === null ? null : rooms.find((room) => room.id === currentRoomId) ?? null
   if (drawRoomButton) {
     drawRoomButton.disabled = phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId !== null || getAvailableDoors().length === 0 || roomDeck.length === 0 || pendingRoomDraw !== null
-    drawRoomButton.textContent = pendingRoomDraw ? 'CP piochée · choisir une porte' : 'Piocher une CP'
+    drawRoomButton.textContent = pendingRoomDraw ? 'Choisir un emplacement' : 'Piocher une pièce'
   }
   if (roomResultElement) roomResultElement.replaceChildren()
   if (currentRoom) {
@@ -1490,7 +1490,7 @@ const renderRoomControls = () => {
       roomResultElement.append(loot)
     }
     const statusLabel = currentRoom.status === 'locked' && currentRoom.unlocked ? 'Déverrouillée' : getRoomStatusLabel(currentRoom.status)
-    roomStateElement.textContent = `CP ${String(currentRoom.id).padStart(2, '0')} · ${statusLabel} · ${getDifficultyLabel(currentRoom.difficulty)}${currentRoom.searched ? ' · Déjà fouillée' : ''}`
+    roomStateElement.textContent = `Pièce ${String(currentRoom.id).padStart(2, '0')} · ${statusLabel} · ${getDifficultyLabel(currentRoom.difficulty)}${currentRoom.searched ? ' · Déjà fouillée' : ''}`
     if (unlockRoomButton) {
       unlockRoomButton.hidden = currentRoom.status !== 'locked' || currentRoom.unlocked
       unlockRoomButton.disabled = phase !== 'actions' || actionsRemaining <= 0
@@ -1527,7 +1527,7 @@ const renderRoomControls = () => {
       card.className = 'room-property-card'
       const statusLabel = room.status === 'locked' && room.unlocked ? 'Déverrouillée' : getRoomStatusLabel(room.status)
       const heading = document.createElement('strong')
-      heading.textContent = `CP ${String(room.id).padStart(2, '0')}`
+      heading.textContent = `Pièce ${String(room.id).padStart(2, '0')}`
       const properties = document.createElement('span')
       properties.textContent = `${statusLabel} · ${getDifficultyLabel(room.difficulty)} · ${room.searched ? 'Déjà fouillée' : 'Non fouillée'}`
       card.append(heading, properties)
@@ -1554,7 +1554,7 @@ const renderRoomControls = () => {
   if (adjacentRooms.length === 0 && availableDoors.length === 0 && !pendingRoomDraw) {
     roomDoorOptionsElement.textContent = currentTile.doors.length
       ? 'Aucune porte inutilisée'
-      : 'Aucune porte sur cette CC'
+      : 'Aucune porte sur ce couloir'
   }
 }
 
@@ -1642,12 +1642,12 @@ const renderGameUi = () => {
   if (activePlayerName) activePlayerName.textContent = getSurvivorLabel(activeSurvivorKind)
   const activePlayerRole = document.querySelector<HTMLElement>('.active-player-name small')
   if (activePlayerRole) activePlayerRole.textContent = activeSurvivorKind === 'injured'
-    ? 'DÉPLACEMENT · 1 CC'
+    ? 'DÉPLACEMENT · 1 COULOIR'
     : phase === 'draw' ? 'PHASE 1 · PIOCHE' : 'PHASE 2 · ACTIONS · ' + String(actionsRemaining) + ' RESTANTES'
   const phaseLabel = document.querySelector<HTMLElement>('#phase-label')
   if (phaseLabel) phaseLabel.textContent = activeSurvivorKind === 'injured'
     ? 'Déplacement du Blessé'
-    : phase === 'draw' ? 'Phase 1 — Compléter la main à 3 CC' : 'Phase 2 — Réaliser ses actions'
+    : phase === 'draw' ? 'Phase 1 — Compléter la main à 3 couloirs' : 'Phase 2 — Réaliser ses actions'
   const handCount = document.querySelector<HTMLElement>('#cc-hand-count')
   if (handCount) handCount.textContent = `${hand.length} cartes`
   const selectedCard = hand.find((card) => card.id === selectedCardId)
@@ -1726,13 +1726,13 @@ discardButton?.addEventListener('click', () => {
   if (!pendingDraw) return
   discardPile.push(pendingDraw)
   pendingDraw = null
-  setStatus('CC piochée défaussée.')
+  setStatus('Carte piochée défaussée.')
   saveGameState()
   renderGameUi()
 })
 replaceButton?.addEventListener('click', () => {
   if (!pendingDraw || !handElement) return
-  setStatus('Choisissez dans votre main la CC à remplacer par la pioche.')
+  setStatus('Choisissez dans votre main le couloir à remplacer par la pioche.')
   handElement.querySelectorAll<HTMLButtonElement>('.cc-card').forEach((button, index) => {
     button.disabled = false
     button.classList.add('is-replaceable')
@@ -1743,7 +1743,7 @@ replaceButton?.addEventListener('click', () => {
       hand[index] = pendingDraw
       pendingDraw = null
       selectedCardId = hand[index].id
-      setStatus(`CC remplacée. « ${corridorDefinitions[oldCard.kind].label} » défaussée.`)
+      setStatus(`Couloir remplacé. « ${corridorDefinitions[oldCard.kind].label} » défaussé.`)
       saveGameState()
       renderGameUi()
     }, { once: true })
@@ -1751,11 +1751,11 @@ replaceButton?.addEventListener('click', () => {
 })
 endTurnButton?.addEventListener('click', () => {
   if (pendingDraw) {
-    setStatus('Décidez d’abord du sort de la CC piochée.')
+    setStatus('Décidez d’abord du sort de la carte piochée.')
     return
   }
   if (pendingRoomDraw) {
-    setStatus('Posez ou annulez la CP piochée avant de terminer le tour.')
+    setStatus('Posez ou annulez la pièce piochée avant de terminer le tour.')
     return
   }
   characterIndex += 1
@@ -1770,8 +1770,8 @@ endTurnButton?.addEventListener('click', () => {
   actionsRemaining = activeSurvivorKind === 'injured' ? 1 : 7
   phase = activeSurvivorKind === 'injured' || hand.length >= 3 ? 'actions' : 'draw'
   setStatus(activeSurvivorKind === 'injured'
-    ? 'Tour du Blessé : choisissez une CC adjacente pour le faire avancer d’une seule case.'
-    : `Tour de ${getSurvivorLabel(activeSurvivorKind)} : complétez votre main à 3 CC avant d’agir.`)
+    ? 'Tour du Blessé : choisissez un couloir adjacent pour le faire avancer d’une seule case.'
+    : `Tour de ${getSurvivorLabel(activeSurvivorKind)} : complétez votre main à 3 couloirs avant d’agir.`)
   saveGameState()
   renderGameUi()
 })
@@ -1907,7 +1907,7 @@ renderer.domElement.addEventListener('wheel', (event) => {
 renderer.domElement.addEventListener('click', (event) => {
   if (hasDragged) return
   if (phase === 'draw' && activeSurvivorKind !== 'injured') {
-    setStatus('Terminez d’abord la phase de pioche en complétant votre main à 3 CC.')
+    setStatus('Terminez d’abord la phase de pioche en complétant votre main à 3 couloirs.')
     return
   }
 
@@ -2021,7 +2021,7 @@ renderer.domElement.addEventListener('click', (event) => {
   })
 
   if (activeSurvivorKind === 'injured' && injuredMovedThisTurn) {
-    setStatus('Le Blessé ne peut avancer que d’une seule CC par tour.')
+    setStatus('Le Blessé ne peut avancer que d’un seul couloir par tour.')
     return
   }
 
