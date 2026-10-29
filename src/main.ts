@@ -6,7 +6,7 @@ import { readSavedGameState, STORAGE_KEY } from './game/persistence'
 import { shuffle } from './game/random'
 import { createCorridorCardFactory } from './game/corridor-cards'
 import { createRoomCardFactory } from './game/room-cards'
-import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomRollResult, RoomStatus, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
+import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomStatus, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
 
 let activeSurvivorKind: SurvivorKind = 'stealth'
 const sceneSetup = createScene(activeSurvivorKind)
