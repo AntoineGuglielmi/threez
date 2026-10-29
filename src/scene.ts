@@ -478,5 +478,5 @@ export const createScene = (activeSurvivorKind: SurvivorKind) => {
 
 
 
-  return { root, scene, camera, renderer, materials, board, start, activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight, otherCharacters }
+  return { root, scene, camera, renderer, materials, board, start, activeCharacter, activeRing, beacon, characterKeyLight, characterFillLight, warmRimLight, otherCharacters }
 }
