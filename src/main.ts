@@ -893,8 +893,8 @@ renderer.domElement.addEventListener('click', (event) => {
 
   const dx = targetTile.x - currentTile.x
   const dz = targetTile.z - currentTile.z
-  const direction = directionOrder.find(([dirX, dirZ]) => {
-    const [x, z] = directionDelta[dirX]
+  const direction = directionOrder.find((candidate) => {
+    const [x, z] = directionDelta[candidate]
     return x === dx && z === dz
   })
 
