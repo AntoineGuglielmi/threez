@@ -10,57 +10,46 @@ type CorridorHandCardOptions = {
   onSelect: () => void
 }
 
-const corridorArm: Record<Direction, string> = {
-  N: '64,64 43,64 35,10 93,10 85,64',
-  E: '64,64 64,43 118,35 118,93 64,85',
-  S: '64,64 85,64 93,118 35,118 43,64',
-  W: '64,64 64,85 10,93 10,35 64,43',
+const floorArms: Record<Direction, string> = {
+  N: '48,48 80,48 105,12 23,12',
+  E: '80,48 80,80 116,105 116,23',
+  S: '80,80 48,80 23,116 105,116',
+  W: '48,80 48,48 12,23 12,105',
 }
 
-const edgeWalls: Record<Direction, { wall: string; door: string }> = {
-  N: { wall: '<rect x="10" y="9" width="108" height="9"/>', door: '<rect x="52" y="8" width="24" height="4" class="cc-pixel-door-leaf"/>' },
-  E: { wall: '<rect x="110" y="10" width="9" height="108"/>', door: '<rect x="116" y="52" width="4" height="24" class="cc-pixel-door-leaf"/>' },
-  S: { wall: '<rect x="10" y="110" width="108" height="9"/>', door: '<rect x="52" y="116" width="24" height="4" class="cc-pixel-door-leaf"/>' },
-  W: { wall: '<rect x="9" y="10" width="9" height="108"/>', door: '<rect x="8" y="52" width="4" height="24" class="cc-pixel-door-leaf"/>' },
+const wallMarkup: Record<Direction, string> = {
+  N: '<g><path d="M12 12H116V20H12Z" class="cc-wall-top"/><path d="M12 20H116V29H12Z" class="cc-wall-face"/><path d="M12 12H116" class="cc-wall-edge"/></g>',
+  E: '<g><path d="M108 12H116V116H108Z" class="cc-wall-top"/><path d="M99 12H108V116H99Z" class="cc-wall-face"/><path d="M108 12V116" class="cc-wall-edge"/></g>',
+  S: '<g><path d="M12 108H116V116H12Z" class="cc-wall-top"/><path d="M12 99H116V108H12Z" class="cc-wall-face"/><path d="M12 108H116" class="cc-wall-edge"/></g>',
+  W: '<g><path d="M12 12H20V116H12Z" class="cc-wall-top"/><path d="M20 12H29V116H20Z" class="cc-wall-face"/><path d="M20 12V116" class="cc-wall-edge"/></g>',
 }
 
-const corners = [
-  '<rect x="10" y="10" width="12" height="12" class="cc-pixel-corner"/>',
-  '<rect x="106" y="10" width="12" height="12" class="cc-pixel-corner"/>',
-  '<rect x="10" y="106" width="12" height="12" class="cc-pixel-corner"/>',
-  '<rect x="106" y="106" width="12" height="12" class="cc-pixel-corner"/>',
-].join('')
+const doorMarkup: Record<Direction, string> = {
+  N: '<g><path d="M12 12H43V20H12ZM85 12H116V20H85Z" class="cc-wall-top"/><path d="M12 20H43V29H12ZM85 20H116V29H85Z" class="cc-wall-face"/><path d="M44 12H84V20H44Z" class="cc-door-frame"/><path d="M49 14H79V18H49Z" class="cc-door-leaf"/><path d="M49 18L54 27H84L79 18Z" class="cc-door-shadow"/></g>',
+  E: '<g><path d="M108 12H116V43H108ZM108 85H116V116H108Z" class="cc-wall-top"/><path d="M99 12H108V43H99ZM99 85H108V116H99Z" class="cc-wall-face"/><path d="M108 44H116V84H108Z" class="cc-door-frame"/><path d="M110 49H114V79H110Z" class="cc-door-leaf"/><path d="M99 49L108 54V84H99Z" class="cc-door-shadow"/></g>',
+  S: '<g><path d="M12 108H43V116H12ZM85 108H116V116H85Z" class="cc-wall-top"/><path d="M12 99H43V108H12ZM85 99H116V108H85Z" class="cc-wall-face"/><path d="M44 108H84V116H44Z" class="cc-door-frame"/><path d="M49 110H79V114H49Z" class="cc-door-leaf"/><path d="M49 99L54 108H84L79 99Z" class="cc-door-shadow"/></g>',
+  W: '<g><path d="M12 12H20V43H12ZM12 85H20V116H12Z" class="cc-wall-top"/><path d="M20 12H29V43H20ZM20 85H29V116H20Z" class="cc-wall-face"/><path d="M12 44H20V84H12Z" class="cc-door-frame"/><path d="M14 49H18V79H14Z" class="cc-door-leaf"/><path d="M20 49L29 54V84H20Z" class="cc-door-shadow"/></g>',
+}
 
 const floorDetails = `
-  <g class="cc-pixel-floor-lines">
-    <path d="M28 27H100 M28 101H100 M27 28V100 M101 28V100"/>
-    <path d="M39 28V39 M89 89V100 M28 76H39 M89 52H100"/>
+  <g class="cc-floor-grid">
+    <path d="M36 34L64 64L92 34 M36 94L64 64L92 94 M34 36L64 64L94 92 M94 36L64 64L34 92"/>
+    <path d="M26 26L48 48 M102 26L80 48 M26 102L48 80 M102 102L80 80"/>
   </g>
-  <g class="cc-pixel-paper">
-    <path d="M27 39h10v13h-10z M29 42h6 M29 45h5 M29 48h4"/>
-    <path d="M88 87h9v12h-9z M90 90h5 M90 93h4"/>
+  <g class="cc-paper">
+    <path d="M33 36h9v12h-9z M35 39h5 M35 42h4"/>
+    <path d="M88 83h10v12H88z M90 86h6 M90 89h5"/>
   </g>
-  <g class="cc-pixel-blood">
-    <rect x="77" y="35" width="4" height="4"/><rect x="81" y="39" width="4" height="4"/>
-    <rect x="85" y="43" width="3" height="3"/><rect x="43" y="91" width="4" height="4"/>
-    <rect x="39" y="95" width="3" height="3"/>
+  <g class="cc-blood">
+    <rect x="76" y="39" width="4" height="4"/><rect x="80" y="43" width="4" height="4"/>
+    <rect x="84" y="47" width="3" height="3"/><rect x="43" y="84" width="4" height="4"/>
+    <rect x="39" y="88" width="3" height="3"/>
   </g>
-  <g class="cc-pixel-debris">
-    <rect x="95" y="29" width="4" height="3"/><rect x="31" y="83" width="3" height="3"/>
-    <rect x="72" y="99" width="5" height="2"/><rect x="48" y="27" width="3" height="3"/>
+  <g class="cc-debris">
+    <rect x="93" y="32" width="4" height="3"/><rect x="31" y="76" width="3" height="3"/>
+    <rect x="72" y="94" width="5" height="2"/>
   </g>
 `
-
-const getDoorMarkup = (direction: Direction) => {
-  const horizontal = direction === 'N' || direction === 'S'
-  const frame = horizontal
-    ? '<rect x="48" y="8" width="4" height="12"/><rect x="76" y="8" width="4" height="12"/>'
-    : '<rect x="8" y="48" width="12" height="4"/><rect x="8" y="76" width="12" height="4"/>'
-  const sideWalls = horizontal
-    ? '<rect x="10" y="9" width="38" height="9"/><rect x="80" y="9" width="38" height="9"/>'
-    : '<rect x="110" y="10" width="9" height="38"/><rect x="110" y="80" width="9" height="38"/>'
-  return `<g class="cc-pixel-door">${sideWalls}${frame}${edgeWalls[direction].door}<rect x="${horizontal ? 53 : 10}" y="${horizontal ? 13 : 53}" width="${horizontal ? 22 : 3}" height="${horizontal ? 3 : 22}" class="cc-pixel-threshold"/></g>`
-}
 
 const getArtwork = (card: CorridorCard, turns: number) => {
   const exits = corridorDefinitions[card.kind].exits.map((direction) => rotateDirection(direction, turns))
@@ -68,36 +57,32 @@ const getArtwork = (card: CorridorCard, turns: number) => {
     .map((direction) => rotateDirection(direction, turns))
     .filter((direction) => !exits.includes(direction))
 
-  const floorArms = exits.map((direction) => `<polygon points="${corridorArm[direction]}"/>`).join('')
+  const arms = exits.map((direction) => `<polygon points="${floorArms[direction]}"/>`).join('')
   const walls = directionOrder
     .filter((direction) => !exits.includes(direction) && !doors.includes(direction))
-    .map((direction) => edgeWalls[direction].wall)
+    .map((direction) => wallMarkup[direction])
     .join('')
-  const doorways = doors.map(getDoorMarkup).join('')
+  const doorsMarkup = doors.map((direction) => doorMarkup[direction]).join('')
 
   return `
     <svg class="cc-card-art" viewBox="0 0 128 128" role="img" aria-label="Couloir, sorties : ${exits.join(', ') || 'aucune'}, portes : ${doors.length ? doors.join(', ') : 'aucune'}" shape-rendering="crispEdges">
-      <rect x="4" y="4" width="120" height="120" class="cc-pixel-shadow"/>
-      <rect x="8" y="8" width="112" height="112" class="cc-pixel-room"/>
-      <g class="cc-pixel-floor">
-        <rect x="18" y="18" width="92" height="92"/>
-        ${floorArms}
-        <path d="M18 34H110 M18 64H110 M18 94H110 M34 18V110 M64 18V110 M94 18V110"/>
+      <path d="M8 8H120V120H8Z" class="cc-shadow"/>
+      <path d="M12 12H116V116H12Z" class="cc-floor-base"/>
+      <g class="cc-floor">
+        <path d="M48 48H80V80H48Z"/>
+        ${arms}
       </g>
       ${floorDetails}
-      <g class="cc-pixel-wall">${walls}${doorways}${corners}</g>
-      <g class="cc-pixel-center">
-        <rect x="56" y="56" width="16" height="16"/>
-        <rect x="60" y="60" width="8" height="8"/>
-      </g>
-      <g class="cc-pixel-exit-markers">${exits.map((direction) => {
-        const positions: Record<Direction, string> = {
-          N: '<rect x="58" y="9" width="12" height="3"/>',
-          E: '<rect x="116" y="58" width="3" height="12"/>',
-          S: '<rect x="58" y="116" width="12" height="3"/>',
-          W: '<rect x="9" y="58" width="3" height="12"/>',
+      <g class="cc-walls">${walls}${doorsMarkup}</g>
+      <g class="cc-center"><path d="M56 56H72V72H56Z"/><path d="M60 60H68V68H60Z"/></g>
+      <g class="cc-openings">${exits.map((direction) => {
+        const marks: Record<Direction, string> = {
+          N: '<path d="M58 11H70V14H58Z"/>',
+          E: '<path d="M114 58H117V70H114Z"/>',
+          S: '<path d="M58 114H70V117H58Z"/>',
+          W: '<path d="M11 58H14V70H11Z"/>',
         }
-        return positions[direction]
+        return marks[direction]
       }).join('')}</g>
     </svg>
   `
@@ -124,9 +109,10 @@ export const createCorridorHandCard = ({
     tee: 'Couloir en T',
     cross: 'Carrefour',
   }
+  const displayedExits = corridorDefinitions[card.kind].exits.map((direction) => rotateDirection(direction, turns))
   const displayedDoors = card.doors
     .map((direction) => rotateDirection(direction, turns))
-    .filter((direction) => !corridorDefinitions[card.kind].exits.map((exit) => rotateDirection(exit, turns)).includes(direction))
+    .filter((direction) => !displayedExits.includes(direction))
   const doorLabel = displayedDoors.length ? `Portes : ${displayedDoors.join(' / ')}` : 'Aucune porte'
 
   button.innerHTML = `<span class="cc-card-index">${String(index + 1).padStart(2, '0')}</span>${getArtwork(card, turns)}<span class="cc-card-name">${shapeLabel[card.kind]}<small>${doorLabel}</small></span>`
