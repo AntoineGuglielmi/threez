@@ -1130,7 +1130,7 @@ const updatePlacementHighlights = () => {
     })
   }
   placementHighlights.clear()
-  if (selectedCardId === null || pendingDraw || activeSurvivorKind === 'injured') return
+  if (phase !== 'actions' || selectedCardId === null || pendingDraw || activeSurvivorKind === 'injured') return
   const card = hand.find((item) => item.id === selectedCardId)
   if (!card) return
 
@@ -1193,6 +1193,7 @@ const spendAction = () => {
 }
 
 const confirmPlacement = () => {
+  if (phase !== 'actions') return
   const card = hand.find((item) => item.id === selectedCardId)
   if (!card || !placementPreview) return
   const option = placementPreview.options[placementPreview.optionIndex]
@@ -1297,7 +1298,7 @@ const placeDrawnRoom = (direction: Direction) => {
 }
 
 const unlockCurrentRoom = () => {
-  if (activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
+  if (phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
   const room = rooms.find((item) => item.id === currentRoomId)
   if (!room || room.status !== 'locked' || room.unlocked) return
   room.unlocked = true
@@ -1308,7 +1309,7 @@ const unlockCurrentRoom = () => {
 }
 
 const searchCurrentRoomAgain = () => {
-  if (activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
+  if (phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
   const room = rooms.find((item) => item.id === currentRoomId)
   if (!room || (room.status === 'locked' && !room.unlocked)) return
   if (room.status === 'trapped' && activeSurvivorKind !== 'stealth') {
@@ -1322,7 +1323,7 @@ const searchCurrentRoomAgain = () => {
 }
 
 const returnToCorridor = () => {
-  if (activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
+  if (phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
   currentTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
   activeCharacter.position.set(0, 0.19, 0.16)
   activeRing.position.set(0, 0.183, 0.16)
@@ -1335,7 +1336,7 @@ const returnToCorridor = () => {
 }
 
 const enterRoom = (room: RoomTile) => {
-  if (activeSurvivorKind === 'injured' || currentRoomId !== null) return
+  if (phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId !== null) return
   if (room.originX !== currentTile.x || room.originZ !== currentTile.z) return
   if (room.status === 'trapped' && activeSurvivorKind !== 'stealth') {
     setStatus('Pièce piégée : seul le Furtif peut y entrer.')
@@ -1486,6 +1487,7 @@ const renderRoomControls = () => {
 }
 
 const renderGameUi = () => {
+  survivorCards[activeSurvivorKind] = { deck: corridorDeck, discard: discardPile, hand }
   updatePlacementHighlights()
   if (!handElement || !deckCountElement || !discardCountElement || !actionsCountElement || !actionsFillElement) return
   handElement.replaceChildren()
@@ -1565,7 +1567,7 @@ const renderGameUi = () => {
   const selectedCard = hand.find((card) => card.id === selectedCardId)
   const hasPreview = Boolean(selectedCard && placementPreview)
   if (placeButton) {
-    placeButton.disabled = !hasPreview || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
+    placeButton.disabled = phase !== 'actions' || !hasPreview || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
     placeButton.textContent = hasPreview ? 'Valider la pose' : 'Choisir un emplacement'
   }
   if (rotateButton) {
@@ -1577,7 +1579,7 @@ const renderGameUi = () => {
   if (cancelPlacementButton) cancelPlacementButton.disabled = selectedCardId === null
   if (discardButton) discardButton.disabled = !pendingDraw
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
-  if (drawButton) drawButton.disabled = phase !== 'draw' || hand.length >= 3 || activeSurvivorKind === 'injured' || (corridorDeck.length === 0 && discardPile.length === 0)
+  if (drawButton) drawButton.disabled = phase !== 'draw' || hand.length >= 3 || activeSurvivorKind === 'injured'
   if (drawButton) drawButton.textContent = phase === 'draw' ? 'Compléter ma main' : 'Pioche terminée'
   if (endTurnButton) endTurnButton.disabled = phase !== 'actions' || Boolean(pendingDraw) || Boolean(pendingRoomDraw)
   renderRoomControls()
@@ -1745,7 +1747,10 @@ const saveGameState = () => {
       deck: corridorDeck,
       discard: discardPile,
       hand,
-      survivorCards,
+      survivorCards: {
+        ...survivorCards,
+        [activeSurvivorKind]: { deck: corridorDeck, discard: discardPile, hand },
+      },
       phase,
       pendingDraw,
       actionsRemaining,
@@ -1807,6 +1812,10 @@ renderer.domElement.addEventListener('wheel', (event) => {
 
 renderer.domElement.addEventListener('click', (event) => {
   if (hasDragged) return
+  if (phase === 'draw' && activeSurvivorKind !== 'injured') {
+    setStatus('Terminez d’abord la phase de pioche en complétant votre main à 3 CC.')
+    return
+  }
 
   const bounds = renderer.domElement.getBoundingClientRect()
   pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1
