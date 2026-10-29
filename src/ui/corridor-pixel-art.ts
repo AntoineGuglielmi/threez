@@ -344,7 +344,10 @@ export const createCorridorPixelArt = (card: CorridorCard, turns: number): HTMLS
   image.setAttribute('role', 'img')
   image.setAttribute('aria-label', `Couloir ${card.kind}, ${doors.length} porte(s)`)
   image.style.setProperty('--pixel-size', String(SIZE))
-  image.innerHTML = buildPixels(card, turns)
+  const pixels = card.kind === 'straight' && turns === 0
+    ? buildStraightPerspective(card)
+    : buildPixels(card, turns)
+  image.innerHTML = pixels
     .map(({ x, y, color }) => `<span class="cc-pixel" style="--x:${x};--y:${y};--pixel-color:${color}"></span>`)
     .join('')
   return image
