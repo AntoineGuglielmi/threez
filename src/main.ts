@@ -692,6 +692,16 @@ let placementPreview: { x: number; z: number; options: PlacementOption[]; option
 const placementHighlights = new THREE.Group()
 placementHighlights.name = 'placement-highlights'
 board.add(placementHighlights)
+const roomPlacementHighlights = new THREE.Group()
+roomPlacementHighlights.name = 'room-placement-highlights'
+board.add(roomPlacementHighlights)
+const ghostLayer = new THREE.Group()
+ghostLayer.name = 'corridor-placement-ghost'
+scene.add(ghostLayer)
+let ghostTile: THREE.Group | null = null
+const placementActions = document.querySelector<HTMLDivElement>('#placement-actions')
+const rotateGhostButton = document.querySelector<HTMLButtonElement>('#rotate-ghost')
+const confirmGhostButton = document.querySelector<HTMLButtonElement>('#confirm-ghost')
 
 const handElement = document.querySelector<HTMLDivElement>('#cc-hand')
 const deckCountElement = document.querySelector<HTMLElement>('#cc-deck-count')
@@ -1117,84 +1127,145 @@ const getPlacements = (card: CorridorCard, fixedTurns = selectedCardTurns): Plac
   return [...candidates.values()]
 }
 
-const updatePlacementHighlights = () => {
-  for (const child of placementHighlights.children) {
-    child.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) return
-      object.geometry.dispose()
-      const meshMaterials = Array.isArray(object.material) ? object.material : [object.material]
-      meshMaterials.forEach((material) => material.dispose())
-    })
-  }
-  placementHighlights.clear()
-  if (phase !== 'actions' || selectedCardId === null || pendingDraw || activeSurvivorKind === 'injured') return
-  const card = hand.find((item) => item.id === selectedCardId)
-  if (!card) return
-
-  const candidates = getPlacements(card, selectedCardTurns)
-  for (const candidate of candidates) {
-    const isSelected = placementPreview?.x === candidate.x && placementPreview?.z === candidate.z
-    const marker = new THREE.Group()
-    marker.name = 'placement-marker'
-    marker.userData.isPlacementMarker = true
-    marker.userData.placementX = candidate.x
-    marker.userData.placementZ = candidate.z
-    marker.position.set(candidate.x * 1.18, 0.19, candidate.z * 1.18)
-
-    const pad = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.94, 0.94),
-      new THREE.MeshBasicMaterial({
-        color: isSelected ? '#75d9ff' : '#4b9cb5',
-        transparent: true,
-        opacity: isSelected ? 0.2 : 0.09,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
-    )
-    pad.rotation.x = -Math.PI / 2
-    pad.userData.isPlacementHitArea = true
-    marker.add(pad)
-
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(isSelected ? 0.39 : 0.34, isSelected ? 0.43 : 0.37, 4),
-      new THREE.MeshBasicMaterial({
-        color: isSelected ? '#bcefff' : '#75d9ff',
-        transparent: true,
-        opacity: isSelected ? 1 : 0.72,
-        side: THREE.DoubleSide,
-      }),
-    )
-    ring.rotation.x = -Math.PI / 2
-    marker.add(ring)
-
-    if (isSelected && placementPreview) {
-      const option = placementPreview.options[placementPreview.optionIndex]
-      for (const direction of option.exits) {
-        const [dx, dz] = directionDelta[direction]
-        const bar = new THREE.Mesh(
-          new THREE.BoxGeometry(dx === 0 ? 0.42 : 0.055, 0.012, dz === 0 ? 0.42 : 0.055),
-          new THREE.MeshBasicMaterial({ color: '#bcefff' }),
-        )
-        bar.position.set(dx * 0.23, 0.008, dz * 0.23)
-        marker.add(bar)
-      }
-      const card = hand.find((item) => item.id === selectedCardId)
-      const doors = card?.doors.map((direction) => rotateDirection(direction, selectedCardTurns)) ?? []
-      for (const direction of doors.filter((item) => !option.exits.includes(item))) {
-        const [dx, dz] = directionDelta[direction]
-        const doorMarker = new THREE.Mesh(
-          new THREE.BoxGeometry(dx === 0 ? 0.22 : 0.055, 0.018, dz === 0 ? 0.22 : 0.055),
-          new THREE.MeshBasicMaterial({ color: '#f0b17a' }),
-        )
-        doorMarker.position.set(dx * 0.43, 0.02, dz * 0.43)
-        marker.add(doorMarker)
-      }
-    }
-
-    placementHighlights.add(marker)
-  }
+const disposeGroup = (group: THREE.Group) => {
+  group.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return
+    object.geometry.dispose()
+    const meshMaterials = Array.isArray(object.material) ? object.material : [object.material]
+    meshMaterials.forEach((material) => material.dispose())
+  })
+  group.clear()
 }
 
+const clearGhostTile = () => {
+  if (ghostTile) {
+    ghostLayer.remove(ghostTile)
+    disposeGroup(ghostTile)
+    ghostTile = null
+  }
+  if (placementActions) placementActions.hidden = true
+}
+
+const createGhostTile = () => {
+  clearGhostTile()
+  if (!placementPreview || selectedCardId === null) return
+  const card = hand.find((item) => item.id === selectedCardId)
+  if (!card) return
+  const exits = corridorDefinitions[card.kind].exits.map((direction) => rotateDirection(direction, selectedCardTurns))
+  const doors = card.doors.map((direction) => rotateDirection(direction, selectedCardTurns))
+  const ghost = createCorridorTile(card, placementPreview.x, placementPreview.z, exits, doors)
+  board.remove(ghost)
+  ghost.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return
+    object.castShadow = false
+    object.receiveShadow = false
+    const originalMaterial = object.material
+    const sourceMaterials = Array.isArray(originalMaterial) ? originalMaterial : [originalMaterial]
+    const ghostMaterials = sourceMaterials.map((source) => {
+      const material = source.clone()
+      material.transparent = true
+      material.opacity = 0.48
+      material.depthWrite = false
+      return material
+    })
+    object.material = Array.isArray(originalMaterial) ? ghostMaterials : ghostMaterials[0]
+  })
+  ghostTile = ghost
+  ghostLayer.add(ghost)
+  if (placementActions) placementActions.hidden = false
+}
+
+const updatePlacementHighlights = () => {
+  disposeGroup(placementHighlights)
+  disposeGroup(roomPlacementHighlights)
+
+  if (phase === 'actions' && selectedCardId !== null && !pendingDraw && activeSurvivorKind !== 'injured') {
+    const card = hand.find((item) => item.id === selectedCardId)
+    if (card) {
+      for (const candidate of getPlacements(card, selectedCardTurns)) {
+        const isSelected = placementPreview?.x === candidate.x && placementPreview?.z === candidate.z
+        const marker = new THREE.Group()
+        marker.name = 'placement-marker'
+        marker.userData.isPlacementMarker = true
+        marker.userData.placementX = candidate.x
+        marker.userData.placementZ = candidate.z
+        marker.position.set(candidate.x * 1.18, 0.19, candidate.z * 1.18)
+
+        const pad = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.94, 0.94),
+          new THREE.MeshBasicMaterial({
+            color: isSelected ? '#75d9ff' : '#4b9cb5',
+            transparent: true,
+            opacity: isSelected ? 0.2 : 0.09,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+          }),
+        )
+        pad.rotation.x = -Math.PI / 2
+        marker.add(pad)
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(isSelected ? 0.39 : 0.34, isSelected ? 0.43 : 0.37, 4),
+          new THREE.MeshBasicMaterial({
+            color: isSelected ? '#bcefff' : '#75d9ff',
+            transparent: true,
+            opacity: isSelected ? 1 : 0.72,
+            side: THREE.DoubleSide,
+          }),
+        )
+        ring.rotation.x = -Math.PI / 2
+        ring.position.y = 0.006
+        marker.add(ring)
+
+        for (const direction of candidate.options[0]?.exits ?? []) {
+          const [dx, dz] = directionDelta[direction]
+          const exitMarker = new THREE.Mesh(
+            new THREE.BoxGeometry(dx === 0 ? 0.22 : 0.055, 0.018, dz === 0 ? 0.22 : 0.055),
+            new THREE.MeshBasicMaterial({ color: '#75d9ff' }),
+          )
+          exitMarker.position.set(dx * 0.43, 0.02, dz * 0.43)
+          marker.add(exitMarker)
+        }
+        for (const direction of card.doors.map((item) => rotateDirection(item, selectedCardTurns)).filter((item) => !candidate.options[0]?.exits.includes(item))) {
+          const [dx, dz] = directionDelta[direction]
+          const doorMarker = new THREE.Mesh(
+            new THREE.BoxGeometry(dx === 0 ? 0.22 : 0.055, 0.018, dz === 0 ? 0.22 : 0.055),
+            new THREE.MeshBasicMaterial({ color: '#f0b17a' }),
+          )
+          doorMarker.position.set(dx * 0.43, 0.024, dz * 0.43)
+          marker.add(doorMarker)
+        }
+        placementHighlights.add(marker)
+      }
+    }
+  }
+
+  if (pendingRoomDraw && currentRoomId === null && activeSurvivorKind !== 'injured') {
+    for (const direction of getAvailableDoors()) {
+      const [dx, dz] = directionDelta[direction]
+      const marker = new THREE.Group()
+      marker.name = 'room-placement-marker'
+      marker.userData.isRoomPlacementMarker = true
+      marker.userData.roomPlacementDirection = direction
+      marker.position.set((currentTile.x + dx) * 1.18, 0.19, (currentTile.z + dz) * 1.18)
+      const pad = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.94, 0.94),
+        new THREE.MeshBasicMaterial({ color: '#d99a75', transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide }),
+      )
+      pad.rotation.x = -Math.PI / 2
+      marker.add(pad)
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.34, 0.4, 4),
+        new THREE.MeshBasicMaterial({ color: '#f0b17a', side: THREE.DoubleSide }),
+      )
+      ring.rotation.x = -Math.PI / 2
+      ring.position.y = 0.006
+      marker.add(ring)
+      roomPlacementHighlights.add(marker)
+    }
+  }
+
+  createGhostTile()
+}
 const spendAction = () => {
   actionsRemaining = Math.max(0, actionsRemaining - 1)
   if (actionsRemaining === 0) setStatus('Plus d’actions. Terminez le tour pour continuer.')
@@ -1204,24 +1275,24 @@ const confirmPlacement = () => {
   if (phase !== 'actions') return
   const card = hand.find((item) => item.id === selectedCardId)
   if (!card || !placementPreview) return
-  const option = placementPreview.options[placementPreview.optionIndex]
   const { x, z } = placementPreview
-  if (boardTiles.some((tile) => tile.x === x && tile.z === z)) {
-    placementPreview = null
-    updatePlacementHighlights()
-    setStatus('Cet emplacement n’est plus disponible. Choisissez-en un autre.')
+  const validCandidate = getPlacements(card, selectedCardTurns).find((candidate) => candidate.x === x && candidate.z === z)
+  if (!validCandidate || boardTiles.some((tile) => tile.x === x && tile.z === z)) {
+    setStatus('Cette orientation ne convient pas à cet emplacement. Tournez la carte ou choisissez un autre emplacement.')
     return
   }
 
-  const doors = card.doors.map((direction) => rotateDirection(direction, option.turns))
-  const group = createCorridorTile(card, x, z, option.exits, doors)
-  const placedTile: BoardTile = { x, z, kind: card.kind, exits: option.exits, doors, usedDoors: [], group }
+  const doors = card.doors.map((direction) => rotateDirection(direction, selectedCardTurns))
+  const exits = validCandidate.options[0].exits
+  const group = createCorridorTile(card, x, z, exits, doors)
+  const placedTile: BoardTile = { x, z, kind: card.kind, exits, doors, usedDoors: [], group }
   boardTiles.push(placedTile)
 
   hand = hand.filter((item) => item.id !== card.id)
   selectedCardId = null
   placementPreview = null
-  setStatus(`CC « ${corridorDefinitions[card.kind].label} » posée. Le déplacement reste à effectuer séparément.`)
+  clearGhostTile()
+  setStatus('Couloir posé. Le déplacement reste à effectuer séparément.')
   saveGameState()
   renderGameUi()
 }
@@ -1243,8 +1314,8 @@ const refillHand = () => {
   placementPreview = null
   pendingDraw = null
   setStatus(drawn > 0
-    ? `Main complétée : ${drawn} CC piochée${drawn > 1 ? 's' : ''}. Phase d’actions.`
-    : 'Phase d’actions : votre main contient déjà 3 CC, ou la pioche est épuisée.')
+    ? `Main complétée : ${drawn} carte${drawn > 1 ? 's' : ''} piochée${drawn > 1 ? 's' : ''}. Phase d’actions.`
+    : 'Phase d’actions : votre main contient déjà 3 couloirs, ou la pioche est épuisée.')
   saveGameState()
   renderGameUi()
 }
@@ -1281,7 +1352,9 @@ const drawRoomCard = () => {
     return
   }
   pendingRoomDraw = card
-  setStatus(`CP ${String(card.id).padStart(2, '0')} piochée. Choisissez une porte libre pour la placer.`)
+  selectedCardId = null
+  placementPreview = null
+  setStatus('Pièce piochée. Choisissez un emplacement lumineux sur le plateau.')
   saveGameState()
   renderGameUi()
 }
@@ -1300,7 +1373,7 @@ const placeDrawnRoom = (direction: Direction) => {
   const doorMesh = currentTile.group.children.find((child) => child.userData.doorDirection === direction)
   if (doorMesh) doorMesh.visible = false
   pendingRoomDraw = null
-  setStatus(`CP ${String(room.id).padStart(2, '0')} posée. Cliquez sur la pièce pour y entrer.`)
+  setStatus('Pièce posée. Cliquez dessus pour y entrer.')
   saveGameState()
   renderGameUi()
 }
@@ -1474,17 +1547,8 @@ const renderRoomControls = () => {
   if (pendingRoomDraw) {
     const note = document.createElement('p')
     note.className = 'room-draw-prompt'
-    note.textContent = `CP ${String(pendingRoomDraw.id).padStart(2, '0')} piochée : choisissez où la poser.`
+    note.textContent = 'Pièce piochée : cliquez sur un emplacement lumineux du plateau.'
     roomDoorOptionsElement.append(note)
-    availableDoors.forEach((direction) => {
-      const button = document.createElement('button')
-      button.type = 'button'
-      button.className = 'action-button primary'
-      button.disabled = activeSurvivorKind === 'injured'
-      button.textContent = `Placer la CP sur la porte ${direction}`
-      button.addEventListener('click', () => placeDrawnRoom(direction))
-      roomDoorOptionsElement.append(button)
-    })
   }
 
   if (adjacentRooms.length === 0 && availableDoors.length === 0 && !pendingRoomDraw) {
@@ -1535,20 +1599,19 @@ const renderGameUi = () => {
       W: '<rect x="9" y="43" width="6" height="14" rx="1" />',
     }
     const doorMarkup = card.doors.filter((direction) => !exits.includes(direction)).map((direction) => doorRects[direction]).join('')
-    const typeCode: Record<CorridorKind, string> = {
-      straight: 'CC',
-      left: 'CCV',
-      right: 'CCV',
-      tee: 'CCT',
-      cross: 'CCX',
-    }
     const rotatedArtwork = cardTurns === 0 ? '' : ` transform="rotate(${cardTurns * 90} 50 50)"`
     const displayedDoors = card.doors
       .filter((direction) => !exits.includes(direction))
       .map((direction) => rotateDirection(direction, cardTurns))
-    const orientationLabel = ['N', 'E', 'S', 'W'][cardTurns]
-    const doorLabel = displayedDoors.length ? displayedDoors.join(' / ') : 'SANS PORTE'
-    button.innerHTML = `<span class="cc-card-index">${typeCode[card.kind]} · ${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${typeCode[card.kind]} — ${corridorDefinitions[card.kind].label}, portes : ${displayedDoors.length ? displayedDoors.join(', ') : 'aucune'}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><g${rotatedArtwork}><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><g class="cc-art-doors">${doorMarkup}</g><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></g></svg><span class="cc-card-name">${doorLabel} · ${orientationLabel}</span>`
+    const doorLabel = displayedDoors.length ? `Portes : ${displayedDoors.join(' / ')}` : 'Aucune porte'
+    const shapeLabel: Record<CorridorKind, string> = {
+      straight: 'Couloir droit',
+      left: 'Couloir avec virage',
+      right: 'Couloir avec virage',
+      tee: 'Couloir en T',
+      cross: 'Carrefour',
+    }
+    button.innerHTML = `<span class="cc-card-index">${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${shapeLabel[card.kind]}, ${displayedDoors.length ? displayedDoors.join(', ') : 'aucune porte'}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><g${rotatedArtwork}><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><g class="cc-art-doors">${doorMarkup}</g><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></g></svg><span class="cc-card-name">${doorLabel}</span>`
     button.addEventListener('click', () => {
       if (selectedCardId === card.id) {
         selectedCardId = null
@@ -1560,8 +1623,8 @@ const renderGameUi = () => {
         placementPreview = null
         const placements = getPlacements(card, selectedCardTurns)
         setStatus(placements.length
-          ? 'Orientation initiale vers le nord. Choisissez un emplacement lumineux, ou changez l’orientation.'
-          : 'Aucune pose possible dans cette orientation. Faites pivoter la carte.')
+          ? 'Choisissez un emplacement lumineux sur le plateau.'
+          : 'Aucun emplacement compatible pour cette orientation. Faites pivoter le couloir.')
       }
       renderGameUi()
     })
@@ -1589,17 +1652,14 @@ const renderGameUi = () => {
   if (handCount) handCount.textContent = `${hand.length} cartes`
   const selectedCard = hand.find((card) => card.id === selectedCardId)
   const hasPreview = Boolean(selectedCard && placementPreview)
-  if (placeButton) {
-    placeButton.disabled = phase !== 'actions' || !hasPreview || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
-    placeButton.textContent = hasPreview ? 'Valider la pose' : 'Choisir un emplacement'
-  }
-  if (rotateButton) {
-    rotateButton.disabled = phase !== 'actions' || selectedCardId === null || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
-    rotateButton.textContent = selectedCardId !== null
-      ? `Orientation ${['N', 'E', 'S', 'W'][selectedCardTurns]} · ↻`
-      : 'Changer l’orientation'
-  }
-  if (cancelPlacementButton) cancelPlacementButton.disabled = selectedCardId === null
+  const previewIsValid = Boolean(selectedCard && placementPreview &&
+    getPlacements(selectedCard, selectedCardTurns).some((candidate) => candidate.x === placementPreview?.x && candidate.z === placementPreview?.z))
+  if (placeButton) placeButton.disabled = true
+  if (rotateButton) rotateButton.disabled = true
+  if (placementActions) placementActions.hidden = !hasPreview
+  if (confirmGhostButton) confirmGhostButton.disabled = !previewIsValid
+  if (rotateGhostButton) rotateGhostButton.disabled = !hasPreview
+  if (cancelPlacementButton) cancelPlacementButton.disabled = true
   if (discardButton) discardButton.disabled = !pendingDraw
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
   if (drawButton) drawButton.disabled = phase !== 'draw' || hand.length >= 3 || activeSurvivorKind === 'injured'
@@ -1621,7 +1681,7 @@ const renderGameUi = () => {
   if (pendingDraw) {
     const note = document.createElement('p')
     note.className = 'pending-draw'
-    note.textContent = `Pioche : ${corridorDefinitions[pendingDraw.kind].label}. Choisissez une CC à remplacer, ou défaussez la pioche.`
+    note.textContent = `Pioche : ${corridorDefinitions[pendingDraw.kind].label}. Choisissez un couloir à remplacer, ou défaussez la carte.`
     handElement.append(note)
   }
 }
@@ -1631,38 +1691,36 @@ returnRoomButton?.addEventListener('click', returnToCorridor)
 drawRoomButton?.addEventListener('click', drawRoomCard)
 
 drawButton?.addEventListener('click', refillHand)
-placeButton?.addEventListener('click', () => {
-  if (!placementPreview) {
-    setStatus('Sélectionnez d’abord un emplacement lumineux sur le plateau.')
-    return
-  }
-  confirmPlacement()
-})
-rotateButton?.addEventListener('click', () => {
+placeButton?.addEventListener('click', confirmPlacement)
+const rotateSelectedCorridor = () => {
   if (selectedCardId === null || phase !== 'actions') return
   selectedCardTurns = (selectedCardTurns + 1) % 4
+  const previousPreview = placementPreview
   const card = hand.find((item) => item.id === selectedCardId)
-  if (!card) return
-
-  if (placementPreview) {
-    const samePosition = getPlacements(card, selectedCardTurns).find((candidate) =>
-      candidate.x === placementPreview?.x && candidate.z === placementPreview?.z)
+  if (previousPreview && card) {
+    const samePosition = getPlacements(card, selectedCardTurns)
+      .find((candidate) => candidate.x === previousPreview.x && candidate.z === previousPreview.z)
     placementPreview = samePosition
       ? { ...samePosition, optionIndex: 0 }
-      : null
+      : { ...previousPreview, options: [], optionIndex: 0 }
   }
-
   updatePlacementHighlights()
   renderGameUi()
-  setStatus(placementPreview
-    ? `Orientation ${['N', 'E', 'S', 'W'][selectedCardTurns]} : sorties et portes mises à jour.`
-    : `Orientation ${['N', 'E', 'S', 'W'][selectedCardTurns]}. Choisissez un emplacement compatible.`)
-})
+  setStatus(placementPreview?.options.length
+    ? 'Orientation modifiée. Vérifiez les passages et validez la pose.'
+    : placementPreview
+      ? 'Cette orientation ne convient pas à cet emplacement. Tournez encore ou choisissez un autre emplacement.'
+      : 'Orientation modifiée. Choisissez un emplacement compatible.')
+}
+rotateButton?.addEventListener('click', rotateSelectedCorridor)
+rotateGhostButton?.addEventListener('click', rotateSelectedCorridor)
+confirmGhostButton?.addEventListener('click', confirmPlacement)
 cancelPlacementButton?.addEventListener('click', () => {
   selectedCardId = null
   placementPreview = null
+  clearGhostTile()
   renderGameUi()
-  setStatus('Pose annulée. Choisissez une CC pour continuer.')
+  setStatus('Pose annulée. Choisissez un couloir pour continuer.')
 })
 discardButton?.addEventListener('click', () => {
   if (!pendingDraw) return
@@ -1858,6 +1916,24 @@ renderer.domElement.addEventListener('click', (event) => {
   pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1
   raycaster.setFromCamera(pointer, camera)
 
+  if (pendingRoomDraw) {
+    const roomPlacementHits = raycaster.intersectObjects(roomPlacementHighlights.children, true)
+    const roomMarkerHit = roomPlacementHits.find((hit) => {
+      let object: THREE.Object3D | null = hit.object
+      while (object && object.parent !== roomPlacementHighlights) object = object.parent
+      return Boolean(object?.userData.isRoomPlacementMarker)
+    })
+    if (roomMarkerHit) {
+      let marker: THREE.Object3D | null = roomMarkerHit.object
+      while (marker && marker.parent !== roomPlacementHighlights) marker = marker.parent
+      const direction = marker?.userData.roomPlacementDirection as Direction | undefined
+      if (direction) placeDrawnRoom(direction)
+    } else {
+      setStatus('Cliquez sur un emplacement lumineux pour poser la pièce.')
+    }
+    return
+  }
+
   if (selectedCardId !== null && !pendingDraw) {
     const placementHits = raycaster.intersectObjects(placementHighlights.children, true)
     const markerHit = placementHits.find((hit) => {
@@ -1877,7 +1953,7 @@ renderer.domElement.addEventListener('click', (event) => {
           placementPreview = { x, z, options: candidate.options, optionIndex: 0 }
           updatePlacementHighlights()
           renderGameUi()
-          setStatus('Emplacement choisi. Changez l’orientation si besoin, puis validez la pose.')
+          setStatus('Couloir pré-positionné. Tournez-le si besoin, puis validez à côté de la carte.')
         }
       }
       return
@@ -2017,6 +2093,17 @@ const animate = () => {
   camera.zoom = currentZoom
   camera.updateProjectionMatrix()
   beacon.scale.y = 1 + Math.sin(elapsed * 2.2) * 0.07
+  if (placementActions && !placementActions.hidden && placementPreview) {
+    const projected = new THREE.Vector3(placementPreview.x * 1.18, 1.1, placementPreview.z * 1.18).project(camera)
+    const sceneBounds = root.parentElement?.getBoundingClientRect()
+    if (sceneBounds) {
+      const canvasBounds = renderer.domElement.getBoundingClientRect()
+      const left = (projected.x * 0.5 + 0.5) * canvasBounds.width + canvasBounds.left - sceneBounds.left
+      const top = (-projected.y * 0.5 + 0.5) * canvasBounds.height + canvasBounds.top - sceneBounds.top
+      placementActions.style.left = `${left + 34}px`
+      placementActions.style.top = `${top - 18}px`
+    }
+  }
   renderer.render(scene, camera)
 }
 
