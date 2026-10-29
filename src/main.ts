@@ -9,6 +9,7 @@ import { createRoomCardFactory } from './game/room-cards'
 import { getAvailableRoomDoors, getCorridorPlacements, resourceLabels, rollRoomSearch } from './game/rules'
 import { createCorridorHandCard } from './ui/corridor-hand-card'
 import { setupBoardViewport } from './ui/board-viewport'
+import { resolveBoardHit } from './ui/board-hit-testing'
 import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomStatus, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
 
 let activeSurvivorKind: SurvivorKind = 'stealth'
@@ -1147,23 +1148,27 @@ renderer.domElement.addEventListener('click', (event) => {
     return
   }
 
-  const bounds = renderer.domElement.getBoundingClientRect()
-  pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1
-  pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1
-  raycaster.setFromCamera(pointer, camera)
+  const mode = pendingRoomDraw
+    ? 'room-placement'
+    : selectedCardId !== null && !pendingDraw
+      ? 'corridor-placement'
+      : 'normal'
+  const hit = resolveBoardHit({
+    event,
+    canvas: renderer.domElement,
+    camera,
+    raycaster,
+    pointer,
+    mode,
+    roomPlacementHighlights,
+    placementHighlights,
+    rooms,
+    boardTiles,
+  })
 
   if (pendingRoomDraw) {
-    const roomPlacementHits = raycaster.intersectObjects(roomPlacementHighlights.children, true)
-    const roomMarkerHit = roomPlacementHits.find((hit) => {
-      let object: THREE.Object3D | null = hit.object
-      while (object && object.parent !== roomPlacementHighlights) object = object.parent
-      return Boolean(object?.userData.isRoomPlacementMarker)
-    })
-    if (roomMarkerHit) {
-      let marker: THREE.Object3D | null = roomMarkerHit.object
-      while (marker && marker.parent !== roomPlacementHighlights) marker = marker.parent
-      const direction = marker?.userData.roomPlacementDirection as Direction | undefined
-      if (direction) placeDrawnRoom(direction)
+    if (hit.type === 'room-placement') {
+      placeDrawnRoom(hit.direction)
     } else {
       setStatus('Cliquez sur un emplacement lumineux pour poser la pièce.')
     }
@@ -1171,68 +1176,44 @@ renderer.domElement.addEventListener('click', (event) => {
   }
 
   if (selectedCardId !== null && !pendingDraw) {
-    const placementHits = raycaster.intersectObjects(placementHighlights.children, true)
-    const markerHit = placementHits.find((hit) => {
-      let object: THREE.Object3D | null = hit.object
-      while (object && object.parent !== placementHighlights) object = object.parent
-      return Boolean(object?.userData.isPlacementMarker)
-    })
-    if (markerHit) {
-      let marker: THREE.Object3D | null = markerHit.object
-      while (marker && marker.parent !== placementHighlights) marker = marker.parent
-      if (marker) {
-        const x = Number(marker.userData.placementX)
-        const z = Number(marker.userData.placementZ)
-        const card = hand.find((item) => item.id === selectedCardId)
-        const candidate = card ? getPlacements(card).find((item) => item.x === x && item.z === z) : undefined
-        if (candidate) {
-          placementPreview = { x, z, options: candidate.options, optionIndex: 0 }
-          updatePlacementHighlights()
-          renderGameUi()
-          setStatus('Couloir pré-positionné. Tournez-le si besoin, puis validez à côté de la carte.')
-        }
+    if (hit.type === 'corridor-placement') {
+      const card = hand.find((item) => item.id === selectedCardId)
+      const candidate = card
+        ? getPlacements(card).find((item) => item.x === hit.x && item.z === hit.z)
+        : undefined
+      if (candidate) {
+        placementPreview = { x: hit.x, z: hit.z, options: candidate.options, optionIndex: 0 }
+        updatePlacementHighlights()
+        renderGameUi()
+        setStatus('Couloir pré-positionné. Tournez-le si besoin, puis validez à côté de la carte.')
       }
-      return
-    }
-    setStatus('Cliquez sur un emplacement lumineux pour préparer la pose.')
-    return
-  }
-
-  const roomHits = raycaster.intersectObjects(rooms.map((room) => room.group), true)
-  const roomHit = roomHits[0]
-  if (roomHit) {
-    let roomGroup: THREE.Object3D | null = roomHit.object
-    while (roomGroup && !rooms.some((room) => room.group === roomGroup)) roomGroup = roomGroup.parent
-    const targetRoom = rooms.find((room) => room.group === roomGroup)
-    if (targetRoom) {
-      if (activeSurvivorKind === 'injured') {
-        setStatus('Le Blessé ne peut pas entrer dans les pièces.')
-      } else if (currentRoomId === targetRoom.id) {
-        setStatus('Vous êtes déjà dans cette pièce.')
-      } else if (currentRoomId !== null) {
-        setStatus('Vous êtes déjà dans une pièce. Revenez dans le couloir avant d’entrer ailleurs.')
-      } else if (targetRoom.originX === currentTile.x && targetRoom.originZ === currentTile.z) {
-        enterRoom(targetRoom)
-      } else {
-        setStatus('Cette pièce n’est pas accessible depuis votre position actuelle.')
-      }
+    } else {
+      setStatus('Cliquez sur un emplacement lumineux pour préparer la pose.')
     }
     return
   }
 
-  const hits = raycaster.intersectObjects(boardTiles.map((tile) => tile.group), true)
-  const hit = hits[0]
-  if (!hit) {
+  if (hit.type === 'room') {
+    const targetRoom = hit.room
+    if (activeSurvivorKind === 'injured') {
+      setStatus('Le Blessé ne peut pas entrer dans les pièces.')
+    } else if (currentRoomId === targetRoom.id) {
+      setStatus('Vous êtes déjà dans cette pièce.')
+    } else if (currentRoomId !== null) {
+      setStatus('Vous êtes déjà dans une pièce. Revenez dans le couloir avant d’entrer ailleurs.')
+    } else if (targetRoom.originX === currentTile.x && targetRoom.originZ === currentTile.z) {
+      enterRoom(targetRoom)
+    } else {
+      setStatus('Cette pièce n’est pas accessible depuis votre position actuelle.')
+    }
+    return
+  }
+
+  if (hit.type !== 'tile') {
     root.dataset.selected = 'unknown'
     return
   }
-
-  let hitGroup: THREE.Object3D | null = hit.object
-  while (hitGroup && !boardTiles.some((tile) => tile.group === hitGroup)) {
-    hitGroup = hitGroup.parent
-  }
-  const targetTile = boardTiles.find((tile) => tile.group === hitGroup)
-  if (!targetTile) return
+  const targetTile = hit.tile
 
   if (currentRoomId !== null) {
     if (targetTile === currentTile) {
