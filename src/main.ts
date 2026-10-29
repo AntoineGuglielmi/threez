@@ -479,13 +479,13 @@ start.add(beaconLight)
 
 type CorridorKind = 'straight' | 'left' | 'right' | 'tee' | 'cross'
 type Direction = 'N' | 'E' | 'S' | 'W'
-type CorridorCard = { id: number; kind: CorridorKind }
-type BoardTile = { x: number; z: number; kind: CorridorKind | 'start'; exits: Direction[]; group: THREE.Group }
+type CorridorCard = { id: number; kind: CorridorKind; doors: Direction[] }
+type BoardTile = { x: number; z: number; kind: CorridorKind | 'start'; exits: Direction[]; doors: Direction[]; group: THREE.Group }
 type PlacementOption = { exits: Direction[]; turns: number }
 type PlacementCandidate = { x: number; z: number; options: PlacementOption[] }
 
 type SavedGameState = {
-  tiles: Array<{ x: number; z: number; kind: CorridorKind; exits: Direction[] }>
+  tiles: Array<{ x: number; z: number; kind: CorridorKind; exits: Direction[]; doors?: Direction[] }>
   survivor: { x: number; z: number }
   zoom: number
   cameraTarget: { x: number; z: number }
@@ -530,7 +530,10 @@ const rotateDirection = (direction: Direction, turns: number): Direction =>
 let nextCardId = 1
 const createCard = (kind?: CorridorKind): CorridorCard => {
   const kinds = Object.keys(corridorDefinitions) as CorridorKind[]
-  return { id: nextCardId++, kind: kind ?? kinds[Math.floor(Math.random() * kinds.length)] }
+  const cardKind = kind ?? kinds[Math.floor(Math.random() * kinds.length)]
+  const exits = corridorDefinitions[cardKind].exits
+  const doorCount = Math.floor(Math.random() * 3)
+  return { id: nextCardId++, kind: cardKind, doors: shuffle(exits).slice(0, doorCount) }
 }
 const shuffle = <T,>(items: T[]): T[] => {
   const shuffled = [...items]
@@ -559,6 +562,7 @@ const boardTiles: BoardTile[] = [{
   z: 0,
   kind: 'start',
   exits: ['S'],
+  doors: [],
   group: start,
 }]
 
@@ -606,14 +610,14 @@ const findPlacement = (card: CorridorCard) => {
           if (!neighbour) return false
           return exits.includes(direction) !== neighbour.exits.includes(opposite[direction])
         })
-        if (!conflictsWithNeighbour) return { x, z, exits }
+        if (!conflictsWithNeighbour) return { x, z, exits, turns }
       }
     }
   }
   return null
 }
 
-const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Direction[]) => {
+const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Direction[], doors: Direction[] = []) => {
   const group = new THREE.Group()
   group.position.set(x * 1.18, 0.025, z * 1.18)
   // Exits are already rotated into board directions; build the walls in that orientation.
@@ -692,9 +696,10 @@ const setupCorridor = () => {
 
 if (savedGameState?.tiles.length) {
   for (const tile of savedGameState.tiles) {
-    const card = createCard(tile.kind)
-    const group = createCorridorTile(card, tile.x, tile.z, tile.exits)
-    boardTiles.push({ ...tile, exits: [...tile.exits], group })
+    const doors = tile.doors ?? []
+    const card: CorridorCard = { id: nextCardId++, kind: tile.kind, doors }
+    const group = createCorridorTile(card, tile.x, tile.z, tile.exits, doors)
+    boardTiles.push({ ...tile, exits: [...tile.exits], doors: [...doors], group })
   }
 } else {
   setupCorridor()
@@ -837,8 +842,9 @@ const confirmPlacement = () => {
     return
   }
 
-  const group = createCorridorTile(card, x, z, option.exits)
-  const placedTile: BoardTile = { x, z, kind: card.kind, exits: option.exits, group }
+  const doors = card.doors.map((direction) => rotateDirection(direction, option.turns))
+  const group = createCorridorTile(card, x, z, option.exits, doors)
+  const placedTile: BoardTile = { x, z, kind: card.kind, exits: option.exits, doors, group }
   boardTiles.push(placedTile)
 
   // Placing a corridor also moves the active survivor onto it for the same action.
@@ -868,8 +874,9 @@ const drawCorridorCard = () => {
   spendAction()
   const placement = findPlacement(card)
   if (placement) {
-    const group = createCorridorTile(card, placement.x, placement.z, placement.exits)
-    boardTiles.push({ x: placement.x, z: placement.z, kind: card.kind, exits: placement.exits, group })
+    const doors = card.doors.map((direction) => rotateDirection(direction, placement.turns))
+    const group = createCorridorTile(card, placement.x, placement.z, placement.exits, doors)
+    boardTiles.push({ x: placement.x, z: placement.z, kind: card.kind, exits: placement.exits, doors, group })
     pendingDraw = null
     setStatus(`CC piochée et posée : ${corridorDefinitions[card.kind].label.toLowerCase()}.`)
   } else {
@@ -1064,7 +1071,7 @@ const saveGameState = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       tiles: boardTiles
         .filter((tile): tile is BoardTile & { kind: CorridorKind } => tile.kind !== 'start')
-        .map(({ x, z, kind, exits }) => ({ x, z, kind, exits })),
+        .map(({ x, z, kind, exits, doors }) => ({ x, z, kind, exits, doors })),
       survivor: { x: currentTile.x, z: currentTile.z },
       zoom,
       cameraTarget: { x: cameraTarget.x, z: cameraTarget.z },
