@@ -54,6 +54,32 @@ const materials = {
   wood: new THREE.MeshStandardMaterial({ color: '#332923', roughness: 0.98 }),
   woodLight: new THREE.MeshStandardMaterial({ color: '#594438', roughness: 0.98 }),
   frame: new THREE.MeshStandardMaterial({ color: '#25272a', roughness: 0.9 }),
+  corridorWall: new THREE.MeshStandardMaterial({
+    color: '#35434b',
+    roughness: 0.78,
+    metalness: 0.28,
+  }),
+  corridorPanel: new THREE.MeshStandardMaterial({
+    color: '#56616a',
+    roughness: 0.68,
+    metalness: 0.32,
+  }),
+  floorPanel: new THREE.MeshStandardMaterial({
+    color: '#59636a',
+    roughness: 0.82,
+    metalness: 0.16,
+  }),
+  floorPanelDark: new THREE.MeshStandardMaterial({
+    color: '#30383e',
+    roughness: 0.9,
+    metalness: 0.12,
+  }),
+  warning: new THREE.MeshStandardMaterial({
+    color: '#e0a45d',
+    emissive: '#9b4e18',
+    emissiveIntensity: 0.8,
+    roughness: 0.5,
+  }),
   tileNeon: new THREE.MeshStandardMaterial({
     color: '#e0faff',
     emissive: '#59c9f3',
@@ -113,6 +139,57 @@ const top = new THREE.Mesh(
 top.position.y = 0.152
 top.receiveShadow = true
 start.add(top)
+
+// The starting room reads as a short hospital corridor, with modular floor panels.
+for (let x = -1; x <= 1; x += 1) {
+  for (let z = -1; z <= 1; z += 1) {
+    const panel = new THREE.Mesh(
+      new THREE.BoxGeometry(0.32, 0.009, 0.32),
+      (x + z) % 2 === 0 ? materials.floorPanel : materials.floorPanelDark,
+    )
+    panel.position.set(x * 0.34, 0.169, z * 0.34)
+    panel.receiveShadow = true
+    start.add(panel)
+  }
+}
+
+// Low industrial walls frame the passage without hiding the floor or entrance.
+for (const side of [-1, 1]) {
+  const wall = new THREE.Mesh(
+    new THREE.BoxGeometry(0.055, 0.29, 0.78),
+    materials.corridorWall,
+  )
+  wall.position.set(side * 0.49, 0.31, 0.045)
+  wall.castShadow = true
+  wall.receiveShadow = true
+  start.add(wall)
+
+  for (const z of [-0.2, 0.16, 0.42]) {
+    const panel = new THREE.Mesh(
+      new THREE.BoxGeometry(0.012, 0.13, 0.19),
+      materials.corridorPanel,
+    )
+    panel.position.set(side * 0.455, 0.32, z)
+    start.add(panel)
+  }
+
+  const safetyStripe = new THREE.Mesh(
+    new THREE.BoxGeometry(0.014, 0.025, 0.76),
+    materials.warning,
+  )
+  safetyStripe.position.set(side * 0.452, 0.205, 0.045)
+  start.add(safetyStripe)
+}
+
+// Small amber floor markers add a little warmth against the cold neon.
+for (const z of [-0.22, 0.22]) {
+  const marker = new THREE.Mesh(
+    new THREE.BoxGeometry(0.045, 0.012, 0.045),
+    materials.warning,
+  )
+  marker.position.set(0, 0.18, z)
+  start.add(marker)
+}
 
 // Cool neon strips trace the tile edges, like floor lighting in an abandoned facility.
 const neon = new THREE.Group()
