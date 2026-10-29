@@ -480,12 +480,23 @@ start.add(beaconLight)
 type CorridorKind = 'straight' | 'left' | 'right' | 'tee' | 'cross'
 type Direction = 'N' | 'E' | 'S' | 'W'
 type CorridorCard = { id: number; kind: CorridorKind; doors: Direction[] }
-type BoardTile = { x: number; z: number; kind: CorridorKind | 'start'; exits: Direction[]; doors: Direction[]; group: THREE.Group }
+type RoomStatus = 'ordinary' | 'locked' | 'trapped'
+type RoomDifficulty = 'easy' | 'medium' | 'hard'
+type ResourceType = 'cafe' | 'croissant' | 'citron' | 'bonbon' | 'munition'
+type RoomCard = { id: number; status: RoomStatus; difficulty: RoomDifficulty; searched: boolean; unlocked: boolean }
+type SavedRoom = RoomCard & { x: number; z: number; originX: number; originZ: number; direction: Direction }
+type RoomTile = SavedRoom & { group: THREE.Group }
+type BoardTile = { x: number; z: number; kind: CorridorKind | 'start'; exits: Direction[]; doors: Direction[]; usedDoors: Direction[]; group: THREE.Group }
 type PlacementOption = { exits: Direction[]; turns: number }
 type PlacementCandidate = { x: number; z: number; options: PlacementOption[] }
 
 type SavedGameState = {
-  tiles: Array<{ x: number; z: number; kind: CorridorKind; exits: Direction[]; doors?: Direction[] }>
+  tiles: Array<{ x: number; z: number; kind: CorridorKind; exits: Direction[]; doors?: Direction[]; usedDoors?: Direction[] }>
+  rooms?: SavedRoom[]
+  currentRoomId?: number | null
+  resources?: Record<ResourceType, number>
+  roomDeck?: RoomCard[]
+  nextRoomCardId?: number
   survivor: { x: number; z: number }
   zoom: number
   cameraTarget: { x: number; z: number }
@@ -567,24 +578,37 @@ const normalizeSavedCard = (card: CorridorCard): CorridorCard => {
   }
 }
 const corridorDeck: CorridorCard[] = savedGameState ? savedGameState.deck.map(normalizeSavedCard) : generatedCorridorDeck
+const roomStatuses: RoomStatus[] = ['ordinary', 'ordinary', 'ordinary', 'locked', 'trapped']
+const roomDifficulties: RoomDifficulty[] = ['easy', 'medium', 'hard']
+let nextRoomCardId = 1
+const createRoomCard = (): RoomCard => {
+  const status = roomStatuses[Math.floor(Math.random() * roomStatuses.length)]
+  return {
+    id: nextRoomCardId++,
+    status,
+    difficulty: roomDifficulties[Math.floor(Math.random() * roomDifficulties.length)],
+    searched: false,
+    unlocked: status !== 'locked',
+  }
+}
+const generatedRoomDeck = shuffle(Array.from({ length: 24 }, createRoomCard))
+const roomDeck: RoomCard[] = savedGameState?.roomDeck ?? generatedRoomDeck
+const resources: Record<ResourceType, number> = {
+  cafe: savedGameState?.resources?.cafe ?? 0,
+  croissant: savedGameState?.resources?.croissant ?? 0,
+  citron: savedGameState?.resources?.citron ?? 0,
+  bonbon: savedGameState?.resources?.bonbon ?? 0,
+  munition: savedGameState?.resources?.munition ?? 0,
+}
+const rooms: RoomTile[] = []
+let currentRoomId: number | null = savedGameState?.currentRoomId ?? null
+if (savedGameState?.nextRoomCardId) nextRoomCardId = savedGameState.nextRoomCardId
 const discardPile: CorridorCard[] = savedGameState ? savedGameState.discard.map(normalizeSavedCard) : []
 let hand: CorridorCard[] = savedGameState ? savedGameState.hand.map(normalizeSavedCard) : []
 let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSavedCard(savedGameState.pendingDraw) : null
 let selectedCardId: number | null = null
 let actionsRemaining = savedGameState?.actionsRemaining ?? 7
 let turnNumber = savedGameState?.turnNumber ?? 1
-if (currentRoomId !== null) {
-  const restoredRoom = rooms.find((room) => room.id === currentRoomId)
-  if (restoredRoom) {
-    currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-    restoredRoom.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-    activeCharacter.position.set(0, 0.19, 0)
-    activeRing.position.set(0, 0.183, 0)
-  } else {
-    currentRoomId = null
-  }
-}
-
 if (savedGameState) nextCardId = savedGameState.nextCardId
 const boardTiles: BoardTile[] = [{
   x: 0,
@@ -592,6 +616,7 @@ const boardTiles: BoardTile[] = [{
   kind: 'start',
   exits: ['S'],
   doors: [],
+  usedDoors: [],
   group: start,
 }]
 
@@ -899,7 +924,7 @@ const setupCorridor = () => {
     const exits: Direction[] = ['N', 'S']
     const doors: Direction[] = []
     const group = createCorridorTile(card, x, z, exits, doors)
-    boardTiles.push({ x, z, kind: card.kind, exits, doors, group })
+    boardTiles.push({ x, z, kind: card.kind, exits, doors, usedDoors: [], group })
   }
 }
 
@@ -913,7 +938,7 @@ if (savedGameState?.tiles.length) {
       : createDoorDirections(tile.kind, savedDoors.length)
     const card: CorridorCard = { id: nextCardId++, kind: tile.kind, doors }
     const group = createCorridorTile(card, tile.x, tile.z, tile.exits, doors)
-    boardTiles.push({ ...tile, exits: [...tile.exits], doors: [...doors], group })
+    boardTiles.push({ ...tile, exits: [...tile.exits], doors: [...doors], usedDoors: [...(tile.usedDoors ?? [])], group })
   }
 } else {
   setupCorridor()
@@ -938,6 +963,17 @@ if (savedGameState?.survivor) {
     activeCharacter.position.set(0, 0.19, 0.16)
     activeRing.position.set(0, 0.183, 0.16)
     currentTile = restoredTile
+  }
+}
+if (currentRoomId !== null) {
+  const restoredRoom = rooms.find((room) => room.id === currentRoomId)
+  if (restoredRoom) {
+    currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+    restoredRoom.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+    activeCharacter.position.set(0, 0.19, 0)
+    activeRing.position.set(0, 0.183, 0)
+  } else {
+    currentRoomId = null
   }
 }
 if (savedGameState) nextCardId = savedGameState.nextCardId
@@ -1431,7 +1467,11 @@ const saveGameState = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       tiles: boardTiles
         .filter((tile): tile is BoardTile & { kind: CorridorKind } => tile.kind !== 'start')
-        .map(({ x, z, kind, exits, doors }) => ({ x, z, kind, exits, doors })),
+        .map(({ x, z, kind, exits, doors, usedDoors }) => ({ x, z, kind, exits, doors, usedDoors })),
+      rooms: rooms.map(({ group: _group, ...room }) => room),
+      currentRoomId,
+      resources,
+      roomDeck, 
       survivor: { x: currentTile.x, z: currentTile.z },
       zoom,
       cameraTarget: { x: cameraTarget.x, z: cameraTarget.z },
@@ -1443,6 +1483,7 @@ const saveGameState = () => {
       actionsRemaining,
       turnNumber,
       nextCardId,
+      nextRoomCardId,
     } satisfies SavedGameState))
   } catch {
     setStatus('Impossible de sauvegarder la partie dans ce navigateur.')
