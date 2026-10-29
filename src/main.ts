@@ -1079,7 +1079,6 @@ for (const kind of Object.keys(characterModels) as SurvivorKind[]) {
   if (kind !== activeSurvivorKind) placeSurvivorModel(kind, false)
 }
 activateSurvivor(activeSurvivorKind)
-if (savedGameState) nextCardId = savedGameState.nextCardId
 
 const getPlacements = (card: CorridorCard): PlacementCandidate[] => {
   const candidates = new Map<string, PlacementCandidate>()
