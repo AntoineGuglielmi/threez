@@ -672,7 +672,7 @@ const findPlacement = (card: CorridorCard) => {
   return null
 }
 
-const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Direction[], doors: Direction[] = []) => {
+const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Direction[], doors: Direction[] = [], usedDoors: Direction[] = []) => {
   const group = new THREE.Group()
   group.position.set(x * 1.18, 0.025, z * 1.18)
   // Exits are already rotated into board directions; build the walls in that orientation.
@@ -719,6 +719,8 @@ const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Dir
     const horizontal = direction === 'N' || direction === 'S'
     const edgeOffset = direction === 'N' ? -0.51 : direction === 'S' ? 0.51 : direction === 'W' ? -0.51 : 0.51
     const door = new THREE.Group()
+    door.userData.doorDirection = direction
+    door.visible = !usedDoors.includes(direction)
     door.position.set(horizontal ? 0 : edgeOffset, 0, horizontal ? edgeOffset : 0)
     const panel = new THREE.Mesh(
       new THREE.BoxGeometry(horizontal ? 0.48 : 0.045, 0.235, horizontal ? 0.045 : 0.48),
@@ -938,8 +940,9 @@ if (savedGameState?.tiles.length) {
       ? validWallDoors
       : createDoorDirections(tile.kind, savedDoors.length)
     const card: CorridorCard = { id: nextCardId++, kind: tile.kind, doors }
-    const group = createCorridorTile(card, tile.x, tile.z, tile.exits, doors)
-    boardTiles.push({ ...tile, exits: [...tile.exits], doors: [...doors], usedDoors: [...(tile.usedDoors ?? [])], group })
+    const usedDoors = [...(tile.usedDoors ?? [])]
+    const group = createCorridorTile(card, tile.x, tile.z, tile.exits, doors, usedDoors)
+    boardTiles.push({ ...tile, exits: [...tile.exits], doors: [...doors], usedDoors, group })
   }
 } else {
   setupCorridor()
@@ -1175,6 +1178,8 @@ const exploreDoor = (direction: Direction) => {
   const roomTile: RoomTile = { ...room, group }
   rooms.push(roomTile)
   currentTile.usedDoors.push(direction)
+  const doorMesh = currentTile.group.children.find((child) => child.userData.doorDirection === direction)
+  if (doorMesh) doorMesh.visible = false
   currentRoomId = room.id
   currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
   group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
@@ -1227,7 +1232,8 @@ const renderRoomControls = () => {
   roomDoorOptionsElement.replaceChildren()
   const currentRoom = currentRoomId === null ? null : rooms.find((room) => room.id === currentRoomId) ?? null
   if (currentRoom) {
-    roomStateElement.textContent = `CP ${String(currentRoom.id).padStart(2, '0')} · ${getRoomStatusLabel(currentRoom.status)} · ${getDifficultyLabel(currentRoom.difficulty)}${currentRoom.searched ? ' · Fouillée' : ''}`
+    const statusLabel = currentRoom.status === 'locked' && currentRoom.unlocked ? 'Déverrouillée' : getRoomStatusLabel(currentRoom.status)
+    roomStateElement.textContent = `CP ${String(currentRoom.id).padStart(2, '0')} · ${statusLabel} · ${getDifficultyLabel(currentRoom.difficulty)}${currentRoom.searched ? ' · Fouillée' : ''}`
     if (unlockRoomButton) {
       unlockRoomButton.hidden = currentRoom.status !== 'locked' || currentRoom.unlocked
       unlockRoomButton.disabled = actionsRemaining <= 0
