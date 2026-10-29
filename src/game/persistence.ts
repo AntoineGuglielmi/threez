@@ -1,6 +1,6 @@
 import type { SavedGameState } from './types'
 
-const STORAGE_KEY = 'threez-game-state-v1'
+export const STORAGE_KEY = 'threez-game-state-v1'
 
 export const readSavedGameState = (): SavedGameState | null => {
   try {
