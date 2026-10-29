@@ -619,10 +619,6 @@ let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSa
 let selectedCardId: number | null = null
 let actionsRemaining = savedGameState?.actionsRemaining ?? 7
 let turnNumber = savedGameState?.turnNumber ?? 1
-if (savedGameState?.activeSurvivorKind && characterOrder.includes(savedGameState.activeSurvivorKind)) {
-  activeSurvivorKind = savedGameState.activeSurvivorKind
-  characterIndex = characterOrder.indexOf(activeSurvivorKind)
-}
 if (savedGameState) nextCardId = savedGameState.nextCardId
 const boardTiles: BoardTile[] = [{
   x: 0,
@@ -660,6 +656,10 @@ if (savedGameState?.survivors) {
 let characterOrder: SurvivorKind[] = savedGameState?.characterOrder ?? ['stealth', ...shuffle(['heavy', 'military', 'scientist']), 'injured']
 let characterIndex = savedGameState?.characterIndex ?? 0
 let injuredMovedThisTurn = savedGameState?.injuredMovedThisTurn ?? false
+if (savedGameState?.activeSurvivorKind && characterOrder.includes(savedGameState.activeSurvivorKind)) {
+  activeSurvivorKind = savedGameState.activeSurvivorKind
+  characterIndex = characterOrder.indexOf(activeSurvivorKind)
+}
 let placementPreview: { x: number; z: number; options: PlacementOption[]; optionIndex: number } | null = null
 const placementHighlights = new THREE.Group()
 placementHighlights.name = 'placement-highlights'
