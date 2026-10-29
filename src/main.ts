@@ -334,7 +334,6 @@ const createCharacter = (kind: 'stealth' | 'heavy' | 'military' | 'scientist' | 
       [shoulderX, 0.34, 0],
       [0, 0, side * (kind === 'injured' ? 0.2 : 0.08)],
     )
-      .geometry.computeBoundingSphere()
   }
 
   // Head and face.
@@ -372,8 +371,8 @@ const createCharacter = (kind: 'stealth' | 'heavy' | 'military' | 'scientist' | 
 
   if (kind === 'injured') {
     // A crooked walking stick makes the limp legible even when the figure is tiny.
-    makePart(character, new THREE.CylinderGeometry(0.009, 0.009, 0.34, 5), characterMaterials.woodLight, [0.18, 0.19, 0.035], [0, 0, -0.12])
-    makePart(character, new THREE.BoxGeometry(0.07, 0.025, 0.025), characterMaterials.woodLight, [0.18, 0.35, 0.035])
+    makePart(character, new THREE.CylinderGeometry(0.009, 0.009, 0.34, 5), materials.woodLight, [0.18, 0.19, 0.035], [0, 0, -0.12])
+    makePart(character, new THREE.BoxGeometry(0.07, 0.025, 0.025), materials.woodLight, [0.18, 0.35, 0.035])
     makePart(character, new THREE.BoxGeometry(0.1, 0.04, 0.07), characterMaterials.skinShadow, [0, 0.47, 0.04], [0, 0, -0.15])
   }
 
