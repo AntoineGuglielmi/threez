@@ -573,6 +573,18 @@ let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSa
 let selectedCardId: number | null = null
 let actionsRemaining = savedGameState?.actionsRemaining ?? 7
 let turnNumber = savedGameState?.turnNumber ?? 1
+if (currentRoomId !== null) {
+  const restoredRoom = rooms.find((room) => room.id === currentRoomId)
+  if (restoredRoom) {
+    currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+    restoredRoom.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+    activeCharacter.position.set(0, 0.19, 0)
+    activeRing.position.set(0, 0.183, 0)
+  } else {
+    currentRoomId = null
+  }
+}
+
 if (savedGameState) nextCardId = savedGameState.nextCardId
 const boardTiles: BoardTile[] = [{
   x: 0,
@@ -736,6 +748,146 @@ const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Dir
   return group
 }
 
+
+const createRoomTile = (room: SavedRoom, entryDirection: Direction) => {
+  const group = new THREE.Group()
+  group.position.set(room.x * 1.18, 0.025, room.z * 1.18)
+
+  const base = new THREE.Mesh(
+    new THREE.BoxGeometry(1.18, 0.14, 1.18),
+    new THREE.MeshStandardMaterial({ color: '#382d29', roughness: 0.92 }),
+  )
+  base.position.y = 0.07
+  base.castShadow = true
+  base.receiveShadow = true
+  group.add(base)
+
+  const surface = new THREE.Mesh(
+    new THREE.BoxGeometry(1.08, 0.025, 1.08),
+    new THREE.MeshStandardMaterial({
+      color: room.searched ? '#45464a' : '#494039',
+      emissive: room.searched ? '#101719' : '#25160d',
+      emissiveIntensity: 0.35,
+      roughness: 0.88,
+    }),
+  )
+  surface.position.y = 0.152
+  surface.receiveShadow = true
+  group.add(surface)
+
+  for (let x = -1; x <= 1; x += 1) {
+    for (let z = -1; z <= 1; z += 1) {
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.32, 0.009, 0.32),
+        (x + z) % 2 === 0 ? materials.floorPanelDark : materials.floorPanel,
+      )
+      panel.position.set(x * 0.34, 0.169, z * 0.34)
+      group.add(panel)
+    }
+  }
+
+  const edges: Array<{ direction: Direction; position: [number, number, number]; size: [number, number, number] }> = [
+    { direction: 'N', position: [0, 0.31, -0.55], size: [1.08, 0.29, 0.055] },
+    { direction: 'S', position: [0, 0.31, 0.55], size: [1.08, 0.29, 0.055] },
+    { direction: 'E', position: [0.55, 0.31, 0], size: [0.055, 0.29, 1.08] },
+    { direction: 'W', position: [-0.55, 0.31, 0], size: [0.055, 0.29, 1.08] },
+  ]
+  const wallMaterial = new THREE.MeshStandardMaterial({
+    color: '#55463d',
+    metalness: 0.18,
+    roughness: 0.9,
+  })
+  for (const edge of edges) {
+    if (edge.direction === entryDirection) continue
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(...edge.size), wallMaterial)
+    wall.position.set(...edge.position)
+    wall.castShadow = true
+    wall.receiveShadow = true
+    group.add(wall)
+  }
+
+  const entry = edges.find((edge) => edge.direction === entryDirection)
+  if (entry) {
+    const horizontal = entryDirection === 'N' || entryDirection === 'S'
+    const frameMaterial = new THREE.MeshStandardMaterial({ color: '#b27c52', metalness: 0.58, roughness: 0.45 })
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(
+        new THREE.BoxGeometry(horizontal ? 0.045 : 0.07, 0.29, horizontal ? 0.07 : 0.045),
+        frameMaterial,
+      )
+      post.position.set(horizontal ? side * 0.28 : entry.position[0], 0.31, horizontal ? entry.position[2] : side * 0.28)
+      group.add(post)
+    }
+    const lintel = new THREE.Mesh(
+      new THREE.BoxGeometry(horizontal ? 0.6 : 0.07, 0.04, horizontal ? 0.07 : 0.6),
+      frameMaterial,
+    )
+    lintel.position.set(horizontal ? 0 : entry.position[0], 0.47, horizontal ? entry.position[2] : 0)
+    group.add(lintel)
+  }
+
+  const markerColor = room.status === 'locked' ? '#bd7958' : room.status === 'trapped' ? '#e0a45d' : '#75d9ff'
+  const marker = new THREE.Mesh(
+    new THREE.BoxGeometry(0.18, 0.025, 0.18),
+    new THREE.MeshBasicMaterial({ color: markerColor }),
+  )
+  marker.position.set(0, 0.19, 0)
+  group.add(marker)
+
+  if (!room.searched) {
+    const glow = new THREE.PointLight(markerColor, 0.65, 1.8, 1.8)
+    glow.position.set(0, 0.42, 0)
+    group.add(glow)
+  }
+
+  board.add(group)
+  return group
+}
+
+const getRoomStatusLabel = (status: RoomStatus) => ({
+  ordinary: 'Ordinaire',
+  locked: 'Verrouillée',
+  trapped: 'Piégée',
+})[status]
+
+const getDifficultyLabel = (difficulty: RoomDifficulty) => ({
+  easy: 'Facile',
+  medium: 'Moyenne',
+  hard: 'Difficile',
+})[difficulty]
+
+const resourceLabels: Record<ResourceType, string> = {
+  cafe: 'Café',
+  croissant: 'Croissant',
+  citron: 'Citron',
+  bonbon: 'Bonbon acidulé',
+  munition: 'Munition',
+}
+
+const resourceThresholds: Record<RoomDifficulty, Record<ResourceType, number>> = {
+  easy: { cafe: 4, croissant: 3, citron: 4, bonbon: 3, munition: 4 },
+  medium: { cafe: 5, croissant: 4, citron: 5, bonbon: 4, munition: 5 },
+  hard: { cafe: 6, croissant: 5, citron: 6, bonbon: 5, munition: 6 },
+}
+
+const rollRoomDice = (room: RoomTile) => {
+  const dice = Object.keys(resourceLabels) as ResourceType[]
+  const results = dice.map((resource) => ({
+    resource,
+    value: Math.floor(Math.random() * 6) + 1,
+    threshold: resourceThresholds[room.difficulty][resource],
+  }))
+  const found = results.filter((result) => result.value >= result.threshold)
+  found.forEach(({ resource }) => { resources[resource] += 1 })
+  room.searched = true
+  room.group.remove(...room.group.children.filter((child) => child instanceof THREE.PointLight))
+  setStatus(found.length
+    ? `Fouille ${getDifficultyLabel(room.difficulty).toLowerCase()} : ${results.map((result) => `${resourceLabels[result.resource]} ${result.value}/6`).join(' · ')}. Trouvé : ${found.map(({ resource }) => resourceLabels[resource]).join(', ')}.`
+    : `Fouille ${getDifficultyLabel(room.difficulty).toLowerCase()} : ${results.map((result) => `${resourceLabels[result.resource]} ${result.value}/6`).join(' · ')}. Aucune ressource trouvée.`)
+  saveGameState()
+  renderGameUi()
+}
+
 // Setup: two straight corridor cards are placed between the start tile and the unexplored area.
 const setupCorridor = () => {
   for (let index = 1; index <= 2; index += 1) {
@@ -766,6 +918,15 @@ if (savedGameState?.tiles.length) {
 } else {
   setupCorridor()
 }
+
+
+if (savedGameState?.rooms) {
+  for (const savedRoom of savedGameState.rooms) {
+    const group = createRoomTile(savedRoom, opposite[savedRoom.direction])
+    rooms.push({ ...savedRoom, group })
+  }
+}
+if (savedGameState?.nextRoomCardId) nextRoomCardId = savedGameState.nextRoomCardId
 
 if (savedGameState?.survivor) {
   const restoredTile = boardTiles.find(
