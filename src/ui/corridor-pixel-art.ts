@@ -58,7 +58,7 @@ const addDoor = (pixels: Map<string, string>, direction: Direction) => {
   const horizontal = direction === 'N' || direction === 'S'
   const start = 13
   const end = 19
-  const fixed = direction === 'N' ? 1 : direction === 'S' ? 30 : direction === 'W' ? 1 : 30
+  const fixed = direction === 'N' ? 10 : direction === 'S' ? 21 : direction === 'W' ? 10 : 21
   for (let i = start; i <= end; i++) {
     const x = horizontal ? i : fixed
     const y = horizontal ? fixed : i
@@ -76,18 +76,18 @@ const addDoor = (pixels: Map<string, string>, direction: Direction) => {
 
 const addWall = (pixels: Map<string, string>, direction: Direction) => {
   if (direction === 'N' || direction === 'S') {
-    const y = direction === 'N' ? 0 : 31
+    const y = direction === 'N' ? 10 : 21
     for (let x = 11; x <= 20; x++) {
       setPixel(pixels, x, y, palette.wallShadow)
-      setPixel(pixels, x, direction === 'N' ? 1 : 30, palette.wall)
-      if (x > 11 && x < 20) setPixel(pixels, x, direction === 'N' ? 2 : 29, palette.wallLight)
+      setPixel(pixels, x, direction === 'N' ? 11 : 20, palette.wall)
+      if (x > 11 && x < 20) setPixel(pixels, x, direction === 'N' ? 12 : 19, palette.wallLight)
     }
   } else {
-    const x = direction === 'W' ? 0 : 31
+    const x = direction === 'W' ? 10 : 21
     for (let y = 11; y <= 20; y++) {
       setPixel(pixels, x, y, palette.wallShadow)
-      setPixel(pixels, direction === 'W' ? 1 : 30, y, palette.wall)
-      if (y > 11 && y < 20) setPixel(pixels, direction === 'W' ? 2 : 29, y, palette.wallLight)
+      setPixel(pixels, direction === 'W' ? 11 : 20, y, palette.wall)
+      if (y > 11 && y < 20) setPixel(pixels, direction === 'W' ? 12 : 19, y, palette.wallLight)
     }
   }
 }
