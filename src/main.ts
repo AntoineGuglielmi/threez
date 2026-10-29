@@ -390,7 +390,8 @@ const createCharacter = (kind: 'stealth' | 'heavy' | 'military' | 'scientist' | 
 
 // The stealth character takes the first turn and is shown at full size.
 // Other survivors remain visible as small tokens around the same starting tile.
-const activeCharacter = createCharacter('stealth')
+const activeSurvivorKind = 'stealth' as const
+const activeCharacter = createCharacter(activeSurvivorKind)
 activeCharacter.position.set(0, 0.19, 0.16)
 activeCharacter.scale.setScalar(0.72)
 start.add(activeCharacter)
@@ -1135,7 +1136,7 @@ const drawCorridorCard = () => {
   if (placement) {
     const doors = card.doors.map((direction) => rotateDirection(direction, placement.turns))
     const group = createCorridorTile(card, placement.x, placement.z, placement.exits, doors)
-    boardTiles.push({ x: placement.x, z: placement.z, kind: card.kind, exits: placement.exits, doors, group })
+    boardTiles.push({ x: placement.x, z: placement.z, kind: card.kind, exits: placement.exits, doors, usedDoors: [], group })
     pendingDraw = null
     setStatus(`CC piochée et posée : ${corridorDefinitions[card.kind].label.toLowerCase()}.`)
   } else {
@@ -1350,6 +1351,18 @@ const renderGameUi = () => {
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
   if (drawButton) drawButton.disabled = actionsRemaining <= 0 || Boolean(pendingDraw) || (corridorDeck.length === 0 && discardPile.length === 0)
   if (endTurnButton) endTurnButton.disabled = Boolean(pendingDraw)
+  renderRoomControls()
+  const resourceCounts: Record<ResourceType, string> = {
+    cafe: '#resource-cafe',
+    croissant: '#resource-croissant',
+    citron: '#resource-citron',
+    bonbon: '#resource-bonbon',
+    munition: '#resource-munition',
+  }
+  for (const [resource, selector] of Object.entries(resourceCounts) as Array<[ResourceType, string]>) {
+    const element = document.querySelector<HTMLElement>(selector)
+    if (element) element.textContent = String(resources[resource])
+  }
 
   if (pendingDraw) {
     const note = document.createElement('p')
@@ -1358,6 +1371,9 @@ const renderGameUi = () => {
     handElement.append(note)
   }
 }
+
+unlockRoomButton?.addEventListener('click', unlockCurrentRoom)
+returnRoomButton?.addEventListener('click', returnToCorridor)
 
 drawButton?.addEventListener('click', drawCorridorCard)
 placeButton?.addEventListener('click', () => {
@@ -1586,6 +1602,15 @@ renderer.domElement.addEventListener('click', (event) => {
   }
   const targetTile = boardTiles.find((tile) => tile.group === hitGroup)
   if (!targetTile) return
+
+  if (currentRoomId !== null) {
+    if (targetTile === currentTile) {
+      returnToCorridor()
+      return
+    }
+    setStatus('Vous êtes dans une pièce. Revenez d’abord dans le couloir.')
+    return
+  }
 
   if (targetTile === currentTile) {
     root.dataset.selected = 'current-tile'
