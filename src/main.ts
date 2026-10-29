@@ -7,6 +7,7 @@ import { shuffle } from './game/random'
 import { createCorridorCardFactory } from './game/corridor-cards'
 import { createRoomCardFactory } from './game/room-cards'
 import { getAvailableRoomDoors, getCorridorPlacements, resourceLabels, rollRoomSearch } from './game/rules'
+import { evaluateCorridorMove } from './game/movement'
 import { createCorridorHandCard } from './ui/corridor-hand-card'
 import { setupBoardViewport } from './ui/board-viewport'
 import { resolveBoardHit } from './ui/board-hit-testing'
@@ -1230,35 +1231,31 @@ renderer.domElement.addEventListener('click', (event) => {
     return
   }
 
-  const dx = targetTile.x - currentTile.x
-  const dz = targetTile.z - currentTile.z
-  const direction = directionOrder.find((candidate) => {
-    const [x, z] = directionDelta[candidate]
-    return x === dx && z === dz
+  const decision = evaluateCorridorMove({
+    from: currentTile,
+    to: targetTile,
+    actionsRemaining,
+    survivorKind: activeSurvivorKind,
+    injuredMovedThisTurn,
   })
 
-  if (activeSurvivorKind === 'injured' && injuredMovedThisTurn) {
-    setStatus('Le Blessé ne peut avancer que d’un seul couloir par tour.')
-    return
-  }
-
-  if (!direction || Math.abs(dx) + Math.abs(dz) !== 1) {
-    root.dataset.selected = 'not-adjacent'
-    setStatus('Déplacement impossible : choisissez une case adjacente.')
-    return
-  }
-
-  if (actionsRemaining <= 0) {
-    setStatus('Il ne reste plus d’action pour se déplacer.')
-    return
-  }
-
-  const canPass = currentTile.exits.includes(direction) &&
-    targetTile.exits.includes(opposite[direction])
-  if (!canPass) {
-    root.dataset.selected = 'blocked'
-    setStatus('Passage bloqué : les deux cases ne sont pas reliées par une sortie.')
-    return
+  if (!decision.allowed) {
+    switch (decision.reason) {
+      case 'injured-limit':
+        setStatus('Le Blessé ne peut avancer que d’un seul couloir par tour.')
+        return
+      case 'not-adjacent':
+        root.dataset.selected = 'not-adjacent'
+        setStatus('Déplacement impossible : choisissez une case adjacente.')
+        return
+      case 'no-actions':
+        setStatus('Il ne reste plus d’action pour se déplacer.')
+        return
+      case 'blocked':
+        root.dataset.selected = 'blocked'
+        setStatus('Passage bloqué : les deux cases ne sont pas reliées par une sortie.')
+        return
+    }
   }
 
   currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
