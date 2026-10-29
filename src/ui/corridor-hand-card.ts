@@ -56,7 +56,10 @@ const getDoorMarkup = (direction: Direction) => {
   const frame = horizontal
     ? '<rect x="48" y="8" width="4" height="12"/><rect x="76" y="8" width="4" height="12"/>'
     : '<rect x="8" y="48" width="12" height="4"/><rect x="8" y="76" width="12" height="4"/>'
-  return `<g class="cc-pixel-door">${frame}${edgeWalls[direction].door}<rect x="${horizontal ? 53 : 10}" y="${horizontal ? 13 : 53}" width="${horizontal ? 22 : 3}" height="${horizontal ? 3 : 22}" class="cc-pixel-threshold"/></g>`
+  const sideWalls = horizontal
+    ? '<rect x="10" y="9" width="38" height="9"/><rect x="80" y="9" width="38" height="9"/>'
+    : '<rect x="110" y="10" width="9" height="38"/><rect x="110" y="80" width="9" height="38"/>'
+  return `<g class="cc-pixel-door">${sideWalls}${frame}${edgeWalls[direction].door}<rect x="${horizontal ? 53 : 10}" y="${horizontal ? 13 : 53}" width="${horizontal ? 22 : 3}" height="${horizontal ? 3 : 22}" class="cc-pixel-threshold"/></g>`
 }
 
 const getArtwork = (card: CorridorCard, turns: number) => {
