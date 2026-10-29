@@ -628,3 +628,80 @@ button, a { color: inherit; }
   .actions-remaining strong { font-size: 25px; }
   .camera-controls { top: 10px; }
 }
+
+
+.room-result {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.75rem 0;
+}
+
+.room-result:empty {
+  display: none;
+}
+
+.room-result-heading {
+  color: #e5e5e7;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.room-dice-results {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.room-die-result {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.45rem 0.15rem;
+  border: 1px solid #34383b;
+  border-radius: 0.35rem;
+  background: #111416;
+  text-align: center;
+}
+
+.room-die-result span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: #a7adb2;
+  font-size: 0.58rem;
+}
+
+.room-die-result strong {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid #525a60;
+  border-radius: 0.3rem;
+  color: #f0f1f2;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.9rem;
+}
+
+.room-die-result small {
+  color: #858d93;
+  font-size: 0.55rem;
+}
+
+.room-die-result.is-found {
+  border-color: #6e9e7d;
+  background: #142019;
+}
+
+.room-die-result.is-found strong {
+  border-color: #8ac49b;
+  color: #a8e3b7;
+}
+
+.room-result-loot {
+  margin: 0;
+  color: #a8e3b7;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
