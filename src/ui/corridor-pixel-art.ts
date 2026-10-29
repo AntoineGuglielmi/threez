@@ -47,15 +47,28 @@ const setPixel = (pixels: Map<string, string>, x: number, y: number, color: stri
 }
 
 const line = (pixels: Map<string, string>, x1: number, y1: number, x2: number, y2: number, color: string) => {
-  const dx = Math.sign(x2 - x1)
-  const dy = Math.sign(y2 - y1)
+  // Bresenham: advance each axis independently so non-45° segments always terminate.
   let x = x1
   let y = y1
+  const dx = Math.abs(x2 - x1)
+  const dy = Math.abs(y2 - y1)
+  const stepX = x1 < x2 ? 1 : -1
+  const stepY = y1 < y2 ? 1 : -1
+  let error = dx - dy
+
   while (true) {
     setPixel(pixels, x, y, color)
     if (x === x2 && y === y2) break
-    x += dx
-    y += dy
+
+    const doubledError = error * 2
+    if (doubledError > -dy) {
+      error -= dy
+      x += stepX
+    }
+    if (doubledError < dx) {
+      error += dx
+      y += stepY
+    }
   }
 }
 
