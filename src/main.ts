@@ -17,7 +17,7 @@ import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandida
 
 let activeSurvivorKind: SurvivorKind = 'stealth'
 const sceneSetup = createScene(activeSurvivorKind)
-const { root, scene, camera, renderer, materials, board, start, activeRing, otherCharacters } = sceneSetup
+const { root, scene, camera, renderer, materials, board, start, activeRing, characterKeyLight, characterFillLight, warmRimLight, otherCharacters } = sceneSetup
 let activeCharacter = sceneSetup.activeCharacter
 const savedGameState = readSavedGameState()
 
