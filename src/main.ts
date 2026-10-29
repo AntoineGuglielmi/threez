@@ -520,6 +520,7 @@ let hand: CorridorCard[] = []
 let pendingDraw: CorridorCard | null = null
 let selectedCardId: number | null = null
 let actionsRemaining = 7
+let turnNumber = 1
 const boardTiles: BoardTile[] = [{
   x: 0,
   z: 0,
@@ -539,6 +540,7 @@ const placeButton = document.querySelector<HTMLButtonElement>('#place-cc')
 const discardButton = document.querySelector<HTMLButtonElement>('#discard-cc')
 const replaceButton = document.querySelector<HTMLButtonElement>('#replace-cc')
 const endTurnButton = document.querySelector<HTMLButtonElement>('#end-turn')
+const turnLabel = document.querySelector<HTMLElement>('.turn-tag')
 
 const setStatus = (message: string) => {
   if (statusElement) statusElement.textContent = message
@@ -698,6 +700,7 @@ const renderGameUi = () => {
   deckCountElement.textContent = String(corridorDeck.length)
   discardCountElement.textContent = String(discardPile.length)
   actionsCountElement.textContent = String(actionsRemaining)
+  if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
   actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
   const handCount = document.querySelector<HTMLElement>('.hand-heading > span')
   if (handCount) handCount.textContent = `${hand.length} CC`
@@ -751,6 +754,7 @@ endTurnButton?.addEventListener('click', () => {
     setStatus('Décidez d’abord du sort de la CC piochée.')
     return
   }
+  turnNumber += 1
   actionsRemaining = 7
   while (hand.length < 3 && corridorDeck.length > 0) hand.push(corridorDeck.pop()!)
   selectedCardId = null
