@@ -475,6 +475,283 @@ const beaconLight = new THREE.PointLight('#a86649', 0.5, 2.5)
 beaconLight.position.set(0.38, 0.48, 0.36)
 start.add(beaconLight)
 
+
+type CorridorKind = 'straight' | 'left' | 'right' | 'tee' | 'cross'
+type Direction = 'N' | 'E' | 'S' | 'W'
+type CorridorCard = { id: number; kind: CorridorKind }
+type BoardTile = { x: number; z: number; kind: CorridorKind | 'start'; exits: Direction[]; group: THREE.Group }
+
+const directionOrder: Direction[] = ['N', 'E', 'S', 'W']
+const corridorDefinitions: Record<CorridorKind, { label: string; symbol: string; exits: Direction[] }> = {
+  straight: { label: 'Droit', symbol: '│', exits: ['N', 'S'] },
+  left: { label: 'Virage gauche', symbol: '└', exits: ['N', 'W'] },
+  right: { label: 'Virage droite', symbol: '┘', exits: ['N', 'E'] },
+  tee: { label: 'Carrefour en T', symbol: '┬', exits: ['N', 'E', 'W'] },
+  cross: { label: 'Carrefour en croix', symbol: '┼', exits: ['N', 'E', 'S', 'W'] },
+}
+const directionDelta: Record<Direction, [number, number]> = {
+  N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0],
+}
+const opposite: Record<Direction, Direction> = { N: 'S', E: 'W', S: 'N', W: 'E' }
+const rotateDirection = (direction: Direction, turns: number): Direction =>
+  directionOrder[(directionOrder.indexOf(direction) + turns + 4) % 4]
+
+let nextCardId = 1
+const createCard = (kind?: CorridorKind): CorridorCard => {
+  const kinds = Object.keys(corridorDefinitions) as CorridorKind[]
+  return { id: nextCardId++, kind: kind ?? kinds[Math.floor(Math.random() * kinds.length)] }
+}
+const shuffle = <T,>(items: T[]): T[] => {
+  const shuffled = [...items]
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
+  }
+  return shuffled
+}
+
+// Virtual CC pile: 40 cards, with eight copies of each topology.
+const corridorDeck: CorridorCard[] = shuffle(
+  (['straight', 'left', 'right', 'tee', 'cross'] as CorridorKind[])
+    .flatMap((kind) => Array.from({ length: 8 }, () => createCard(kind))),
+)
+const discardPile: CorridorCard[] = []
+let hand: CorridorCard[] = []
+let pendingDraw: CorridorCard | null = null
+let selectedCardId: number | null = null
+let actionsRemaining = 7
+const boardTiles: BoardTile[] = [{
+  x: 0,
+  z: 0,
+  kind: 'start',
+  exits: ['S'],
+  group: start,
+}]
+
+const handElement = document.querySelector<HTMLDivElement>('#cc-hand')
+const deckCountElement = document.querySelector<HTMLElement>('#cc-deck-count')
+const discardCountElement = document.querySelector<HTMLElement>('#cc-discard-count')
+const actionsCountElement = document.querySelector<HTMLElement>('#actions-count')
+const actionsFillElement = document.querySelector<HTMLDivElement>('#actions-fill')
+const statusElement = document.querySelector<HTMLParagraphElement>('#game-status')
+const drawButton = document.querySelector<HTMLButtonElement>('#draw-cc')
+const placeButton = document.querySelector<HTMLButtonElement>('#place-cc')
+const discardButton = document.querySelector<HTMLButtonElement>('#discard-cc')
+const replaceButton = document.querySelector<HTMLButtonElement>('#replace-cc')
+const endTurnButton = document.querySelector<HTMLButtonElement>('#end-turn')
+
+const setStatus = (message: string) => {
+  if (statusElement) statusElement.textContent = message
+}
+
+const findPlacement = (card: CorridorCard) => {
+  const definition = corridorDefinitions[card.kind]
+  for (const tile of boardTiles) {
+    for (const exit of tile.exits) {
+      const [dx, dz] = directionDelta[exit]
+      const x = tile.x + dx
+      const z = tile.z + dz
+      if (boardTiles.some((placed) => placed.x === x && placed.z === z)) continue
+      for (let turns = 0; turns < 4; turns += 1) {
+        const exits = definition.exits.map((direction) => rotateDirection(direction, turns))
+        if (exits.includes(opposite[exit])) return { x, z, turns, exits }
+      }
+    }
+  }
+  return null
+}
+
+const createCorridorTile = (card: CorridorCard, x: number, z: number, turns: number, exits: Direction[]) => {
+  const group = new THREE.Group()
+  group.position.set(x * 1.18, 0.025, z * 1.18)
+  group.rotation.y = turns * Math.PI / 2
+
+  const base = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.14, 1.18), materials.start)
+  base.position.y = 0.07
+  base.castShadow = true
+  base.receiveShadow = true
+  group.add(base)
+
+  const surface = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.025, 1.08), materials.startTop)
+  surface.position.y = 0.152
+  surface.receiveShadow = true
+  group.add(surface)
+
+  for (let px = -1; px <= 1; px += 1) {
+    for (let pz = -1; pz <= 1; pz += 1) {
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.32, 0.009, 0.32),
+        (px + pz) % 2 === 0 ? materials.floorPanel : materials.floorPanelDark,
+      )
+      panel.position.set(px * 0.34, 0.169, pz * 0.34)
+      panel.receiveShadow = true
+      group.add(panel)
+    }
+  }
+
+  const edgeSpecs: Array<{ direction: Direction; position: [number, number, number]; size: [number, number, number] }> = [
+    { direction: 'N', position: [0, 0.31, -0.55], size: [1.08, 0.29, 0.055] },
+    { direction: 'S', position: [0, 0.31, 0.55], size: [1.08, 0.29, 0.055] },
+    { direction: 'E', position: [0.55, 0.31, 0], size: [0.055, 0.29, 1.08] },
+    { direction: 'W', position: [-0.55, 0.31, 0], size: [0.055, 0.29, 1.08] },
+  ]
+  for (const edge of edgeSpecs) {
+    if (exits.includes(edge.direction)) continue
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(...edge.size), materials.corridorWall)
+    wall.position.set(...edge.position)
+    wall.castShadow = true
+    wall.receiveShadow = true
+    group.add(wall)
+  }
+
+  for (const direction of exits) {
+    const [dx, dz] = directionDelta[direction]
+    const strip = new THREE.Mesh(
+      new THREE.BoxGeometry(dx === 0 ? 0.76 : 0.035, 0.012, dz === 0 ? 0.76 : 0.035),
+      materials.tileNeon,
+    )
+    strip.position.set(dx * 0.43, 0.18, dz * 0.43)
+    group.add(strip)
+  }
+
+  const marker = new THREE.Mesh(
+    new THREE.BoxGeometry(0.12, 0.025, 0.12),
+    new THREE.MeshBasicMaterial({ color: card.kind === 'cross' ? '#bd7958' : '#75d9ff' }),
+  )
+  marker.position.set(0, 0.19, 0)
+  group.add(marker)
+  board.add(group)
+  return group
+}
+
+const spendAction = () => {
+  actionsRemaining = Math.max(0, actionsRemaining - 1)
+  if (actionsRemaining === 0) setStatus('Plus d’actions. Terminez le tour pour continuer.')
+}
+
+const placeCard = (card: CorridorCard, fromHand: boolean, consumeAction = true) => {
+  if (actionsRemaining <= 0) {
+    setStatus('Il ne reste plus d’action pour ce tour.')
+    return false
+  }
+  const placement = findPlacement(card)
+  if (!placement) return false
+
+  const group = createCorridorTile(card, placement.x, placement.z, placement.turns, placement.exits)
+  boardTiles.push({ x: placement.x, z: placement.z, kind: card.kind, exits: placement.exits, group })
+  if (fromHand) hand = hand.filter((item) => item.id !== card.id)
+  else pendingDraw = null
+  if (consumeAction) spendAction()
+  selectedCardId = null
+  setStatus(`CC « ${corridorDefinitions[card.kind].label} » posée.`)
+  renderGameUi()
+  return true
+}
+
+const drawCorridorCard = () => {
+  if (actionsRemaining <= 0 || pendingDraw) return
+  if (corridorDeck.length === 0) corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
+  const card = corridorDeck.pop()
+  if (!card) {
+    setStatus('La pioche CC est vide.')
+    return
+  }
+  spendAction()
+  const placement = findPlacement(card)
+  if (placement) {
+    placeCard(card, false, false)
+    setStatus(`CC piochée et posée : ${corridorDefinitions[card.kind].label.toLowerCase()}.`)
+  } else {
+    pendingDraw = card
+    setStatus('Impossible de poser cette CC. Défaussez-la ou échangez-la avec une carte en main.')
+  }
+  renderGameUi()
+}
+
+const renderGameUi = () => {
+  if (!handElement || !deckCountElement || !discardCountElement || !actionsCountElement || !actionsFillElement) return
+  handElement.replaceChildren()
+  hand.forEach((card, index) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = `cc-card${selectedCardId === card.id ? ' is-selected' : ''}`
+    button.disabled = actionsRemaining <= 0 || Boolean(pendingDraw)
+    button.setAttribute('aria-pressed', String(selectedCardId === card.id))
+    button.innerHTML = `<span class="cc-card-index">CC ${String(index + 1).padStart(2, '0')}</span><span class="cc-card-symbol">${corridorDefinitions[card.kind].symbol}</span><span class="cc-card-name">${corridorDefinitions[card.kind].label}</span>`
+    button.addEventListener('click', () => {
+      selectedCardId = card.id
+      renderGameUi()
+      setStatus(`CC sélectionnée : ${corridorDefinitions[card.kind].label.toLowerCase()}.`)
+    })
+    handElement.append(button)
+  })
+
+  deckCountElement.textContent = String(corridorDeck.length)
+  discardCountElement.textContent = String(discardPile.length)
+  actionsCountElement.textContent = String(actionsRemaining)
+  actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
+  const handCount = document.querySelector<HTMLElement>('.hand-heading > span')
+  if (handCount) handCount.textContent = `${hand.length} CC`
+  if (placeButton) placeButton.disabled = !hand.some((card) => card.id === selectedCardId) || actionsRemaining <= 0 || Boolean(pendingDraw)
+  if (discardButton) discardButton.disabled = !pendingDraw
+  if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
+  if (drawButton) drawButton.disabled = actionsRemaining <= 0 || Boolean(pendingDraw) || (corridorDeck.length === 0 && discardPile.length === 0)
+  if (endTurnButton) endTurnButton.disabled = Boolean(pendingDraw)
+
+  if (pendingDraw) {
+    const note = document.createElement('p')
+    note.className = 'pending-draw'
+    note.textContent = `Pioche : ${corridorDefinitions[pendingDraw.kind].label}. Choisissez une CC à remplacer, ou défaussez la pioche.`
+    handElement.append(note)
+  }
+}
+
+drawButton?.addEventListener('click', drawCorridorCard)
+placeButton?.addEventListener('click', () => {
+  const card = hand.find((item) => item.id === selectedCardId)
+  if (!card) return
+  if (!placeCard(card, true)) setStatus('Aucune sortie libre ne permet de poser cette CC pour le moment.')
+})
+discardButton?.addEventListener('click', () => {
+  if (!pendingDraw) return
+  discardPile.push(pendingDraw)
+  pendingDraw = null
+  setStatus('CC piochée défaussée.')
+  renderGameUi()
+})
+replaceButton?.addEventListener('click', () => {
+  if (!pendingDraw || !handElement) return
+  setStatus('Choisissez dans votre main la CC à remplacer par la pioche.')
+  handElement.querySelectorAll<HTMLButtonElement>('.cc-card').forEach((button, index) => {
+    button.disabled = false
+    button.classList.add('is-replaceable')
+    button.addEventListener('click', () => {
+      const oldCard = hand[index]
+      if (!oldCard || !pendingDraw) return
+      discardPile.push(oldCard)
+      hand[index] = pendingDraw
+      pendingDraw = null
+      selectedCardId = hand[index].id
+      setStatus(`CC remplacée. « ${corridorDefinitions[oldCard.kind].label} » défaussée.`)
+      renderGameUi()
+    }, { once: true })
+  })
+})
+endTurnButton?.addEventListener('click', () => {
+  if (pendingDraw) {
+    setStatus('Décidez d’abord du sort de la CC piochée.')
+    return
+  }
+  actionsRemaining = 7
+  while (hand.length < 3 && corridorDeck.length > 0) hand.push(corridorDeck.pop()!)
+  selectedCardId = null
+  setStatus('Nouveau tour : 7 actions. Votre main est prête.')
+  renderGameUi()
+})
+
+while (hand.length < 3 && corridorDeck.length > 0) hand.push(corridorDeck.pop()!)
+renderGameUi()
+
 const resize = () => {
   const width = root.clientWidth
   const height = root.clientHeight
