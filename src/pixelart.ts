@@ -1,23 +1,19 @@
 import './style.css'
-import { CORRIDOR_PIXEL_MODELS, CORRIDOR_PIXEL_SIZE, CORRIDOR_PIXEL_STORAGE_KEY, createDefaultCorridorPixels, type CorridorPixelTemplates } from './game/corridor-pixel-templates'
+import { CORRIDOR_PIXEL_MODELS, CORRIDOR_PIXEL_SIZE, type CorridorPixelTemplateId } from './game/corridor-pixel-templates'
 
-const readTemplates = (): CorridorPixelTemplates => {
-  try {
-    const raw = localStorage.getItem(CORRIDOR_PIXEL_STORAGE_KEY)
-    return raw ? JSON.parse(raw) as CorridorPixelTemplates : {}
-  } catch { return {} }
-}
-const templates = readTemplates()
-for (const model of CORRIDOR_PIXEL_MODELS) templates[model.id] ??= createDefaultCorridorPixels(model.id)
-const save = () => localStorage.setItem(CORRIDOR_PIXEL_STORAGE_KEY, JSON.stringify(templates))
+type ModelResponse = { id: CorridorPixelTemplateId; pixels: string[] }
+const response = await fetch('/__corridor-models')
+if (!response.ok) throw new Error('Impossible de charger les modèles JSON.')
+const models = await response.json() as ModelResponse[]
+const templates = Object.fromEntries(models.map(({ id, pixels }) => [id, pixels])) as Record<CorridorPixelTemplateId, string[]>
 
 document.body.className = 'pixelart-page'
 document.body.innerHTML = `
   <main class="pixelart-app">
     <header class="pa-header">
       <a class="pa-back" href="/">← Retour au jeu</a>
-      <div><span class="pa-eyebrow">THREEZ / OUTIL DE CRÉATION</span><h1>Atelier pixel art</h1><p>Crée les visuels des cartes couloir, pixel par pixel.</p></div>
-      <button class="pa-reset" id="pa-reset" type="button">Réinitialiser les modèles</button>
+      <div><span class="pa-eyebrow">THREEZ / OUTIL DE CRÉATION</span><h1>Atelier pixel art</h1><p>Les dessins sont enregistrés dans references/models.</p></div>
+      <span class="pa-save-status" id="pa-save-status">Modèles chargés</span>
     </header>
     <div class="pa-layout">
       <nav class="pa-model-list" aria-label="Modèles de couloirs"></nav>
@@ -25,11 +21,10 @@ document.body.innerHTML = `
         <header class="pa-editor-heading"><div><span id="pa-door-count"></span><h2 id="pa-model-name"></h2></div><span>32 × 32 pixels</span></header>
         <div class="pa-workspace">
           <div class="pa-canvas-wrap"><div class="pa-grid" role="grid" aria-label="Grille de dessin"></div></div>
-          <aside class="pa-tools">
-            <h3>Couleur</h3><div class="pa-palette"></div>
+          <aside class="pa-tools"><h3>Couleur</h3><div class="pa-palette"></div>
             <label class="pa-custom-label">Couleur personnalisée<input id="pa-custom" type="color" value="#626b6d"></label>
             <div class="pa-tool-actions"><button id="pa-fill" type="button">Remplir</button><button id="pa-clear" type="button">Tout effacer</button></div>
-            <p class="pa-help">Clique sur un pixel pour le colorer. Tu peux aussi maintenir le clic et faire glisser pour dessiner. Les modifications sont sauvegardées automatiquement dans ce navigateur et réutilisées par les cartes du jeu.</p>
+            <p class="pa-help">Chaque modification est enregistrée dans le fichier JSON du modèle. Les modèles déjà dessinés sont chargés directement depuis le projet.</p>
           </aside>
         </div>
       </section>
@@ -41,11 +36,25 @@ const grid = root.querySelector<HTMLElement>('.pa-grid')!
 const paletteElement = root.querySelector<HTMLElement>('.pa-palette')!
 const name = root.querySelector<HTMLElement>('#pa-model-name')!
 const doorCount = root.querySelector<HTMLElement>('#pa-door-count')!
+const status = root.querySelector<HTMLElement>('#pa-save-status')!
 const colors = ['#171d20','#30383b','#354144','#4b5659','#626b6d','#707875','#858b83','#a4a99e','#c2c2b2','#d0b18a','#76513d','#b47d56','#3f3029','#c0c7bf','#783d3b','#a64c47']
-let activeId = CORRIDOR_PIXEL_MODELS[0].id
+let activeId: CorridorPixelTemplateId = CORRIDOR_PIXEL_MODELS[0].id
 let activeColor = colors[4]
 let isPainting = false
-
+let saveQueue = Promise.resolve()
+const save = (id: CorridorPixelTemplateId) => {
+  status.textContent = 'Enregistrement…'
+  const pixels = [...templates[id]]
+  saveQueue = saveQueue.then(async () => {
+    const result = await fetch(`/__corridor-models/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pixels }),
+    })
+    if (!result.ok) throw new Error(`Échec de l'enregistrement de ${id}.json`)
+    status.textContent = `✓ ${id}.json enregistré`
+  }).catch((error: unknown) => {
+    status.textContent = error instanceof Error ? error.message : 'Erreur d’enregistrement'
+  })
+}
 const renderNav = () => {
   nav.innerHTML = CORRIDOR_PIXEL_MODELS.map((model) => `
     <button type="button" data-model="${model.id}" class="${model.id === activeId ? 'is-active' : ''}">
@@ -71,14 +80,15 @@ paletteElement.addEventListener('click', (event) => {
 nav.addEventListener('click', (event) => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-model]')
   if (!button) return
-  activeId = button.dataset.model!
+  activeId = button.dataset.model as CorridorPixelTemplateId
   renderGrid()
 })
 const paint = (index: number) => {
+  if (templates[activeId][index] === activeColor) return
   templates[activeId][index] = activeColor
   const pixel = grid.children.item(index) as HTMLElement | null
   if (pixel) pixel.style.backgroundColor = activeColor
-  save()
+  save(activeId)
 }
 grid.addEventListener('pointerdown', (event) => {
   const pixel = (event.target as HTMLElement).closest<HTMLElement>('[data-index]')
@@ -98,17 +108,12 @@ root.querySelector<HTMLInputElement>('#pa-custom')!.addEventListener('input', (e
 })
 root.querySelector<HTMLButtonElement>('#pa-fill')!.addEventListener('click', () => {
   templates[activeId] = Array(CORRIDOR_PIXEL_SIZE ** 2).fill(activeColor)
-  save()
   renderGrid()
+  save(activeId)
 })
 root.querySelector<HTMLButtonElement>('#pa-clear')!.addEventListener('click', () => {
   templates[activeId] = Array(CORRIDOR_PIXEL_SIZE ** 2).fill('#171d20')
-  save()
   renderGrid()
-})
-root.querySelector<HTMLButtonElement>('#pa-reset')!.addEventListener('click', () => {
-  for (const model of CORRIDOR_PIXEL_MODELS) templates[model.id] = createDefaultCorridorPixels(model.id)
-  save()
-  renderGrid()
+  save(activeId)
 })
 renderGrid()
