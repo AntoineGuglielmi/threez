@@ -653,7 +653,7 @@ const findPlacement = (card: CorridorCard) => {
       const [dx, dz] = directionDelta[exit]
       const x = tile.x + dx
       const z = tile.z + dz
-      if (boardTiles.some((placed) => placed.x === x && placed.z === z)) continue
+      if (boardTiles.some((placed) => placed.x === x && placed.z === z) || rooms.some((room) => room.x === x && room.z === z)) continue
       for (let turns = 0; turns < 4; turns += 1) {
         const exits = definition.exits.map((direction) => rotateDirection(direction, turns))
         if (!exits.includes(opposite[exit])) continue
