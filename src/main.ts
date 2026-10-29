@@ -453,7 +453,7 @@ if (savedGameState?.rooms) {
     rooms.push({ ...savedRoom, group })
   }
 }
-if (savedGameState?.nextRoomCardId) nextRoomCardId = savedGameState.nextRoomCardId
+if (savedGameState?.nextRoomCardId) roomCards.setNextCardId(savedGameState.nextRoomCardId)
 
 const getSurvivorTokenPosition = (kind: SurvivorKind): [number, number, number] => ({
   stealth: [0, 0.19, 0.16],
