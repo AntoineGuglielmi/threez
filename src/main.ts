@@ -786,12 +786,21 @@ const confirmPlacement = () => {
   }
 
   const group = createCorridorTile(card, x, z, option.exits)
-  boardTiles.push({ x, z, kind: card.kind, exits: option.exits, group })
+  const placedTile: BoardTile = { x, z, kind: card.kind, exits: option.exits, group }
+  boardTiles.push(placedTile)
+
+  // Placing a corridor also moves the active survivor onto it for the same action.
+  currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+  placedTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+  activeCharacter.position.set(0, 0.19, 0.16)
+  activeRing.position.set(0, 0.183, 0.16)
+  currentTile = placedTile
+
   hand = hand.filter((item) => item.id !== card.id)
   spendAction()
   selectedCardId = null
   placementPreview = null
-  setStatus(`CC « ${corridorDefinitions[card.kind].label} » posée.`)
+  setStatus(`CC « ${corridorDefinitions[card.kind].label} » posée : le survivant s’y déplace. ${actionsRemaining} action${actionsRemaining > 1 ? 's' : ''} restante${actionsRemaining > 1 ? 's' : ''}.`)
   renderGameUi()
 }
 
