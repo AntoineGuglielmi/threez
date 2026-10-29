@@ -215,13 +215,14 @@ if (savedGameState?.rooms) {
 }
 if (savedGameState?.nextRoomCardId) roomCards.setNextCardId(savedGameState.nextRoomCardId)
 
-const getSurvivorTokenPosition = (kind: SurvivorKind): [number, number, number] => ({
+const survivorTokenPositions: Record<SurvivorKind, [number, number, number]> = {
   stealth: [0, 0.19, 0.16],
   heavy: [-0.32, 0.19, -0.28],
   military: [0.32, 0.19, -0.28],
   scientist: [-0.32, 0.19, 0.36],
   injured: [0.32, 0.19, 0.36],
-} as const satisfies Record<SurvivorKind, [number, number, number]>)[kind]
+}
+const getSurvivorTokenPosition = (kind: SurvivorKind): [number, number, number] => survivorTokenPositions[kind]
 
 const placeSurvivorModel = (kind: SurvivorKind, makeActive: boolean) => {
   const model = characterModels[kind]
