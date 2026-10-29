@@ -239,6 +239,69 @@ const addFloorDetails = (pixels: Map<string, string>) => {
   )
 }
 
+
+const buildStraightPerspective = (card: CorridorCard): Pixel[] => {
+  const pixels = new Map<string, string>()
+
+  // First-person corridor projection: the floor and both wall planes converge
+  // towards a shared vanishing point. The ceiling is intentionally omitted.
+  fillPolygon(pixels, [[0, 0], [64, 0], [64, 63], [0, 63]], palette.void)
+
+  // Side walls, painted before the floor so the floor edge remains crisp.
+  fillPolygon(pixels, [[0, 0], [25, 17], [25, 31], [7, 63], [0, 63]], palette.wallFace)
+  fillPolygon(pixels, [[64, 0], [39, 17], [39, 31], [57, 63], [64, 63]], palette.wallFace)
+
+  // Inner wall highlights and dark outer edges give the walls visible depth.
+  fillPolygon(pixels, [[0, 0], [22, 16], [22, 29], [4, 63], [0, 63]], palette.wall)
+  fillPolygon(pixels, [[64, 0], [42, 16], [42, 29], [60, 63], [64, 63]], palette.wall)
+  line(pixels, 0, 0, 25, 17, palette.wallTop)
+  line(pixels, 25, 17, 25, 31, palette.wallLight)
+  line(pixels, 64, 0, 39, 17, palette.wallTop)
+  line(pixels, 39, 17, 39, 31, palette.wallLight)
+
+  // Perspective floor: narrow at the vanishing point, broad in the foreground.
+  fillPolygon(pixels, [[25, 31], [39, 31], [58, 63], [6, 63]], palette.floor)
+  fillPolygon(pixels, [[27, 32], [37, 32], [53, 63], [11, 63]], palette.floorMid)
+  line(pixels, 25, 31, 6, 63, palette.floorDark)
+  line(pixels, 39, 31, 58, 63, palette.floorLight)
+
+  // A few receding tile joints reinforce the same perspective.
+  for (const y of [39, 48, 57]) {
+    const spread = Math.round((y - 31) * 0.58)
+    line(pixels, 32 - spread, y, 32 + spread, y, palette.grout)
+  }
+  line(pixels, 32, 32, 32, 63, palette.grout)
+
+  // Closed door panels are flush with the wall planes, never swung open.
+  const hasLeftDoor = card.doors.includes('W')
+  const hasRightDoor = card.doors.includes('E')
+  if (hasLeftDoor) {
+    fillPolygon(pixels, [[5, 29], [17, 26], [17, 45], [5, 50]], palette.doorShadow)
+    fillPolygon(pixels, [[7, 30], [16, 28], [16, 43], [7, 47]], palette.door)
+    line(pixels, 7, 30, 16, 28, palette.doorLight)
+    line(pixels, 7, 30, 7, 47, palette.doorLight)
+    line(pixels, 16, 28, 16, 43, palette.doorShadow)
+    setPixel(pixels, 14, 38, palette.metal)
+  }
+  if (hasRightDoor) {
+    fillPolygon(pixels, [[47, 26], [59, 29], [59, 50], [47, 45]], palette.doorShadow)
+    fillPolygon(pixels, [[48, 28], [57, 30], [57, 47], [48, 43]], palette.door)
+    line(pixels, 48, 28, 57, 30, palette.doorLight)
+    line(pixels, 48, 28, 48, 43, palette.doorLight)
+    line(pixels, 57, 30, 57, 47, palette.doorShadow)
+    setPixel(pixels, 50, 38, palette.metal)
+  }
+
+  // Small wall skirting follows the perspective instead of forming a flat rim.
+  line(pixels, 4, 60, 25, 31, palette.wallShadow)
+  line(pixels, 60, 60, 39, 31, palette.wallShadow)
+
+  return [...pixels].map(([key, color]) => {
+    const [x, y] = key.split(',').map(Number)
+    return { x, y, color }
+  })
+}
+
 const buildPixels = (card: CorridorCard, turns: number): Pixel[] => {
   const exits = corridorDefinitions[card.kind].exits.map((direction) => rotateDirection(direction, turns))
   const doors = card.doors
