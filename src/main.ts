@@ -549,10 +549,11 @@ const generatedCorridorDeck = shuffle(
   (['straight', 'left', 'right', 'tee', 'cross'] as CorridorKind[])
     .flatMap((kind) => Array.from({ length: 8 }, () => createCard(kind))),
 )
-const corridorDeck: CorridorCard[] = savedGameState ? [...savedGameState.deck] : generatedCorridorDeck
-const discardPile: CorridorCard[] = savedGameState ? [...savedGameState.discard] : []
-let hand: CorridorCard[] = savedGameState ? [...savedGameState.hand] : []
-let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ?? null
+const normalizeSavedCard = (card: CorridorCard): CorridorCard => ({ ...card, doors: card.doors ?? [] })
+const corridorDeck: CorridorCard[] = savedGameState ? savedGameState.deck.map(normalizeSavedCard) : generatedCorridorDeck
+const discardPile: CorridorCard[] = savedGameState ? savedGameState.discard.map(normalizeSavedCard) : []
+let hand: CorridorCard[] = savedGameState ? savedGameState.hand.map(normalizeSavedCard) : []
+let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSavedCard(savedGameState.pendingDraw) : null
 let selectedCardId: number | null = null
 let actionsRemaining = savedGameState?.actionsRemaining ?? 7
 let turnNumber = savedGameState?.turnNumber ?? 1
@@ -658,6 +659,45 @@ const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Dir
     wall.castShadow = true
     wall.receiveShadow = true
     group.add(wall)
+  }
+
+  for (const direction of doors.filter((item) => exits.includes(item))) {
+    const horizontal = direction === 'N' || direction === 'S'
+    const edgeOffset = direction === 'N' ? -0.51 : direction === 'S' ? 0.51 : direction === 'W' ? -0.51 : 0.51
+    const door = new THREE.Group()
+    door.position.set(horizontal ? 0 : edgeOffset, 0, horizontal ? edgeOffset : 0)
+    const panel = new THREE.Mesh(
+      new THREE.BoxGeometry(horizontal ? 0.48 : 0.045, 0.235, horizontal ? 0.045 : 0.48),
+      new THREE.MeshStandardMaterial({ color: '#79513f', metalness: 0.62, roughness: 0.48 }),
+    )
+    panel.position.y = 0.31
+    panel.castShadow = true
+    panel.receiveShadow = true
+    door.add(panel)
+
+    const frameMaterial = new THREE.MeshStandardMaterial({ color: '#aab5bd', metalness: 0.8, roughness: 0.32 })
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(
+        new THREE.BoxGeometry(horizontal ? 0.035 : 0.065, 0.29, horizontal ? 0.065 : 0.035),
+        frameMaterial,
+      )
+      post.position.set(horizontal ? side * 0.27 : 0, 0.31, horizontal ? 0 : side * 0.27)
+      door.add(post)
+    }
+    const lintel = new THREE.Mesh(
+      new THREE.BoxGeometry(horizontal ? 0.58 : 0.065, 0.035, horizontal ? 0.065 : 0.58),
+      frameMaterial,
+    )
+    lintel.position.y = 0.465
+    door.add(lintel)
+
+    const handle = new THREE.Mesh(
+      new THREE.SphereGeometry(0.018, 8, 6),
+      new THREE.MeshStandardMaterial({ color: '#e5b16c', metalness: 0.6, roughness: 0.35 }),
+    )
+    handle.position.set(horizontal ? 0.16 : 0, 0.31, horizontal ? 0 : 0.16)
+    door.add(handle)
+    group.add(door)
   }
 
   for (const direction of exits) {
@@ -919,7 +959,14 @@ const renderGameUi = () => {
         return `<path d="${ends[direction]}" />`
       })
       .join('')
-    button.innerHTML = `<span class="cc-card-index">CC ${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${corridorDefinitions[card.kind].label}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></svg><span class="cc-card-name">${corridorDefinitions[card.kind].label}</span>`
+    const doorRects: Record<Direction, string> = {
+      N: '<rect x="43" y="9" width="14" height="6" rx="1" />',
+      E: '<rect x="85" y="43" width="6" height="14" rx="1" />',
+      S: '<rect x="43" y="85" width="14" height="6" rx="1" />',
+      W: '<rect x="9" y="43" width="6" height="14" rx="1" />',
+    }
+    const doorMarkup = card.doors.map((direction) => doorRects[direction]).join('')
+    button.innerHTML = `<span class="cc-card-index">CC ${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${corridorDefinitions[card.kind].label}, ${card.doors.length} porte${card.doors.length === 1 ? '' : 's'}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><g class="cc-art-doors">${doorMarkup}</g><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></svg><span class="cc-card-name">${corridorDefinitions[card.kind].label} · ${card.doors.length}P</span>`
     button.addEventListener('click', () => {
       if (selectedCardId === card.id) {
         selectedCardId = null
