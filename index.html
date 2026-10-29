@@ -50,7 +50,7 @@
               <div class="deck-card-label">Pièces</div>
               <div class="deck-card-meta">À découvrir</div>
               <span class="deck-card-hint">Par une porte</span>
-              <button id="draw-cp" class="action-button primary deck-draw-button">Piocher une CP</button>
+              <button id="draw-cp" class="action-button primary deck-draw-button">Piocher une pièce</button>
             </div>
           </section>
 
@@ -58,7 +58,7 @@
             <div class="section-heading"><h2>À proximité</h2><span>EXPLORATION</span></div>
             <p id="room-state" class="room-state">Aucune pièce à proximité</p>
             <div id="room-result" class="room-result" aria-live="polite"></div>
-            <div id="cp-door-options" class="cp-door-options">Aucune porte sur cette CC</div>
+            <div id="cp-door-options" class="cp-door-options">Aucune porte sur ce couloir</div>
             <button id="unlock-room" class="action-button primary" hidden>Déverrouiller · 1 action</button>
             <button id="return-room" class="action-button subtle" hidden>Retour au couloir · 1 action</button>
           </section>
@@ -66,14 +66,14 @@
           <details class="hand-disclosure">
             <summary><span>Couloirs en main</span><strong id="cc-hand-count">3 cartes</strong></summary>
             <div id="cc-hand" class="cc-hand"></div>
-            <p id="game-status" class="game-status" role="status">Choisissez une CC pour afficher les emplacements possibles sur le plateau.</p>
+            <p id="game-status" class="game-status" role="status">Sélectionnez un couloir pour afficher les emplacements possibles sur le plateau.</p>
             <div class="game-actions">
               <p class="hand-placement-hint">Sélectionnez un couloir, puis cliquez sur un emplacement lumineux du plateau.</p>
               <button id="place-cc" class="action-button primary" disabled hidden>Valider la pose</button>
               <button id="rotate-cc" class="action-button" disabled hidden>Tourner</button>
               <button id="cancel-placement" class="action-button subtle" disabled hidden>Annuler</button>
               <button id="discard-cc" class="action-button subtle" disabled>Défausser la pioche</button>
-              <button id="replace-cc" class="action-button subtle" disabled>Remplacer une CC en main</button>
+              <button id="replace-cc" class="action-button subtle" disabled>Remplacer un couloir en main</button>
             </div>
           </details>
 
