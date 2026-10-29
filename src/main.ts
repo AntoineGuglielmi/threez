@@ -554,14 +554,14 @@ const findPlacement = (card: CorridorCard) => {
       if (boardTiles.some((placed) => placed.x === x && placed.z === z)) continue
       for (let turns = 0; turns < 4; turns += 1) {
         const exits = definition.exits.map((direction) => rotateDirection(direction, turns))
-        if (exits.includes(opposite[exit])) return { x, z, turns, exits }
+        if (exits.includes(opposite[exit])) return { x, z, exits }
       }
     }
   }
   return null
 }
 
-const createCorridorTile = (card: CorridorCard, x: number, z: number, turns: number, exits: Direction[]) => {
+const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Direction[]) => {
   const group = new THREE.Group()
   group.position.set(x * 1.18, 0.025, z * 1.18)
   // Exits are already rotated into board directions; build the walls in that orientation.
@@ -637,7 +637,7 @@ const placeCard = (card: CorridorCard, fromHand: boolean, consumeAction = true) 
   const placement = findPlacement(card)
   if (!placement) return false
 
-  const group = createCorridorTile(card, placement.x, placement.z, placement.turns, placement.exits)
+  const group = createCorridorTile(card, placement.x, placement.z, placement.exits)
   boardTiles.push({ x: placement.x, z: placement.z, kind: card.kind, exits: placement.exits, group })
   if (fromHand) hand = hand.filter((item) => item.id !== card.id)
   else pendingDraw = null
