@@ -4,7 +4,7 @@ Prototype de jeu de survie en 3D isométrique avec Three.js, Vite et TypeScript.
 
 ## Prototype actuel
 
-- Une case de départ d'hôpital, avec une sortie encore barricadée.
+- Une case de départ d'hôpital, avec une sortie encore barricadée, suivie de deux CC droites placées automatiquement pendant l'installation.
 - Une pioche virtuelle de 40 cartes CC : 8 cartes de chaque topologie.
 - Cinq topologies : droit, virage à gauche, virage à droite, carrefour en T et carrefour en croix.
 - Une main initiale de 3 CC.
