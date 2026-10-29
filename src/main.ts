@@ -49,6 +49,13 @@ const materials = {
   wood: new THREE.MeshStandardMaterial({ color: '#332923', roughness: 0.98 }),
   woodLight: new THREE.MeshStandardMaterial({ color: '#594438', roughness: 0.98 }),
   frame: new THREE.MeshStandardMaterial({ color: '#25272a', roughness: 0.9 }),
+  tileNeon: new THREE.MeshStandardMaterial({
+    color: '#a8d9e8',
+    emissive: '#4a9bb9',
+    emissiveIntensity: 1.35,
+    roughness: 0.35,
+    metalness: 0.15,
+  }),
 }
 
 // The ground has no visible edge: the world simply disappears into the fog.
@@ -101,6 +108,35 @@ const top = new THREE.Mesh(
 top.position.y = 0.152
 top.receiveShadow = true
 start.add(top)
+
+// Cool neon strips trace the tile edges, like floor lighting in an abandoned facility.
+const neon = new THREE.Group()
+neon.position.y = 0.168
+start.add(neon)
+
+const neonLength = 0.92
+const neonWidth = 0.018
+const neonOffset = 0.49
+for (const side of [-1, 1]) {
+  const stripX = new THREE.Mesh(
+    new THREE.BoxGeometry(neonWidth, 0.012, neonLength),
+    materials.tileNeon,
+  )
+  stripX.position.set(side * neonOffset, 0, 0)
+  neon.add(stripX)
+
+  const stripZ = new THREE.Mesh(
+    new THREE.BoxGeometry(neonLength, 0.012, neonWidth),
+    materials.tileNeon,
+  )
+  stripZ.position.set(0, 0, side * neonOffset)
+  neon.add(stripZ)
+}
+
+// A restrained pool of cold light brightens the tile without washing out the scene.
+const tileLight = new THREE.PointLight('#83c8e4', 1.15, 3.8, 2)
+tileLight.position.set(0, 0.42, 0)
+start.add(tileLight)
 
 // Barricaded hospital entrance.
 const framePosts = [-0.34, 0.34]
