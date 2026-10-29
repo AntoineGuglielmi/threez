@@ -8,10 +8,10 @@ if (!root) {
 }
 
 const scene = new THREE.Scene()
-scene.background = new THREE.Color('#111411')
-scene.fog = new THREE.Fog('#111411', 18, 34)
+scene.background = new THREE.Color('#050607')
+scene.fog = new THREE.FogExp2('#050607', 0.035)
 
-const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 100)
+const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 180)
 camera.position.set(13, 16, 13)
 camera.lookAt(0, 0, 0)
 
@@ -22,192 +22,138 @@ renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
 renderer.outputColorSpace = THREE.SRGBColorSpace
 renderer.toneMapping = THREE.ACESFilmicToneMapping
-renderer.toneMappingExposure = 1.15
+renderer.toneMappingExposure = 0.82
 root.appendChild(renderer.domElement)
 
-const ambient = new THREE.HemisphereLight('#dce8d4', '#252a24', 2.1)
-scene.add(ambient)
+scene.add(new THREE.AmbientLight('#9ca3ad', 0.55))
 
-const keyLight = new THREE.DirectionalLight('#ffe5b0', 3.2)
+const keyLight = new THREE.DirectionalLight('#d9dce2', 2.1)
 keyLight.position.set(8, 15, 7)
 keyLight.castShadow = true
 keyLight.shadow.mapSize.set(2048, 2048)
-keyLight.shadow.camera.left = -12
-keyLight.shadow.camera.right = 12
-keyLight.shadow.camera.top = 12
-keyLight.shadow.camera.bottom = -12
+keyLight.shadow.camera.left = -10
+keyLight.shadow.camera.right = 10
+keyLight.shadow.camera.top = 10
+keyLight.shadow.camera.bottom = -10
 keyLight.shadow.bias = -0.0004
 scene.add(keyLight)
 
-const fillLight = new THREE.DirectionalLight('#829b9a', 1.1)
+const fillLight = new THREE.DirectionalLight('#7b8494', 0.45)
 fillLight.position.set(-8, 6, -5)
 scene.add(fillLight)
 
 const materials = {
-  floor: new THREE.MeshStandardMaterial({ color: '#202620', roughness: 1 }),
-  tile: new THREE.MeshStandardMaterial({ color: '#293129', roughness: 0.94 }),
-  tileAlt: new THREE.MeshStandardMaterial({ color: '#252d26', roughness: 0.94 }),
-  tileEdge: new THREE.MeshStandardMaterial({ color: '#39443a', roughness: 0.9 }),
-  start: new THREE.MeshStandardMaterial({ color: '#b75c3d', roughness: 0.85 }),
-  startTop: new THREE.MeshStandardMaterial({ color: '#d27a4c', roughness: 0.88 }),
-  wood: new THREE.MeshStandardMaterial({ color: '#694b32', roughness: 0.98 }),
-  woodLight: new THREE.MeshStandardMaterial({ color: '#94704a', roughness: 0.98 }),
-  metal: new THREE.MeshStandardMaterial({ color: '#303833', roughness: 0.55, metalness: 0.35 }),
-  paper: new THREE.MeshStandardMaterial({ color: '#e5d8ad', roughness: 0.9 }),
+  floor: new THREE.MeshStandardMaterial({ color: '#080a0d', roughness: 1 }),
+  start: new THREE.MeshStandardMaterial({ color: '#39302d', roughness: 0.9 }),
+  startTop: new THREE.MeshStandardMaterial({ color: '#51413a', roughness: 0.92 }),
+  wood: new THREE.MeshStandardMaterial({ color: '#332923', roughness: 0.98 }),
+  woodLight: new THREE.MeshStandardMaterial({ color: '#594438', roughness: 0.98 }),
+  frame: new THREE.MeshStandardMaterial({ color: '#25272a', roughness: 0.9 }),
 }
 
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), materials.floor)
+// The ground has no visible edge: the world simply disappears into the fog.
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), materials.floor)
 floor.rotation.x = -Math.PI / 2
-floor.position.y = -0.24
+floor.position.y = -0.18
 floor.receiveShadow = true
 scene.add(floor)
 
-const boardSize = 15
-const half = (boardSize - 1) / 2
-const board = new THREE.Group()
-scene.add(board)
-
-// A single continuous base keeps the board readable as a place to build a route.
-const base = new THREE.Mesh(
-  new THREE.BoxGeometry(boardSize + 0.24, 0.22, boardSize + 0.24),
-  new THREE.MeshStandardMaterial({ color: '#171d18', roughness: 1 }),
-)
-base.position.y = -0.13
-base.receiveShadow = true
-base.castShadow = true
-board.add(base)
-
-const tileGeometry = new THREE.BoxGeometry(0.96, 0.06, 0.96)
-const tileTopGeometry = new THREE.PlaneGeometry(0.94, 0.94)
-
-for (let x = 0; x < boardSize; x += 1) {
-  for (let z = 0; z < boardSize; z += 1) {
-    const isStart = x === Math.floor(boardSize / 2) && z === Math.floor(boardSize / 2)
-    const tile = new THREE.Mesh(
-      tileGeometry,
-      isStart ? materials.start : (x + z) % 2 === 0 ? materials.tile : materials.tileAlt,
-    )
-    tile.position.set(x - half, 0, z - half)
-    tile.receiveShadow = true
-    tile.castShadow = isStart
-    board.add(tile)
-
-    if (!isStart) {
-      const inset = new THREE.Mesh(
-        tileTopGeometry,
-        new THREE.MeshBasicMaterial({
-          color: '#536052',
-          transparent: true,
-          opacity: 0.16,
-          side: THREE.DoubleSide,
-        }),
-      )
-      inset.rotation.x = -Math.PI / 2
-      inset.position.set(x - half, 0.032, z - half)
-      board.add(inset)
-    }
-  }
-}
-
-// Fine grid seams, slightly brighter than the tiles but not a glowing hologram.
-const grid = new THREE.GridHelper(boardSize, boardSize, '#586653', '#3b463a')
-grid.position.y = 0.014
+// A broad placement grid fades into darkness instead of ending at a board border.
+const gridSize = 120
+const grid = new THREE.GridHelper(gridSize, gridSize, '#343940', '#24282e')
+grid.position.y = -0.012
 const gridMaterials = Array.isArray(grid.material) ? grid.material : [grid.material]
 gridMaterials.forEach((material) => {
   const lineMaterial = material as THREE.LineBasicMaterial
   lineMaterial.transparent = true
-  lineMaterial.opacity = 0.56
+  lineMaterial.opacity = 0.42
+  lineMaterial.depthWrite = false
 })
-board.add(grid)
+scene.add(grid)
 
-// Small edge markers give the board a physical, tabletop feel.
-const edgeMaterial = new THREE.MeshStandardMaterial({ color: '#4b5747', roughness: 0.8 })
-for (let i = 0; i < boardSize; i += 1) {
-  for (const edgeZ of [-half - 0.13, half + 0.13]) {
-    const marker = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.025, 0.055), edgeMaterial)
-    marker.position.set(i - half, 0.005, edgeZ)
-    board.add(marker)
-  }
-  for (const edgeX of [-half - 0.13, half + 0.13]) {
-    const marker = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.025, 0.055), edgeMaterial)
-    marker.position.set(edgeX, 0.005, i - half)
-    board.add(marker)
-  }
-}
-
-// Starting card: a raised concrete slab, barricaded entrance and a restrained warning mark.
+// A single starting tile floats visually in a large, unexplored space.
 const start = new THREE.Group()
-start.position.set(0, 0.055, 0)
-board.add(start)
+start.position.set(0, 0.025, 0)
+scene.add(start)
+
+const shadow = new THREE.Mesh(
+  new THREE.CircleGeometry(1.2, 48),
+  new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.55, depthWrite: false }),
+)
+shadow.rotation.x = -Math.PI / 2
+shadow.position.y = -0.005
+shadow.scale.set(1.2, 0.82, 1)
+start.add(shadow)
 
 const slab = new THREE.Mesh(
-  new THREE.BoxGeometry(0.9, 0.08, 0.9),
-  new THREE.MeshStandardMaterial({ color: '#b75c3d', roughness: 0.95 }),
+  new THREE.BoxGeometry(1.18, 0.14, 1.18),
+  materials.start,
 )
-slab.position.y = 0.045
+slab.position.y = 0.07
 slab.castShadow = true
 slab.receiveShadow = true
 start.add(slab)
 
-const top = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.025, 0.76), materials.startTop)
-top.position.y = 0.095
+const top = new THREE.Mesh(
+  new THREE.BoxGeometry(1.08, 0.025, 1.08),
+  materials.startTop,
+)
+top.position.y = 0.152
 top.receiveShadow = true
 start.add(top)
 
-// Entrance frame on the back edge of the starting tile.
-const frameMaterial = new THREE.MeshStandardMaterial({ color: '#3b3028', roughness: 0.9 })
-const framePosts = [-0.27, 0.27]
+// Barricaded hospital entrance.
+const framePosts = [-0.34, 0.34]
 for (const x of framePosts) {
-  const post = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.53, 0.075), frameMaterial)
-  post.position.set(x, 0.35, -0.18)
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.57, 0.075), materials.frame)
+  post.position.set(x, 0.44, -0.34)
   post.castShadow = true
   start.add(post)
 }
-const lintel = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.075, 0.075), frameMaterial)
-lintel.position.set(0, 0.59, -0.18)
+
+const lintel = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.08, 0.075), materials.frame)
+lintel.position.set(0, 0.72, -0.34)
 lintel.castShadow = true
 start.add(lintel)
 
 const door = new THREE.Mesh(
-  new THREE.BoxGeometry(0.43, 0.39, 0.045),
-  new THREE.MeshStandardMaterial({ color: '#593f31', roughness: 0.95 }),
+  new THREE.BoxGeometry(0.53, 0.43, 0.055),
+  new THREE.MeshStandardMaterial({ color: '#211d1b', roughness: 0.98 }),
 )
-door.position.set(0, 0.31, -0.15)
+door.position.set(0, 0.38, -0.3)
 door.castShadow = true
 start.add(door)
 
-// Crossed planks across the entrance.
 for (const [index, rotation] of [0.28, -0.28].entries()) {
   const plank = new THREE.Mesh(
-    new THREE.BoxGeometry(0.62, 0.075, 0.09),
+    new THREE.BoxGeometry(0.8, 0.075, 0.09),
     index === 0 ? materials.woodLight : materials.wood,
   )
-  plank.position.set(0, 0.32 + index * 0.08, -0.105)
+  plank.position.set(0, 0.39 + index * 0.1, -0.24)
   plank.rotation.z = rotation
   plank.castShadow = true
   start.add(plank)
 }
 
-// A small, warm warning light makes the starting tile easy to identify.
+// One small amber marker is the only saturated colour in the scene.
 const beacon = new THREE.Mesh(
-  new THREE.BoxGeometry(0.12, 0.12, 0.12),
-  new THREE.MeshBasicMaterial({ color: '#f5bd69' }),
+  new THREE.BoxGeometry(0.11, 0.11, 0.11),
+  new THREE.MeshBasicMaterial({ color: '#bd7958' }),
 )
-beacon.position.set(0.29, 0.2, 0.27)
+beacon.position.set(0.38, 0.24, 0.36)
 start.add(beacon)
 
-const beaconLight = new THREE.PointLight('#e78b4e', 0.7, 2.2)
-beaconLight.position.set(0.29, 0.45, 0.27)
+const beaconLight = new THREE.PointLight('#a86649', 0.5, 2.5)
+beaconLight.position.set(0.38, 0.48, 0.36)
 start.add(beaconLight)
 
-// Keep the tile on screen and let the camera adapt to the available viewport.
 const resize = () => {
   const width = root.clientWidth
   const height = root.clientHeight
   if (width === 0 || height === 0) return
 
   const aspect = width / height
-  const viewHeight = aspect < 1 ? 22 : 18
+  const viewHeight = aspect < 1 ? 22 : 19
   camera.left = (-viewHeight * aspect) / 2
   camera.right = (viewHeight * aspect) / 2
   camera.top = viewHeight / 2
@@ -222,6 +168,7 @@ let isDragging = false
 let previousPointer = { x: 0, y: 0 }
 let targetRotation = 0
 let zoom = 1
+let currentZoom = 1
 
 renderer.domElement.addEventListener('pointerdown', (event) => {
   isDragging = true
@@ -246,7 +193,7 @@ renderer.domElement.addEventListener('pointercancel', () => {
 
 renderer.domElement.addEventListener('wheel', (event) => {
   event.preventDefault()
-  zoom = THREE.MathUtils.clamp(zoom + event.deltaY * -0.001, 0.7, 1.5)
+  zoom = THREE.MathUtils.clamp(zoom + event.deltaY * -0.001, 0.65, 1.7)
 }, { passive: false })
 
 renderer.domElement.addEventListener('click', (event) => {
@@ -255,17 +202,19 @@ renderer.domElement.addEventListener('click', (event) => {
   pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1
   raycaster.setFromCamera(pointer, camera)
   const hits = raycaster.intersectObject(start, true)
-  root.dataset.selected = hits.length > 0 ? 'start' : 'board'
+  root.dataset.selected = hits.length > 0 ? 'start' : 'unknown'
 })
 
 const clock = new THREE.Clock()
 const animate = () => {
   requestAnimationFrame(animate)
-  const elapsed = clock.getElapsedTime()
-  board.rotation.y = THREE.MathUtils.damp(board.rotation.y, targetRotation, 4, clock.getDelta())
-  const scale = THREE.MathUtils.damp(board.scale.x, zoom, 4, 1 / 60)
-  board.scale.setScalar(scale)
-  beacon.scale.y = 1 + Math.sin(elapsed * 2.5) * 0.08
+  const delta = clock.getDelta()
+  const elapsed = clock.elapsedTime
+  start.rotation.y = THREE.MathUtils.damp(start.rotation.y, targetRotation, 4, delta)
+  grid.rotation.y = start.rotation.y
+  currentZoom = THREE.MathUtils.damp(currentZoom, zoom, 4, delta)
+  start.scale.setScalar(currentZoom)
+  beacon.scale.y = 1 + Math.sin(elapsed * 2.2) * 0.07
   renderer.render(scene, camera)
 }
 
