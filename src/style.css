@@ -705,3 +705,29 @@ button, a { color: inherit; }
   font-size: 0.75rem;
   line-height: 1.45;
 }
+
+/* CC identity and orientation readability */
+.cc-card-index {
+  align-self: stretch;
+  color: #bcefff;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-align: center;
+}
+.cc-card-art {
+  flex: 0 0 auto;
+  width: min(100%, 76px);
+  aspect-ratio: 1;
+}
+.cc-card-name {
+  display: grid;
+  align-content: center;
+  min-height: 24px;
+  width: 100%;
+  color: #c9d0d6;
+  font-size: 7px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
