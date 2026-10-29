@@ -489,6 +489,7 @@ type SavedGameState = {
   survivor: { x: number; z: number }
   zoom: number
   cameraTarget: { x: number; z: number }
+  cameraAngle?: number
   deck: CorridorCard[]
   discard: CorridorCard[]
   hand: CorridorCard[]
@@ -744,7 +745,7 @@ const setupCorridor = () => {
     const x = 0
     const z = index
     const exits: Direction[] = ['N', 'S']
-    const doors = card.doors.filter((direction) => !exits.includes(direction))
+    const doors: Direction[] = []
     const group = createCorridorTile(card, x, z, exits, doors)
     boardTiles.push({ x, z, kind: card.kind, exits, doors, group })
   }
@@ -752,7 +753,8 @@ const setupCorridor = () => {
 
 if (savedGameState?.tiles.length) {
   for (const tile of savedGameState.tiles) {
-    const savedDoors = tile.doors ?? []
+    const isInitialCorridor = tile.x === 0 && (tile.z === 1 || tile.z === 2)
+    const savedDoors = isInitialCorridor ? [] : tile.doors ?? []
     const validWallDoors = savedDoors.filter((direction) => !tile.exits.includes(direction))
     const doors = validWallDoors.length === savedDoors.length
       ? validWallDoors
@@ -1126,9 +1128,17 @@ let previousPointer = { x: 0, y: 0 }
 let zoom = THREE.MathUtils.clamp(savedGameState?.zoom ?? 1, 1, 3.2)
 let currentZoom = zoom
 const cameraTarget = new THREE.Vector3(savedGameState?.cameraTarget.x ?? 0, 0, savedGameState?.cameraTarget.z ?? 0)
-const cameraOffset = new THREE.Vector3(13, 16, 13)
+const cameraDistance = Math.hypot(13, 13)
+const initialCameraAngle = Math.atan2(13, 13)
+let cameraAngle = savedGameState?.cameraAngle ?? initialCameraAngle
+let targetCameraAngle = cameraAngle
+const getCameraOffset = (angle: number) => new THREE.Vector3(
+  Math.sin(angle) * cameraDistance,
+  16,
+  Math.cos(angle) * cameraDistance,
+)
 const syncCameraPosition = () => {
-  camera.position.copy(cameraTarget).add(cameraOffset)
+  camera.position.copy(cameraTarget).add(getCameraOffset(cameraAngle))
   camera.lookAt(cameraTarget)
 }
 syncCameraPosition()
@@ -1142,6 +1152,7 @@ const saveGameState = () => {
       survivor: { x: currentTile.x, z: currentTile.z },
       zoom,
       cameraTarget: { x: cameraTarget.x, z: cameraTarget.z },
+      cameraAngle: targetCameraAngle,
       deck: corridorDeck,
       discard: discardPile,
       hand,
@@ -1306,12 +1317,25 @@ document.querySelector<HTMLButtonElement>('#reset-game')?.addEventListener('clic
   }
 })
 
+document.querySelector<HTMLButtonElement>('#rotate-left')?.addEventListener('click', () => {
+  targetCameraAngle -= Math.PI / 2
+  saveGameState()
+})
+
+document.querySelector<HTMLButtonElement>('#rotate-right')?.addEventListener('click', () => {
+  targetCameraAngle += Math.PI / 2
+  saveGameState()
+})
+
 const clock = new THREE.Clock()
 const animate = () => {
   requestAnimationFrame(animate)
   const delta = clock.getDelta()
   const elapsed = clock.elapsedTime
+  cameraAngle = THREE.MathUtils.damp(cameraAngle, targetCameraAngle, 5, delta)
+  const cameraOffset = getCameraOffset(cameraAngle)
   camera.position.x = THREE.MathUtils.damp(camera.position.x, cameraTarget.x + cameraOffset.x, 8, delta)
+  camera.position.y = THREE.MathUtils.damp(camera.position.y, cameraTarget.y + cameraOffset.y, 8, delta)
   camera.position.z = THREE.MathUtils.damp(camera.position.z, cameraTarget.z + cameraOffset.z, 8, delta)
   camera.lookAt(cameraTarget)
   currentZoom = THREE.MathUtils.damp(currentZoom, zoom, 4, delta)
