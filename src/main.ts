@@ -917,8 +917,8 @@ renderer.domElement.addEventListener('click', (event) => {
     return
   }
 
-  currentTile.group.remove(activeCharacter, activeRing)
-  targetTile.group.add(activeCharacter, activeRing)
+  currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+  targetTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
   activeCharacter.position.set(0, 0.19, 0.16)
   activeRing.position.set(0, 0.183, 0.16)
   currentTile = targetTile
