@@ -489,6 +489,13 @@ type SavedGameState = {
   survivor: { x: number; z: number }
   zoom: number
   cameraTarget: { x: number; z: number }
+  deck: CorridorCard[]
+  discard: CorridorCard[]
+  hand: CorridorCard[]
+  pendingDraw: CorridorCard | null
+  actionsRemaining: number
+  turnNumber: number
+  nextCardId: number
 }
 const STORAGE_KEY = 'threez-game-state-v1'
 const readSavedGameState = (): SavedGameState | null => {
@@ -497,6 +504,7 @@ const readSavedGameState = (): SavedGameState | null => {
     if (!raw) return null
     const parsed = JSON.parse(raw) as SavedGameState
     if (!Array.isArray(parsed.tiles) || !parsed.survivor || typeof parsed.zoom !== 'number') return null
+    if (!Array.isArray(parsed.deck) || !Array.isArray(parsed.hand) || !Array.isArray(parsed.discard)) return null
     return parsed
   } catch {
     return null
@@ -534,16 +542,18 @@ const shuffle = <T,>(items: T[]): T[] => {
 }
 
 // Virtual CC pile: 40 cards, with eight copies of each topology.
-const corridorDeck: CorridorCard[] = shuffle(
+const generatedCorridorDeck = shuffle(
   (['straight', 'left', 'right', 'tee', 'cross'] as CorridorKind[])
     .flatMap((kind) => Array.from({ length: 8 }, () => createCard(kind))),
 )
-const discardPile: CorridorCard[] = []
-let hand: CorridorCard[] = []
-let pendingDraw: CorridorCard | null = null
+const corridorDeck: CorridorCard[] = savedGameState ? [...savedGameState.deck] : generatedCorridorDeck
+const discardPile: CorridorCard[] = savedGameState ? [...savedGameState.discard] : []
+let hand: CorridorCard[] = savedGameState ? [...savedGameState.hand] : []
+let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ?? null
 let selectedCardId: number | null = null
-let actionsRemaining = 7
-let turnNumber = 1
+let actionsRemaining = savedGameState?.actionsRemaining ?? 7
+let turnNumber = savedGameState?.turnNumber ?? 1
+if (savedGameState) nextCardId = savedGameState.nextCardId
 const boardTiles: BoardTile[] = [{
   x: 0,
   z: 0,
@@ -702,6 +712,7 @@ if (savedGameState?.survivor) {
     currentTile = restoredTile
   }
 }
+if (savedGameState) nextCardId = savedGameState.nextCardId
 
 const getPlacements = (card: CorridorCard): PlacementCandidate[] => {
   const candidates = new Map<string, PlacementCandidate>()
@@ -1054,6 +1065,13 @@ const saveGameState = () => {
       survivor: { x: currentTile.x, z: currentTile.z },
       zoom,
       cameraTarget: { x: cameraTarget.x, z: cameraTarget.z },
+      deck: corridorDeck,
+      discard: discardPile,
+      hand,
+      pendingDraw,
+      actionsRemaining,
+      turnNumber,
+      nextCardId,
     } satisfies SavedGameState))
   } catch {
     setStatus('Impossible de sauvegarder la partie dans ce navigateur.')
