@@ -564,7 +564,7 @@ const findPlacement = (card: CorridorCard) => {
 const createCorridorTile = (card: CorridorCard, x: number, z: number, turns: number, exits: Direction[]) => {
   const group = new THREE.Group()
   group.position.set(x * 1.18, 0.025, z * 1.18)
-  group.rotation.y = turns * Math.PI / 2
+  // Exits are already rotated into board directions; build the walls in that orientation.
 
   const base = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.14, 1.18), materials.start)
   base.position.y = 0.07
@@ -630,7 +630,7 @@ const spendAction = () => {
 }
 
 const placeCard = (card: CorridorCard, fromHand: boolean, consumeAction = true) => {
-  if (actionsRemaining <= 0) {
+  if (consumeAction && actionsRemaining <= 0) {
     setStatus('Il ne reste plus d’action pour ce tour.')
     return false
   }
