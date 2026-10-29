@@ -72,35 +72,77 @@ const line = (pixels: Map<string, string>, x1: number, y1: number, x2: number, y
   }
 }
 
+const fillPolygon = (
+  pixels: Map<string, string>,
+  points: Array<[number, number]>,
+  color: string,
+) => {
+  const minX = Math.min(...points.map(([x]) => x))
+  const maxX = Math.max(...points.map(([x]) => x))
+  const minY = Math.min(...points.map(([, y]) => y))
+  const maxY = Math.max(...points.map(([, y]) => y))
+
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      let inside = false
+      for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+        const [xi, yi] = points[i]
+        const [xj, yj] = points[j]
+        const intersects = yi > y !== yj > y
+          && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
+        if (intersects) inside = !inside
+      }
+      if (inside) setPixel(pixels, x, y, color)
+    }
+  }
+}
+
 const addDoor = (pixels: Map<string, string>, direction: Direction) => {
   const horizontal = direction === 'N' || direction === 'S'
   const inward = direction === 'N' || direction === 'W' ? 1 : -1
   const wallLine = direction === 'N' || direction === 'W' ? WALL_OUTER : 46
   const halfOpening = 8
 
-  // Thin threshold and two visible jambs.
+  // Threshold and jambs frame the opening in the wall.
   for (let offset = -halfOpening; offset <= halfOpening; offset++) {
     const x = horizontal ? PASSAGE_CENTER + offset : wallLine
     const y = horizontal ? wallLine : PASSAGE_CENTER + offset
     setPixel(pixels, x, y, palette.doorFrame)
     if (offset === -halfOpening || offset === halfOpening) {
-      setPixel(pixels, horizontal ? x : x + (direction === 'W' ? 1 : -1), horizontal ? y + (direction === 'N' ? 1 : -1) : y, palette.doorLight)
+      setPixel(
+        pixels,
+        horizontal ? x : x + (direction === 'W' ? 1 : -1),
+        horizontal ? y + (direction === 'N' ? 1 : -1) : y,
+        palette.doorLight,
+      )
     }
   }
 
-  // Door leaf is drawn open at an angle, with a dark side and a lit edge.
-  // Its direction is perpendicular to the threshold, like a door seen from above.
+  // The open leaf is a small four-sided slab, not a single line:
+  // its two long edges make both faces (top and bottom in the card view) visible.
   const hinge = PASSAGE_CENTER - halfOpening + 2
-  const leafStartX = horizontal ? hinge : wallLine + (direction === 'W' ? 1 : -1)
-  const leafStartY = horizontal ? wallLine + (direction === 'N' ? 1 : -1) : hinge
-  const leafEndX = horizontal ? hinge + 8 : leafStartX + inward * 2
-  const leafEndY = horizontal ? leafStartY + inward * 2 : hinge + 8
-  line(pixels, leafStartX, leafStartY, leafEndX, leafEndY, palette.doorShadow)
-  line(pixels, leafStartX, leafStartY + (horizontal ? 1 : 0), leafEndX, leafEndY + (horizontal ? 1 : 0), palette.door)
-  setPixel(pixels, leafEndX, leafEndY, palette.doorLight)
-  setPixel(pixels, leafEndX - (horizontal ? 1 : 0), leafEndY - (horizontal ? 0 : 1), palette.metal)
-}
+  const length = 11
+  const depth = 3
+  const baseX = horizontal ? hinge : wallLine + inward
+  const baseY = horizontal ? wallLine + inward : hinge
+  const tipX = horizontal ? hinge + length : baseX + inward * depth
+  const tipY = horizontal ? baseY + inward * depth : hinge + length
+  const depthX = horizontal ? 0 : -inward * depth
+  const depthY = horizontal ? -inward * depth : 0
+  const points: Array<[number, number]> = [
+    [baseX, baseY],
+    [tipX, tipY],
+    [tipX + depthX, tipY + depthY],
+    [baseX + depthX, baseY + depthY],
+  ]
 
+  fillPolygon(pixels, points, palette.door)
+  line(pixels, ...points[0], ...points[1], palette.doorLight)
+  line(pixels, ...points[1], ...points[2], palette.doorShadow)
+  line(pixels, ...points[2], ...points[3], palette.doorShadow)
+  line(pixels, ...points[3], ...points[0], palette.doorLight)
+  setPixel(pixels, baseX, baseY, palette.metal)
+}
 const addWall = (pixels: Map<string, string>, direction: Direction) => {
   if (direction === 'N' || direction === 'S') {
     const y = direction === 'N' ? WALL_OUTER : 46
