@@ -554,7 +554,16 @@ const findPlacement = (card: CorridorCard) => {
       if (boardTiles.some((placed) => placed.x === x && placed.z === z)) continue
       for (let turns = 0; turns < 4; turns += 1) {
         const exits = definition.exits.map((direction) => rotateDirection(direction, turns))
-        if (exits.includes(opposite[exit])) return { x, z, exits }
+        if (!exits.includes(opposite[exit])) continue
+
+        // Every side touching an existing tile must agree on whether a passage exists.
+        const conflictsWithNeighbour = directionOrder.some((direction) => {
+          const [nextX, nextZ] = directionDelta[direction]
+          const neighbour = boardTiles.find((placed) => placed.x === x + nextX && placed.z === z + nextZ)
+          if (!neighbour) return false
+          return exits.includes(direction) !== neighbour.exits.includes(opposite[direction])
+        })
+        if (!conflictsWithNeighbour) return { x, z, exits }
       }
     }
   }
