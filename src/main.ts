@@ -910,6 +910,10 @@ const createRoomTile = (room: SavedRoom, entryDirection: Direction) => {
   return group
 }
 
+const getSurvivorLabel = (kind: SurvivorKind) => ({
+  stealth: 'Furtif', heavy: 'Costaud', military: 'Militaire', scientist: 'Scientifique', injured: 'Blessé',
+})[kind]
+
 const getRoomStatusLabel = (status: RoomStatus) => ({
   ordinary: 'Ordinaire',
   locked: 'Verrouillée',
@@ -1085,7 +1089,7 @@ const updatePlacementHighlights = () => {
     })
   }
   placementHighlights.clear()
-  if (selectedCardId === null || actionsRemaining <= 0 || pendingDraw) return
+  if (selectedCardId === null || pendingDraw || activeSurvivorKind === 'injured') return
   const card = hand.find((item) => item.id === selectedCardId)
   if (!card) return
 
@@ -1149,7 +1153,7 @@ const spendAction = () => {
 
 const confirmPlacement = () => {
   const card = hand.find((item) => item.id === selectedCardId)
-  if (!card || !placementPreview || actionsRemaining <= 0) return
+  if (!card || !placementPreview) return
   const option = placementPreview.options[placementPreview.optionIndex]
   const { x, z } = placementPreview
   if (boardTiles.some((tile) => tile.x === x && tile.z === z)) {
@@ -1165,7 +1169,6 @@ const confirmPlacement = () => {
   boardTiles.push(placedTile)
 
   hand = hand.filter((item) => item.id !== card.id)
-  survivorPositions[activeSurvivorKind] = { x, z, roomId: null }
   selectedCardId = null
   placementPreview = null
   setStatus(`CC « ${corridorDefinitions[card.kind].label} » posée. Le déplacement reste à effectuer séparément.`)
@@ -1254,7 +1257,7 @@ const placeDrawnRoom = (direction: Direction) => {
 }
 
 const unlockCurrentRoom = () => {
-  if (currentRoomId === null || actionsRemaining <= 0) return
+  if (activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
   const room = rooms.find((item) => item.id === currentRoomId)
   if (!room || room.status !== 'locked' || room.unlocked) return
   room.unlocked = true
@@ -1265,7 +1268,7 @@ const unlockCurrentRoom = () => {
 }
 
 const searchCurrentRoomAgain = () => {
-  if (currentRoomId === null || actionsRemaining <= 0) return
+  if (activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
   const room = rooms.find((item) => item.id === currentRoomId)
   if (!room || (room.status === 'locked' && !room.unlocked)) return
   if (room.status === 'trapped' && activeSurvivorKind !== 'stealth') {
@@ -1279,7 +1282,7 @@ const searchCurrentRoomAgain = () => {
 }
 
 const returnToCorridor = () => {
-  if (currentRoomId === null || actionsRemaining <= 0) return
+  if (activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
   currentTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
   activeCharacter.position.set(0, 0.19, 0.16)
   activeRing.position.set(0, 0.183, 0.16)
@@ -1292,7 +1295,7 @@ const returnToCorridor = () => {
 }
 
 const enterRoom = (room: RoomTile) => {
-  if (currentRoomId !== null) return
+  if (activeSurvivorKind === 'injured' || currentRoomId !== null) return
   if (room.originX !== currentTile.x || room.originZ !== currentTile.z) return
 
   if (actionsRemaining <= 0) {
@@ -1300,7 +1303,7 @@ const enterRoom = (room: RoomTile) => {
     return
   }
   currentRoomId = room.id
-  survivorPositions[activeSurvivorKind].roomId = room.id
+  survivorPositions[activeSurvivorKind] = { x: currentTile.x, z: currentTile.z, roomId: room.id }
   spendAction()
   currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
   room.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
@@ -1328,7 +1331,7 @@ const renderRoomControls = () => {
   roomDoorOptionsElement.replaceChildren()
   const currentRoom = currentRoomId === null ? null : rooms.find((room) => room.id === currentRoomId) ?? null
   if (drawRoomButton) {
-    drawRoomButton.disabled = actionsRemaining <= 0 || currentRoomId !== null || getAvailableDoors().length === 0 || roomDeck.length === 0 || pendingRoomDraw !== null
+    drawRoomButton.disabled = activeSurvivorKind === 'injured' || currentRoomId !== null || getAvailableDoors().length === 0 || roomDeck.length === 0 || pendingRoomDraw !== null
     drawRoomButton.textContent = pendingRoomDraw ? 'CP piochée · choisir une porte' : 'Piocher une CP'
   }
   if (roomResultElement) roomResultElement.replaceChildren()
@@ -1424,7 +1427,7 @@ const renderRoomControls = () => {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = 'action-button primary'
-      button.disabled = actionsRemaining <= 0
+      button.disabled = activeSurvivorKind === 'injured'
       button.textContent = `Placer la CP sur la porte ${direction}`
       button.addEventListener('click', () => placeDrawnRoom(direction))
       roomDoorOptionsElement.append(button)
@@ -1446,7 +1449,7 @@ const renderGameUi = () => {
     const button = document.createElement('button')
     button.type = 'button'
     button.className = `cc-card${selectedCardId === card.id ? ' is-selected' : ''}`
-    button.disabled = actionsRemaining <= 0 || Boolean(pendingDraw)
+    button.disabled = Boolean(pendingDraw) || activeSurvivorKind === 'injured'
     button.setAttribute('aria-pressed', String(selectedCardId === card.id))
     const exits = corridorDefinitions[card.kind].exits
     const edgeLines: Record<Direction, string> = {
@@ -1508,7 +1511,7 @@ const renderGameUi = () => {
   const selectedCard = hand.find((card) => card.id === selectedCardId)
   const hasPreview = Boolean(selectedCard && placementPreview)
   if (placeButton) {
-    placeButton.disabled = !hasPreview || actionsRemaining <= 0 || Boolean(pendingDraw)
+    placeButton.disabled = !hasPreview || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
     placeButton.textContent = hasPreview ? 'Valider la pose' : 'Choisir un emplacement'
   }
   if (rotateButton) {
@@ -1520,7 +1523,7 @@ const renderGameUi = () => {
   if (cancelPlacementButton) cancelPlacementButton.disabled = selectedCardId === null
   if (discardButton) discardButton.disabled = !pendingDraw
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
-  if (drawButton) drawButton.disabled = actionsRemaining <= 0 || Boolean(pendingDraw) || (corridorDeck.length === 0 && discardPile.length === 0)
+  if (drawButton) drawButton.disabled = actionsRemaining <= 0 || Boolean(pendingDraw) || (corridorDeck.length === 0 && discardPile.length === 0) || activeSurvivorKind === 'injured'
   if (endTurnButton) endTurnButton.disabled = Boolean(pendingDraw)
   renderRoomControls()
   const resourceCounts: Record<ResourceType, string> = {
@@ -1604,12 +1607,20 @@ endTurnButton?.addEventListener('click', () => {
     setStatus('Posez ou annulez la CP piochée avant de terminer le tour.')
     return
   }
-  turnNumber += 1
-  actionsRemaining = 7
-  while (hand.length < 3 && corridorDeck.length > 0) hand.push(corridorDeck.pop()!)
+  characterIndex += 1
+  if (characterIndex >= characterOrder.length) {
+    characterIndex = 0
+    turnNumber += 1
+    injuredMovedThisTurn = false
+  }
   selectedCardId = null
   placementPreview = null
-  setStatus('Nouveau tour : 7 actions. Votre main est prête.')
+  activateSurvivor(characterOrder[characterIndex])
+  actionsRemaining = activeSurvivorKind === 'injured' ? 1 : 7
+  while (hand.length < 3 && corridorDeck.length > 0) hand.push(corridorDeck.pop()!)
+  setStatus(activeSurvivorKind === 'injured'
+    ? 'Tour du Blessé : choisissez une CC adjacente pour le faire avancer d’une seule case.'
+    : `Tour de ${getSurvivorLabel(activeSurvivorKind)} : 7 actions disponibles.`)
   saveGameState()
   renderGameUi()
 })
@@ -1853,6 +1864,8 @@ renderer.domElement.addEventListener('click', (event) => {
   activeCharacter.position.set(0, 0.19, 0.16)
   activeRing.position.set(0, 0.183, 0.16)
   currentTile = targetTile
+  survivorPositions[activeSurvivorKind] = { x: currentTile.x, z: currentTile.z, roomId: null }
+  if (activeSurvivorKind === 'injured') injuredMovedThisTurn = true
   spendAction()
   root.dataset.selected = 'current-tile'
   setStatus(`Déplacement effectué. ${actionsRemaining} action${actionsRemaining > 1 ? 's' : ''} restante${actionsRemaining > 1 ? 's' : ''}.`)
