@@ -1,5 +1,5 @@
 import { corridorDefinitions, rotateDirection } from '../game/directions'
-import { getCorridorPixelTemplateId, readCorridorPixelTemplates, rotateCorridorPixels, CORRIDOR_PIXEL_SIZE } from '../game/corridor-pixel-templates'
+import { getCorridorPixelTemplateId, readCorridorPixelTemplates, rotateCorridorPixels, createDefaultCorridorPixels, CORRIDOR_PIXEL_SIZE } from '../game/corridor-pixel-templates'
 import type { CorridorCard } from '../game/types'
 
 export const createCorridorPixelArt = (card: CorridorCard, turns: number): HTMLSpanElement => {
@@ -11,7 +11,7 @@ export const createCorridorPixelArt = (card: CorridorCard, turns: number): HTMLS
   image.setAttribute('aria-label', `Couloir ${card.kind}, ${doors.length} porte(s)`)
   const templates = readCorridorPixelTemplates()
   const id = getCorridorPixelTemplateId(card.kind, card.doors.length)
-  const pixels = templates[id]
+  const pixels = templates[id] ?? createDefaultCorridorPixels(id)
   if (pixels?.length === CORRIDOR_PIXEL_SIZE ** 2) {
     const oriented = rotateCorridorPixels(pixels, turns)
     image.style.gridTemplateColumns = `repeat(${CORRIDOR_PIXEL_SIZE}, minmax(0, 1fr))`
