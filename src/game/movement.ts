@@ -26,6 +26,10 @@ export const evaluateCorridorMove = ({
   survivorKind,
   injuredMovedThisTurn,
 }: CorridorMoveInput): CorridorMoveDecision => {
+  if (survivorKind === 'injured' && injuredMovedThisTurn) {
+    return { allowed: false, reason: 'injured-limit' }
+  }
+
   const dx = to.x - from.x
   const dz = to.z - from.z
   const direction = directionOrder.find((candidate) => {
@@ -35,10 +39,6 @@ export const evaluateCorridorMove = ({
 
   if (!direction || Math.abs(dx) + Math.abs(dz) !== 1) {
     return { allowed: false, reason: 'not-adjacent' }
-  }
-
-  if (survivorKind === 'injured' && injuredMovedThisTurn) {
-    return { allowed: false, reason: 'injured-limit' }
   }
 
   if (actionsRemaining <= 0) {
