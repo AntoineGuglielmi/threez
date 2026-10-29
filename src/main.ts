@@ -111,9 +111,12 @@ gridMaterials.forEach((material) => {
 scene.add(grid)
 
 // A single starting tile floats visually in a large, unexplored space.
+const board = new THREE.Group()
+scene.add(board)
+
 const start = new THREE.Group()
 start.position.set(0, 0.025, 0)
-scene.add(start)
+board.add(start)
 
 const shadow = new THREE.Mesh(
   new THREE.CircleGeometry(1.2, 48),
@@ -526,7 +529,7 @@ renderer.domElement.addEventListener('click', (event) => {
   pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1
   pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1
   raycaster.setFromCamera(pointer, camera)
-  const hits = raycaster.intersectObject(start, true)
+  const hits = raycaster.intersectObjects(boardTiles.map((tile) => tile.group), true)
   root.dataset.selected = hits.length > 0 ? 'start' : 'unknown'
 })
 
@@ -535,8 +538,8 @@ const animate = () => {
   requestAnimationFrame(animate)
   const delta = clock.getDelta()
   const elapsed = clock.elapsedTime
-  start.rotation.y = THREE.MathUtils.damp(start.rotation.y, targetRotation, 4, delta)
-  grid.rotation.y = start.rotation.y
+  board.rotation.y = THREE.MathUtils.damp(board.rotation.y, targetRotation, 4, delta)
+  grid.rotation.y = board.rotation.y
   currentZoom = THREE.MathUtils.damp(currentZoom, zoom, 4, delta)
   camera.zoom = currentZoom
   camera.updateProjectionMatrix()
