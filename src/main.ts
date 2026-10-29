@@ -1,53 +1,12 @@
 import * as THREE from 'three'
 import './style.css'
 import { createScene } from './scene'
-import type { SurvivorKind } from './game/types'
+import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomRollResult, RoomStatus, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
 
 let activeSurvivorKind: SurvivorKind = 'stealth'
 const sceneSetup = createScene(activeSurvivorKind)
 const { root, scene, camera, renderer, materials, board, start, activeRing, otherCharacters } = sceneSetup
 let activeCharacter = sceneSetup.activeCharacter
-type CorridorKind = 'straight' | 'left' | 'right' | 'tee' | 'cross'
-type Direction = 'N' | 'E' | 'S' | 'W'
-type CorridorCard = { id: number; kind: CorridorKind; doors: Direction[] }
-type RoomStatus = 'ordinary' | 'locked' | 'trapped'
-type RoomDifficulty = 'easy' | 'medium' | 'hard'
-type ResourceType = 'cafe' | 'croissant' | 'citron' | 'bonbon' | 'munition'
-type RoomRollResult = { resource: ResourceType; value: number; threshold: number; found: boolean }
-type RoomCard = { id: number; status: RoomStatus; difficulty: RoomDifficulty; searched: boolean; unlocked: boolean }
-type SavedRoom = RoomCard & { x: number; z: number; originX: number; originZ: number; direction: Direction; lastRoll?: RoomRollResult[] }
-type RoomTile = SavedRoom & { group: THREE.Group }
-type BoardTile = { x: number; z: number; kind: CorridorKind | 'start'; exits: Direction[]; doors: Direction[]; usedDoors: Direction[]; group: THREE.Group }
-type PlacementOption = { exits: Direction[]; turns: number }
-type PlacementCandidate = { x: number; z: number; options: PlacementOption[] }
-
-type SavedGameState = {
-  tiles: Array<{ x: number; z: number; kind: CorridorKind; exits: Direction[]; doors?: Direction[]; usedDoors?: Direction[] }>
-  rooms?: SavedRoom[]
-  currentRoomId?: number | null
-  resources?: Record<ResourceType, number>
-  roomDeck?: RoomCard[]
-  pendingRoomDraw?: RoomCard | null
-  nextRoomCardId?: number
-  survivor: { x: number; z: number }
-  survivors?: Partial<Record<SurvivorKind, { x: number; z: number; roomId: number | null }>>
-  activeSurvivorKind?: SurvivorKind
-  characterOrder?: SurvivorKind[]
-  characterIndex?: number
-  injuredMovedThisTurn?: boolean
-  phase?: 'draw' | 'actions'
-  survivorCards?: Partial<Record<SurvivorKind, { deck: CorridorCard[]; discard: CorridorCard[]; hand: CorridorCard[] }>>
-  zoom: number
-  cameraTarget: { x: number; z: number }
-  cameraAngle?: number
-  deck: CorridorCard[]
-  discard: CorridorCard[]
-  hand: CorridorCard[]
-  pendingDraw: CorridorCard | null
-  actionsRemaining: number
-  turnNumber: number
-  nextCardId: number
-}
 const STORAGE_KEY = 'threez-game-state-v1'
 const readSavedGameState = (): SavedGameState | null => {
   try {
