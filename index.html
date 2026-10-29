@@ -15,43 +15,64 @@
         <div class="hud-right">PROTOTYPE <span class="hud-version">01</span></div>
       </header>
       <section class="scene" aria-label="Plateau de jeu en 3D">
-        <div class="scene-grain"></div>
-        <div class="scene-caption">
-          <p class="eyebrow">OBJECTIF PRINCIPAL</p>
-          <h1>Atteignez le toit.</h1>
-          <p class="caption-copy">Explorez l'hôpital. Protégez le blessé.</p>
-        </div>
+        <div id="scene-root"></div>
         <div class="camera-controls" role="group" aria-label="Rotation du plateau">
           <span>VUE</span>
           <button id="rotate-left" type="button" aria-label="Pivoter le plateau vers la gauche" title="Pivoter vers la gauche">↶</button>
           <button id="rotate-right" type="button" aria-label="Pivoter le plateau vers la droite" title="Pivoter vers la droite">↷</button>
         </div>
-        <div id="scene-root"></div>
-        <aside id="game-ui" class="game-panel" aria-label="Gestion des cartes corridor">
-          <div class="panel-heading">
-            <div><p class="eyebrow">PHASE DE JEU</p><h2>Cartes corridor</h2></div>
-            <span class="turn-tag">TOUR 01</span>
-          </div>
-          <div class="actions-block">
-            <div class="actions-label"><span>ACTIONS RESTANTES</span><strong><span id="actions-count">7</span><small> / 7</small></strong></div>
-            <div class="actions-track"><div id="actions-fill"></div></div>
-          </div>
-          <div class="pile-row">
-            <div class="pile-card"><span class="pile-icon">CC</span><span>PIOCHE <b id="cc-deck-count">37</b></span></div>
-            <div class="pile-card"><span class="pile-icon discard-icon">×</span><span>DÉFAUSSE <b id="cc-discard-count">0</b></span></div>
-          </div>
-          <div class="pile-row cp-pile-row">
-            <div class="pile-card"><span class="pile-icon cp-icon">CP</span><span>PIOCHE PIÈCES <b id="cp-deck-count">24</b></span></div>
-          </div>
-          <section class="room-exploration" aria-label="Exploration des pièces">
-            <div class="hand-heading"><h3>Pièces</h3><span>CP</span></div>
-            <p id="room-state" class="room-state">Vous êtes dans le couloir.</p>
-            <div id="cp-door-options" class="cp-door-options">Cette CC ne possède aucune porte.</div>
-            <button id="unlock-room" class="action-button primary" hidden>Déverrouiller et fouiller · 1 action</button>
-            <button id="return-room" class="action-button subtle" hidden>Retourner dans le couloir · 1 action</button>
+        <aside id="game-ui" class="game-panel" aria-label="État de la partie">
+          <section class="turn-summary" aria-label="Joueur actif et actions">
+            <div class="active-player">
+              <span class="active-player-avatar" aria-hidden="true"><span></span></span>
+              <span class="active-player-name"><strong>Furtif</strong><small>JOUEUR ACTIF · <span id="active-player-turn">1</span></small></span>
+            </div>
+            <div class="actions-remaining" aria-label="Actions restantes">
+              <strong id="actions-count">7</strong><span>ACTIONS</span>
+            </div>
           </section>
-          <section class="resource-inventory" aria-label="Ressources récupérées">
-            <div class="hand-heading"><h3>Ressources</h3><span>INVENTAIRE</span></div>
+          <div class="actions-track" aria-hidden="true"><div id="actions-fill"></div></div>
+
+          <section class="decks-section" aria-label="Pioches">
+            <div class="deck-card">
+              <div class="deck-card-top"><span class="pile-icon">CC</span><span class="deck-card-count"><strong id="cc-deck-count">37</strong><small>cartes</small></span></div>
+              <div class="deck-card-label">Couloirs</div>
+              <div class="deck-card-meta">Défausse <strong id="cc-discard-count">0</strong></div>
+              <button id="draw-cc" class="action-button primary deck-draw-button">Piocher une CC</button>
+            </div>
+            <div class="deck-card">
+              <div class="deck-card-top"><span class="pile-icon cp-icon">CP</span><span class="deck-card-count"><strong id="cp-deck-count">24</strong><small>cartes</small></span></div>
+              <div class="deck-card-label">Pièces</div>
+              <div class="deck-card-meta">À découvrir</div>
+              <span class="deck-card-hint">Par une porte</span>
+            </div>
+          </section>
+
+          <section class="room-exploration" aria-label="Pièce à proximité">
+            <div class="section-heading"><h2>À proximité</h2><span>EXPLORATION</span></div>
+            <p id="room-state" class="room-state">Aucune pièce à proximité</p>
+            <div id="cp-door-options" class="cp-door-options">Aucune porte sur cette CC</div>
+            <button id="unlock-room" class="action-button primary" hidden>Déverrouiller · 1 action</button>
+            <button id="return-room" class="action-button subtle" hidden>Retour au couloir · 1 action</button>
+          </section>
+
+          <details class="hand-disclosure">
+            <summary><span>Cartes corridor en main</span><strong id="cc-hand-count">3 cartes</strong></summary>
+            <div id="cc-hand" class="cc-hand"></div>
+            <p id="game-status" class="game-status" role="status">Choisissez une CC pour afficher les emplacements possibles sur le plateau.</p>
+            <div class="game-actions">
+              <button id="place-cc" class="action-button primary" disabled>Choisir un emplacement</button>
+              <div class="placement-controls">
+                <button id="rotate-cc" class="action-button" disabled>Orientation</button>
+                <button id="cancel-placement" class="action-button subtle" disabled>Annuler</button>
+              </div>
+              <button id="discard-cc" class="action-button subtle" disabled>Défausser la pioche</button>
+              <button id="replace-cc" class="action-button subtle" disabled>Remplacer une CC en main</button>
+            </div>
+          </details>
+
+          <details class="inventory-disclosure">
+            <summary><span>Ressources</span><strong>Inventaire</strong></summary>
             <div class="resource-grid">
               <span>Café <b id="resource-cafe">0</b></span>
               <span>Croissant <b id="resource-croissant">0</b></span>
@@ -59,33 +80,12 @@
               <span>Bonbon acidulé <b id="resource-bonbon">0</b></span>
               <span>Munition <b id="resource-munition">0</b></span>
             </div>
-          </section>
-          <div class="hand-heading"><h3>Votre main</h3><span>3 CC</span></div>
-          <div id="cc-hand" class="cc-hand"></div>
-          <p id="game-status" class="game-status" role="status">Choisissez une CC pour afficher les emplacements possibles sur le plateau.</p>
-          <div class="game-actions">
-            <button id="place-cc" class="action-button primary" disabled>Choisir un emplacement</button>
-            <div class="placement-controls">
-              <button id="rotate-cc" class="action-button" disabled>Changer l’orientation</button>
-              <button id="cancel-placement" class="action-button subtle" disabled>Annuler la pose</button>
-            </div>
-            <button id="draw-cc" class="action-button">Piocher une CC</button>
-            <button id="discard-cc" class="action-button subtle" disabled>Défausser la pioche</button>
-            <button id="replace-cc" class="action-button subtle" disabled>Remplacer une CC en main</button>
-          </div>
+          </details>
           <button id="end-turn" class="end-turn">Terminer le tour <span>↗</span></button>
+          <button id="reset-game" class="reset-button" type="button">Réinitialiser la partie</button>
         </aside>
-        <div class="scene-footer">
-          <span><span class="legend-swatch legend-start"></span> Départ · portes barricadées</span>
-          <span class="grid-coordinates">BROUILLARD <b>VISIBILITÉ LIMITÉE</b></span>
-        </div>
-        <div class="tile-label" aria-hidden="true"><span class="tile-label-dot"></span> CASE DE DÉPART <b>CD</b></div>
+        <div class="tile-label" aria-hidden="true"><span class="tile-label-dot"></span> DÉPART <b>CD</b></div>
       </section>
-      <footer class="toolbar">
-        <div class="toolbar-note"><span class="key">CLIC</span> CHOISIR <span class="key">GLISSER</span> DÉPLACER LA VUE <span class="key">MOLETTE</span> ZOOM</div>
-        <div class="toolbar-message">LE GROUPE EST À L'ABRI… POUR L'INSTANT.</div>
-        <div class="toolbar-build">THREE.JS <span>×</span> THREEZ <button id="reset-game" class="reset-button" type="button">RESET</button></div>
-      </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
