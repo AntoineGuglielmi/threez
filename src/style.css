@@ -774,3 +774,74 @@ button, a { color: inherit; }
   .placement-actions { gap: 4px; padding: 4px; }
   .placement-actions button { width: 30px; height: 30px; }
 }
+
+
+/* Pixel-art corridor card illustrations */
+.cc-card {
+  gap: 7px;
+  min-height: 148px;
+  padding: 8px 5px 9px;
+  background: linear-gradient(145deg, #20282c, #12191d 72%);
+}
+.cc-card-art {
+  display: block;
+  width: min(100%, 112px);
+  aspect-ratio: 1;
+  overflow: visible;
+  image-rendering: pixelated;
+}
+.cc-pixel-shadow { fill: #080d10; }
+.cc-pixel-room { fill: #263238; stroke: #66747a; stroke-width: 2; }
+.cc-pixel-floor { fill: #657078; }
+.cc-pixel-floor > path {
+  fill: none;
+  stroke: #46545b;
+  stroke-width: 1.5;
+  opacity: .8;
+}
+.cc-pixel-floor-lines {
+  fill: none;
+  stroke: #829097;
+  stroke-width: 1;
+  opacity: .36;
+}
+.cc-pixel-paper { fill: #c5bda5; stroke: #e2d8bd; stroke-width: 1; }
+.cc-pixel-paper path:first-child { fill: #b4ad9a; }
+.cc-pixel-paper path:last-child { fill: #d0c8b1; }
+.cc-pixel-blood { fill: #813f3c; }
+.cc-pixel-debris { fill: #343c3e; }
+.cc-pixel-wall { fill: #28343a; }
+.cc-pixel-wall > rect:not(.cc-pixel-door-leaf):not(.cc-pixel-threshold):not(.cc-pixel-corner) {
+  fill: #34434a;
+  stroke: #718087;
+  stroke-width: 1.5;
+}
+.cc-pixel-corner { fill: #819097; stroke: #b2bdc0; stroke-width: 1; }
+.cc-pixel-door { fill: #34434a; stroke: #a8b6b9; stroke-width: 1.5; }
+.cc-pixel-door-leaf { fill: #93664a; stroke: #d0a176; stroke-width: 1.5; }
+.cc-pixel-threshold { fill: #d2b17d; stroke: none; }
+.cc-pixel-center { fill: #3d4b50; stroke: #829097; stroke-width: 1.5; }
+.cc-pixel-center rect:last-child { fill: #bd7958; stroke: #e4aa7d; }
+.cc-pixel-exit-markers { fill: #75d9ff; }
+.cc-card-name {
+  display: grid;
+  gap: 3px;
+  min-height: 30px;
+  color: #d4dce0;
+  font: 8px/1.2 var(--mono);
+}
+.cc-card-name small {
+  color: #8f9da4;
+  font: 7px/1.2 var(--mono);
+}
+.cc-card.is-selected .cc-pixel-room { stroke: #75d9ff; }
+.cc-card.is-selected .cc-pixel-exit-markers { fill: #c5f3ff; }
+@media (max-width: 900px) {
+  .cc-card { min-height: 116px; }
+  .cc-card-art { width: min(100%, 84px); }
+}
+@media (max-width: 520px) {
+  .cc-card { min-height: 104px; }
+  .cc-card-art { width: min(100%, 72px); }
+  .cc-card-name { font-size: 7px; }
+}
