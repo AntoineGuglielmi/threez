@@ -26,10 +26,10 @@ export const createCorridorHandCard = ({
 
   const exits = corridorDefinitions[card.kind].exits
   const edgeLines: Record<Direction, string> = {
-    N: '<path d="M20 12H80" />',
-    E: '<path d="M88 20V80" />',
-    S: '<path d="M20 88H80" />',
-    W: '<path d="M12 20V80" />',
+    N: 'M20 12H80',
+    E: 'M88 20V80',
+    S: 'M20 88H80',
+    W: 'M12 20V80',
   }
   const wallLines = directionOrder
     .filter((direction) => !exits.includes(direction))
@@ -43,7 +43,7 @@ export const createCorridorHandCard = ({
         S: 'M50 50V88',
         W: 'M50 50H12',
       }
-      return `<path d="${ends[direction]}" />`
+      return ends[direction]
     })
     .join('')
   const doorRects: Record<Direction, string> = {
