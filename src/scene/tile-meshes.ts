@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { directionDelta } from '../game/directions'
-import type { BoardTile, CorridorCard, Direction, SavedRoom } from '../game/types'
+import type { CorridorCard, Direction, SavedRoom } from '../game/types'
 import type { createScene } from '../scene'
 
 type SceneMaterials = ReturnType<typeof createScene>['materials']
