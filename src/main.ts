@@ -1229,7 +1229,7 @@ const getAvailableDoors = () => currentTile.doors.filter((direction) => {
 })
 
 const drawRoomCard = () => {
-  if (currentRoomId !== null || pendingRoomDraw) return
+  if (activeSurvivorKind === 'injured' || currentRoomId !== null || pendingRoomDraw) return
   const availableDoors = getAvailableDoors()
   if (availableDoors.length === 0) {
     setStatus('Aucune porte libre pour placer une nouvelle pièce.')
@@ -1811,7 +1811,9 @@ renderer.domElement.addEventListener('click', (event) => {
     while (roomGroup && !rooms.some((room) => room.group === roomGroup)) roomGroup = roomGroup.parent
     const targetRoom = rooms.find((room) => room.group === roomGroup)
     if (targetRoom) {
-      if (currentRoomId === targetRoom.id) {
+      if (activeSurvivorKind === 'injured') {
+        setStatus('Le Blessé ne peut pas entrer dans les pièces.')
+      } else if (currentRoomId === targetRoom.id) {
         setStatus('Vous êtes déjà dans cette pièce.')
       } else if (currentRoomId !== null) {
         setStatus('Vous êtes déjà dans une pièce. Revenez dans le couloir avant d’entrer ailleurs.')
