@@ -484,6 +484,26 @@ type BoardTile = { x: number; z: number; kind: CorridorKind | 'start'; exits: Di
 type PlacementOption = { exits: Direction[]; turns: number }
 type PlacementCandidate = { x: number; z: number; options: PlacementOption[] }
 
+type SavedGameState = {
+  tiles: Array<{ x: number; z: number; kind: CorridorKind; exits: Direction[] }>
+  survivor: { x: number; z: number }
+  zoom: number
+  cameraTarget: { x: number; z: number }
+}
+const STORAGE_KEY = 'threez-game-state-v1'
+const readSavedGameState = (): SavedGameState | null => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as SavedGameState
+    if (!Array.isArray(parsed.tiles) || !parsed.survivor || typeof parsed.zoom !== 'number') return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+const savedGameState = readSavedGameState()
+
 const directionOrder: Direction[] = ['N', 'E', 'S', 'W']
 const corridorDefinitions: Record<CorridorKind, { label: string; symbol: string; exits: Direction[] }> = {
   straight: { label: 'Droit', symbol: '│', exits: ['N', 'S'] },
@@ -660,7 +680,28 @@ const setupCorridor = () => {
   }
 }
 
-setupCorridor()
+if (savedGameState?.tiles.length) {
+  for (const tile of savedGameState.tiles) {
+    const card = createCard(tile.kind)
+    const group = createCorridorTile(card, tile.x, tile.z, tile.exits)
+    boardTiles.push({ ...tile, exits: [...tile.exits], group })
+  }
+} else {
+  setupCorridor()
+}
+
+if (savedGameState?.survivor) {
+  const restoredTile = boardTiles.find(
+    (tile) => tile.x === savedGameState.survivor.x && tile.z === savedGameState.survivor.z,
+  )
+  if (restoredTile) {
+    currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+    restoredTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+    activeCharacter.position.set(0, 0.19, 0.16)
+    activeRing.position.set(0, 0.183, 0.16)
+    currentTile = restoredTile
+  }
+}
 
 const getPlacements = (card: CorridorCard): PlacementCandidate[] => {
   const candidates = new Map<string, PlacementCandidate>()
@@ -992,9 +1033,30 @@ const raycaster = new THREE.Raycaster()
 const pointer = new THREE.Vector2()
 let isDragging = false
 let previousPointer = { x: 0, y: 0 }
-let targetRotation = 0
-let zoom = 1
-let currentZoom = 1
+let zoom = THREE.MathUtils.clamp(savedGameState?.zoom ?? 1, 1, 3.2)
+let currentZoom = zoom
+const cameraTarget = new THREE.Vector3(savedGameState?.cameraTarget.x ?? 0, 0, savedGameState?.cameraTarget.z ?? 0)
+const cameraOffset = new THREE.Vector3(13, 16, 13)
+const syncCameraPosition = () => {
+  camera.position.copy(cameraTarget).add(cameraOffset)
+  camera.lookAt(cameraTarget)
+}
+syncCameraPosition()
+
+const saveGameState = () => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      tiles: boardTiles
+        .filter((tile): tile is BoardTile & { kind: CorridorKind } => tile.kind !== 'start')
+        .map(({ x, z, kind, exits }) => ({ x, z, kind, exits })),
+      survivor: { x: currentTile.x, z: currentTile.z },
+      zoom,
+      cameraTarget: { x: cameraTarget.x, z: cameraTarget.z },
+    } satisfies SavedGameState))
+  } catch {
+    setStatus('Impossible de sauvegarder la partie dans ce navigateur.')
+  }
+}
 
 let pointerDownPosition = { x: 0, y: 0 }
 let hasDragged = false
@@ -1014,7 +1076,18 @@ renderer.domElement.addEventListener('pointermove', (event) => {
   if (Math.hypot(event.clientX - pointerDownPosition.x, event.clientY - pointerDownPosition.y) > 5) {
     hasDragged = true
   }
-  targetRotation += deltaX * 0.003
+  const worldPerPixel = (camera.top - camera.bottom) / camera.zoom / renderer.domElement.clientHeight
+  camera.updateMatrixWorld()
+  const screenRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0)
+  screenRight.y = 0
+  screenRight.normalize()
+  const screenUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1)
+  screenUp.y = 0
+  screenUp.normalize()
+  cameraTarget.addScaledVector(screenRight, -deltaX * worldPerPixel)
+  cameraTarget.addScaledVector(screenUp, deltaY * worldPerPixel)
+  syncCameraPosition()
+  saveGameState()
   previousPointer = { x: event.clientX, y: event.clientY }
 })
 
@@ -1029,6 +1102,7 @@ renderer.domElement.addEventListener('pointercancel', () => {
 renderer.domElement.addEventListener('wheel', (event) => {
   event.preventDefault()
   zoom = THREE.MathUtils.clamp(zoom + event.deltaY * -0.0015, 1, 3.2)
+  saveGameState()
 }, { passive: false })
 
 renderer.domElement.addEventListener('click', (event) => {
@@ -1129,8 +1203,9 @@ const animate = () => {
   requestAnimationFrame(animate)
   const delta = clock.getDelta()
   const elapsed = clock.elapsedTime
-  board.rotation.y = THREE.MathUtils.damp(board.rotation.y, targetRotation, 4, delta)
-  grid.rotation.y = board.rotation.y
+  camera.position.x = THREE.MathUtils.damp(camera.position.x, cameraTarget.x + cameraOffset.x, 8, delta)
+  camera.position.z = THREE.MathUtils.damp(camera.position.z, cameraTarget.z + cameraOffset.z, 8, delta)
+  camera.lookAt(cameraTarget)
   currentZoom = THREE.MathUtils.damp(currentZoom, zoom, 4, delta)
   camera.zoom = currentZoom
   camera.updateProjectionMatrix()
