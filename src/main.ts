@@ -22,10 +22,11 @@ renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
 renderer.outputColorSpace = THREE.SRGBColorSpace
 renderer.toneMapping = THREE.ACESFilmicToneMapping
-renderer.toneMappingExposure = 0.82
+renderer.toneMappingExposure = 1.05
 root.appendChild(renderer.domElement)
 
-scene.add(new THREE.AmbientLight('#9ca3ad', 0.55))
+scene.add(new THREE.AmbientLight('#b8c7d5', 0.85))
+scene.add(new THREE.HemisphereLight('#dceeff', '#34363d', 0.7))
 
 const keyLight = new THREE.DirectionalLight('#d9dce2', 2.1)
 keyLight.position.set(8, 15, 7)
@@ -38,7 +39,7 @@ keyLight.shadow.camera.bottom = -10
 keyLight.shadow.bias = -0.0004
 scene.add(keyLight)
 
-const fillLight = new THREE.DirectionalLight('#7b8494', 0.45)
+const fillLight = new THREE.DirectionalLight('#9bcde0', 0.7)
 fillLight.position.set(-8, 6, -5)
 scene.add(fillLight)
 
@@ -391,6 +392,20 @@ activeCharacter.position.set(0, 0.19, 0.16)
 activeCharacter.scale.setScalar(0.72)
 start.add(activeCharacter)
 
+// Character-focused lighting keeps faces, silhouettes and outfit colours readable
+// without lifting the darkness of the unexplored surroundings.
+const characterKeyLight = new THREE.PointLight('#d8f4ff', 3.8, 4.5, 1.6)
+characterKeyLight.position.set(0.05, 1.5, 0.35)
+start.add(characterKeyLight)
+
+const characterFillLight = new THREE.PointLight('#5ebfe8', 2.2, 3.4, 1.8)
+characterFillLight.position.set(-0.65, 0.75, 0.15)
+start.add(characterFillLight)
+
+const warmRimLight = new THREE.PointLight('#f0b17a', 1.4, 2.8, 1.8)
+warmRimLight.position.set(0.55, 0.65, -0.45)
+start.add(warmRimLight)
+
 const activeRing = new THREE.Mesh(
   new THREE.RingGeometry(0.2, 0.235, 32),
   characterMaterials.activeRing,
@@ -503,7 +518,7 @@ renderer.domElement.addEventListener('pointercancel', () => {
 
 renderer.domElement.addEventListener('wheel', (event) => {
   event.preventDefault()
-  zoom = THREE.MathUtils.clamp(zoom + event.deltaY * -0.001, 0.65, 1.7)
+  zoom = THREE.MathUtils.clamp(zoom + event.deltaY * -0.0015, 1, 3.2)
 }, { passive: false })
 
 renderer.domElement.addEventListener('click', (event) => {
@@ -523,7 +538,8 @@ const animate = () => {
   start.rotation.y = THREE.MathUtils.damp(start.rotation.y, targetRotation, 4, delta)
   grid.rotation.y = start.rotation.y
   currentZoom = THREE.MathUtils.damp(currentZoom, zoom, 4, delta)
-  start.scale.setScalar(currentZoom)
+  camera.zoom = currentZoom
+  camera.updateProjectionMatrix()
   beacon.scale.y = 1 + Math.sin(elapsed * 2.2) * 0.07
   renderer.render(scene, camera)
 }
