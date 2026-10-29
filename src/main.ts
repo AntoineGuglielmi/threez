@@ -1110,6 +1110,128 @@ const drawCorridorCard = () => {
   renderGameUi()
 }
 
+
+const roomDoorOptionsElement = document.querySelector<HTMLDivElement>('#cp-door-options')
+const roomDeckCountElement = document.querySelector<HTMLElement>('#cp-deck-count')
+const roomStateElement = document.querySelector<HTMLElement>('#room-state')
+const unlockRoomButton = document.querySelector<HTMLButtonElement>('#unlock-room')
+const returnRoomButton = document.querySelector<HTMLButtonElement>('#return-room')
+
+const exploreDoor = (direction: Direction) => {
+  if (actionsRemaining <= 0 || currentRoomId !== null) return
+  if (!currentTile.doors.includes(direction) || currentTile.usedDoors.includes(direction)) return
+  const [dx, dz] = directionDelta[direction]
+  const x = currentTile.x + dx
+  const z = currentTile.z + dz
+  if (boardTiles.some((tile) => tile.x === x && tile.z === z) || rooms.some((room) => room.x === x && room.z === z)) {
+    setStatus('Impossible de placer une pièce de ce côté : l’emplacement est occupé.')
+    return
+  }
+  const card = roomDeck.pop()
+  if (!card) {
+    setStatus('La pioche CP est vide.')
+    renderGameUi()
+    return
+  }
+  const room: SavedRoom = { ...card, x, z, originX: currentTile.x, originZ: currentTile.z, direction }
+  const group = createRoomTile(room, opposite[direction])
+  const roomTile: RoomTile = { ...room, group }
+  rooms.push(roomTile)
+  currentTile.usedDoors.push(direction)
+  currentRoomId = room.id
+  currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+  group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+  activeCharacter.position.set(0, 0.19, 0)
+  activeRing.position.set(0, 0.183, 0)
+  spendAction()
+  selectedCardId = null
+  placementPreview = null
+  if (room.status === 'locked') {
+    setStatus('Pièce verrouillée. Déverrouillez-la pour pouvoir la fouiller.')
+    saveGameState()
+    renderGameUi()
+    return
+  }
+  if (room.status === 'trapped' && activeSurvivorKind !== 'stealth') {
+    setStatus('Pièce piégée : seul le survivant furtif peut la fouiller.')
+    saveGameState()
+    renderGameUi()
+    return
+  }
+  setStatus(`Pièce ${getRoomStatusLabel(room.status).toLowerCase()} découverte. Fouille en cours…`)
+  rollRoomDice(roomTile)
+}
+
+const unlockCurrentRoom = () => {
+  if (currentRoomId === null || actionsRemaining <= 0) return
+  const room = rooms.find((item) => item.id === currentRoomId)
+  if (!room || room.status !== 'locked' || room.unlocked) return
+  room.unlocked = true
+  spendAction()
+  setStatus('Porte déverrouillée. Fouille en cours…')
+  rollRoomDice(room)
+}
+
+const returnToCorridor = () => {
+  if (currentRoomId === null || actionsRemaining <= 0) return
+  currentTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+  activeCharacter.position.set(0, 0.19, 0.16)
+  activeRing.position.set(0, 0.183, 0.16)
+  currentRoomId = null
+  spendAction()
+  setStatus('Retour dans le couloir.')
+  saveGameState()
+  renderGameUi()
+}
+
+const renderRoomControls = () => {
+  if (roomDeckCountElement) roomDeckCountElement.textContent = String(roomDeck.length)
+  if (!roomDoorOptionsElement || !roomStateElement) return
+  roomDoorOptionsElement.replaceChildren()
+  const currentRoom = currentRoomId === null ? null : rooms.find((room) => room.id === currentRoomId) ?? null
+  if (currentRoom) {
+    roomStateElement.textContent = `CP ${String(currentRoom.id).padStart(2, '0')} · ${getRoomStatusLabel(currentRoom.status)} · ${getDifficultyLabel(currentRoom.difficulty)}${currentRoom.searched ? ' · Fouillée' : ''}`
+    if (unlockRoomButton) {
+      unlockRoomButton.hidden = currentRoom.status !== 'locked' || currentRoom.unlocked
+      unlockRoomButton.disabled = actionsRemaining <= 0
+    }
+    if (returnRoomButton) {
+      returnRoomButton.hidden = false
+      returnRoomButton.disabled = actionsRemaining <= 0
+    }
+    roomDoorOptionsElement.textContent = currentRoom.status === 'locked' && !currentRoom.unlocked
+      ? 'La porte est verrouillée.'
+      : currentRoom.searched ? 'Cette pièce a déjà été fouillée.' : 'La pièce attend d’être fouillée.'
+    return
+  }
+  if (unlockRoomButton) unlockRoomButton.hidden = true
+  if (returnRoomButton) returnRoomButton.hidden = true
+  roomStateElement.textContent = 'Vous êtes dans le couloir.'
+  const availableDoors = currentTile.doors.filter((direction) => {
+    if (currentTile.usedDoors.includes(direction)) return false
+    const [dx, dz] = directionDelta[direction]
+    const x = currentTile.x + dx
+    const z = currentTile.z + dz
+    return !boardTiles.some((tile) => tile.x === x && tile.z === z) &&
+      !rooms.some((room) => room.x === x && room.z === z)
+  })
+  if (availableDoors.length === 0) {
+    roomDoorOptionsElement.textContent = currentTile.doors.length
+      ? 'Aucune porte inutilisée accessible sur cette CC.'
+      : 'Cette CC ne possède aucune porte.'
+    return
+  }
+  availableDoors.forEach((direction) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'action-button primary'
+    button.disabled = actionsRemaining <= 0
+    button.textContent = `Explorer la porte ${direction} · 1 action`
+    button.addEventListener('click', () => exploreDoor(direction))
+    roomDoorOptionsElement.append(button)
+  })
+}
+
 const renderGameUi = () => {
   updatePlacementHighlights()
   if (!handElement || !deckCountElement || !discardCountElement || !actionsCountElement || !actionsFillElement) return
