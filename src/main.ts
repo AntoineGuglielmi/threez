@@ -1215,7 +1215,7 @@ const confirmPlacement = () => {
 
   const doors = card.doors.map((direction) => rotateDirection(direction, option.turns))
   const group = createCorridorTile(card, x, z, option.exits, doors)
-  const placedTile: BoardTile = { x, z, kind: card.kind, exits: option.exits, doors, group }
+  const placedTile: BoardTile = { x, z, kind: card.kind, exits: option.exits, doors, usedDoors: [], group }
   boardTiles.push(placedTile)
 
   hand = hand.filter((item) => item.id !== card.id)
