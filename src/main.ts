@@ -146,32 +146,6 @@ const setStatus = (message: string) => {
   if (statusElement) statusElement.textContent = message
 }
 
-const findPlacement = (card: CorridorCard) => {
-  const definition = corridorDefinitions[card.kind]
-  for (const tile of boardTiles) {
-    for (const exit of tile.exits) {
-      const [dx, dz] = directionDelta[exit]
-      const x = tile.x + dx
-      const z = tile.z + dz
-      if (boardTiles.some((placed) => placed.x === x && placed.z === z) || rooms.some((room) => room.x === x && room.z === z)) continue
-      for (let turns = 0; turns < 4; turns += 1) {
-        const exits = definition.exits.map((direction) => rotateDirection(direction, turns))
-        if (!exits.includes(opposite[exit])) continue
-
-        // Every side touching an existing tile must agree on whether a passage exists.
-        const conflictsWithNeighbour = directionOrder.some((direction) => {
-          const [nextX, nextZ] = directionDelta[direction]
-          const neighbour = boardTiles.find((placed) => placed.x === x + nextX && placed.z === z + nextZ)
-          if (!neighbour) return false
-          return exits.includes(direction) !== neighbour.exits.includes(opposite[direction])
-        })
-        if (!conflictsWithNeighbour) return { x, z, exits, turns }
-      }
-    }
-  }
-  return null
-}
-
 const createCorridorTile = (card: CorridorCard, x: number, z: number, exits: Direction[], doors: Direction[] = [], usedDoors: Direction[] = []) => {
   const group = new THREE.Group()
   group.position.set(x * 1.18, 0.025, z * 1.18)
