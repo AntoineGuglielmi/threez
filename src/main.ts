@@ -5,6 +5,7 @@ import { directionDelta, directionOrder, opposite, corridorDefinitions, rotateDi
 import { readSavedGameState } from './game/persistence'
 import { shuffle } from './game/random'
 import { createCorridorCardFactory } from './game/corridor-cards'
+import { createRoomCardFactory } from './game/room-cards'
 import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomRollResult, RoomStatus, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
 
 let activeSurvivorKind: SurvivorKind = 'stealth'
@@ -16,20 +17,8 @@ const savedGameState = readSavedGameState()
 const corridorCards = createCorridorCardFactory(savedGameState?.nextCardId ?? 1)
 const { getWallDirections, createDoorDirections, createCard, createCorridorDeck, normalizeSavedCard } = corridorCards
 
-const roomStatuses: RoomStatus[] = ['ordinary', 'ordinary', 'ordinary', 'locked', 'trapped']
-const roomDifficulties: RoomDifficulty[] = ['easy', 'medium', 'hard']
-let nextRoomCardId = 1
-const createRoomCard = (): RoomCard => {
-  const status = roomStatuses[Math.floor(Math.random() * roomStatuses.length)]
-  return {
-    id: nextRoomCardId++,
-    status,
-    difficulty: roomDifficulties[Math.floor(Math.random() * roomDifficulties.length)],
-    searched: false,
-    unlocked: status !== 'locked',
-  }
-}
-const generatedRoomDeck = shuffle(Array.from({ length: 24 }, createRoomCard))
+const roomCards = createRoomCardFactory()
+const generatedRoomDeck = roomCards.createDeck()
 const roomDeck: RoomCard[] = savedGameState?.roomDeck ?? generatedRoomDeck
 let pendingRoomDraw: RoomCard | null = savedGameState?.pendingRoomDraw ?? null
 const resources: Record<ResourceType, number> = {
@@ -41,7 +30,7 @@ const resources: Record<ResourceType, number> = {
 }
 const rooms: RoomTile[] = []
 let currentRoomId: number | null = savedGameState?.currentRoomId ?? null
-if (savedGameState?.nextRoomCardId) nextRoomCardId = savedGameState.nextRoomCardId
+if (savedGameState?.nextRoomCardId) roomCards.setNextCardId(savedGameState.nextRoomCardId)
 type SurvivorCards = { deck: CorridorCard[]; discard: CorridorCard[]; hand: CorridorCard[] }
 const legacyOwner = savedGameState?.activeSurvivorKind ?? 'stealth'
 const survivorCards = {} as Record<SurvivorKind, SurvivorCards>
@@ -1279,7 +1268,7 @@ const saveGameState = () => {
       actionsRemaining,
       turnNumber,
       nextCardId: corridorCards.getNextCardId(),
-      nextRoomCardId,
+      nextRoomCardId: roomCards.getNextCardId(),
     } satisfies SavedGameState))
   } catch {
     setStatus('Impossible de sauvegarder la partie dans ce navigateur.')
