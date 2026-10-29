@@ -777,32 +777,33 @@ button, a { color: inherit; }
 
 
 
-/* One-point perspective pixel-art corridor cards */
-.cc-card-art {
-  display: block;
+/* Editable HTML pixel-art corridor cards */
+.cc-card-art { display: none; }
+.cc-pixel-art {
+  display: grid;
+  grid-template-columns: repeat(32, minmax(0, 1fr));
+  grid-template-rows: repeat(32, minmax(0, 1fr));
   width: min(100%, 112px);
   aspect-ratio: 1;
-  overflow: visible;
+  overflow: hidden;
+  background: #151b1e;
   image-rendering: pixelated;
+  box-shadow: 0 2px 0 #080d10, 0 0 0 1px rgba(192, 204, 208, .12);
 }
-.cc-shadow { fill: #080d10; }
-.cc-room-backdrop { fill: #202a30; stroke: #78868b; stroke-width: 2; }
-.cc-floor-plane { fill: #68767b; stroke: #8c999c; stroke-width: 1; }
-.cc-wall-side { stroke: #172329; stroke-width: 1; }
-.cc-wall-side-left { fill: #46545a; }
-.cc-wall-side-right { fill: #2d3a40; }
-.cc-perspective-line { fill: none; stroke: #47565c; stroke-width: 1; }
-.cc-floor-seam { fill: none; stroke: #4b5a60; stroke-width: 1; opacity: .85; }
-.cc-end-wall { fill: #303d43; stroke: #78868b; stroke-width: 1; }
-.cc-wall-highlight { fill: none; stroke: #a0adb1; stroke-width: 1.5; }
-.cc-door-frame { fill: #a8b6b9; stroke: #d1dcdd; stroke-width: 1; }
-.cc-door-leaf { fill: #93664a; stroke: #d0a176; stroke-width: 1; }
-.cc-door-shadow { fill: #1b282e; stroke: #11191d; stroke-width: 1; }
-.cc-paper { fill: #c5bda5; stroke: #e2d8bd; stroke-width: 1; }
-.cc-blood { fill: #813f3c; }
-.cc-debris { fill: #343c3e; }
-.cc-openings { fill: #75d9ff; }
-.cc-card-frame { fill: none; stroke: #78868b; stroke-width: 1.5; }
-.cc-card.is-selected .cc-room-backdrop,
-.cc-card.is-selected .cc-card-frame { stroke: #75d9ff; }
-.cc-card.is-selected .cc-openings { fill: #c5f3ff; }
+.cc-pixel {
+  grid-column: calc(var(--x) + 1);
+  grid-row: calc(var(--y) + 1);
+  min-width: 0;
+  min-height: 0;
+  background: var(--pixel-color);
+}
+.cc-card.is-selected .cc-pixel-art {
+  outline: 1px solid #75d9ff;
+  outline-offset: 2px;
+}
+.cc-card-name small {
+  display: block;
+  margin-top: 2px;
+  color: #89939c;
+  font: 7px/1.3 var(--mono);
+}
