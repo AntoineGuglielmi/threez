@@ -624,6 +624,64 @@ const renderGameUi = () => {
     handElement.append(button)
   })
 
+  deckCountElement.textContent = String(corridorDeck.length)
+  discardCountElement.textContent = String(discardPile.length)
+  actionsCountElement.textContent = String(actionsRemaining)
+  actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
+
+  if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
+
+  const activePlayerTurn = document.querySelector<HTMLElement>('#active-player-turn')
+  if (activePlayerTurn) activePlayerTurn.textContent = String(turnNumber)
+
+  const activePlayerName = document.querySelector<HTMLElement>('.active-player-name strong')
+  if (activePlayerName) activePlayerName.textContent = getSurvivorLabel(activeSurvivorKind)
+
+  const activePlayerRole = document.querySelector<HTMLElement>('.active-player-name small')
+  if (activePlayerRole) {
+    activePlayerRole.textContent = activeSurvivorKind === 'injured'
+      ? 'DÉPLACEMENT · 1 CC'
+      : phase === 'draw'
+        ? 'PHASE 1 · PIOCHE'
+        : `PHASE 2 · ACTIONS · ${actionsRemaining} RESTANTES`
+  }
+
+  const phaseLabel = document.querySelector<HTMLElement>('#phase-label')
+  if (phaseLabel) {
+    phaseLabel.textContent = activeSurvivorKind === 'injured'
+      ? 'Déplacement du Blessé'
+      : phase === 'draw'
+        ? 'Phase 1 — Compléter la main à 3 CC'
+        : 'Phase 2 — Réaliser ses actions'
+  }
+
+  const handCount = document.querySelector<HTMLElement>('#cc-hand-count')
+  if (handCount) handCount.textContent = `${hand.length} cartes`
+
+  const selectedCard = hand.find((card) => card.id === selectedCardId)
+  const hasPreview = Boolean(selectedCard && placementPreview)
+
+  if (placeButton) {
+    placeButton.disabled = phase !== 'actions' || !hasPreview || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
+    placeButton.textContent = hasPreview ? 'Valider la pose' : 'Choisir un emplacement'
+  }
+
+  if (rotateButton) {
+    rotateButton.disabled = phase !== 'actions' || selectedCardId === null || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
+    rotateButton.textContent = selectedCardId !== null
+      ? `Orientation ${['N', 'E', 'S', 'W'][selectedCardTurns]} · ↻`
+      : 'Changer l’orientation'
+  }
+
+  if (cancelPlacementButton) cancelPlacementButton.disabled = selectedCardId === null
+  if (discardButton) discardButton.disabled = !pendingDraw
+  if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
+  if (drawButton) {
+    drawButton.disabled = phase !== 'draw' || hand.length >= 3 || activeSurvivorKind === 'injured'
+    drawButton.textContent = phase === 'draw' ? 'Compléter ma main' : 'Pioche terminée'
+  }
+  if (endTurnButton) endTurnButton.disabled = phase !== 'actions' || Boolean(pendingDraw) || Boolean(pendingRoomDraw)
+
   if (pendingDraw) {
     const note = document.createElement('p')
     note.className = 'pending-draw'
