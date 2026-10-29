@@ -798,7 +798,9 @@ const drawCorridorCard = () => {
   spendAction()
   const placement = findPlacement(card)
   if (placement) {
-    placeCard(card, false, false)
+    const group = createCorridorTile(card, placement.x, placement.z, placement.exits)
+    boardTiles.push({ x: placement.x, z: placement.z, kind: card.kind, exits: placement.exits, group })
+    pendingDraw = null
     setStatus(`CC piochée et posée : ${corridorDefinitions[card.kind].label.toLowerCase()}.`)
   } else {
     pendingDraw = card
