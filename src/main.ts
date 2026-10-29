@@ -999,6 +999,14 @@ if (savedGameState?.rooms) {
 }
 if (savedGameState?.nextRoomCardId) nextRoomCardId = savedGameState.nextRoomCardId
 
+const getSurvivorTokenPosition = (kind: SurvivorKind): [number, number, number] => ({
+  stealth: [0, 0.19, 0.16],
+  heavy: [-0.32, 0.19, -0.28],
+  military: [0.32, 0.19, -0.28],
+  scientist: [-0.32, 0.19, 0.36],
+  injured: [0.32, 0.19, 0.36],
+})[kind]
+
 const placeSurvivorModel = (kind: SurvivorKind, makeActive: boolean) => {
   const model = characterModels[kind]
   model.parent?.remove(model)
@@ -1008,7 +1016,8 @@ const placeSurvivorModel = (kind: SurvivorKind, makeActive: boolean) => {
   const room = position.roomId === null ? null : rooms.find((item) => item.id === position.roomId) ?? null
   const parent = room?.group ?? tile.group
   parent.add(model)
-  model.position.set(0, 0.19, room ? 0 : 0.16)
+  const [offsetX, , offsetZ] = makeActive ? [0, 0.19, room ? 0 : 0.16] : getSurvivorTokenPosition(kind)
+  model.position.set(offsetX, 0.19, offsetZ)
   if (makeActive) {
     parent.add(activeRing, characterKeyLight, characterFillLight, warmRimLight)
     activeRing.position.set(0, 0.183, room ? 0 : 0.16)
@@ -1025,7 +1034,8 @@ const activateSurvivor = (kind: SurvivorKind) => {
   previousModel.parent?.remove(previousModel, activeRing, characterKeyLight, characterFillLight, warmRimLight)
   previousModel.scale.setScalar(0.27)
   ;(previousRoom?.group ?? previousTile.group).add(previousModel)
-  previousModel.position.set(0, 0.19, previousRoom ? 0 : 0.16)
+  const [previousX, , previousZ] = getSurvivorTokenPosition(previousKind)
+  previousModel.position.set(previousX, 0.19, previousRoom ? 0 : previousZ)
 
   activeSurvivorKind = kind
   activeCharacter = characterModels[kind]
