@@ -988,7 +988,7 @@ const getPlacements = (card: CorridorCard): PlacementCandidate[] => {
       const [dx, dz] = directionDelta[exit]
       const x = tile.x + dx
       const z = tile.z + dz
-      if (boardTiles.some((placed) => placed.x === x && placed.z === z)) continue
+      if (boardTiles.some((placed) => placed.x === x && placed.z === z) || rooms.some((room) => room.x === x && room.z === z)) continue
 
       const key = `${x},${z}`
       const candidate = candidates.get(key) ?? { x, z, options: [] }
