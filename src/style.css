@@ -348,7 +348,38 @@ button, a { color: inherit; }
 .cc-card.is-replaceable { border-color: rgba(189, 121, 88, .7); }
 .cc-card:disabled { cursor: default; opacity: .6; }
 .cc-card-index { color: #7e8791; font: 7px var(--mono); letter-spacing: .06em; }
-.cc-card-symbol { color: #75d9ff; font: 31px/1 var(--display); }
+.cc-card-art {
+  display: block;
+  width: 100%;
+  max-width: 76px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: visible;
+}
+.cc-art-base { fill: #252d33; stroke: #596771; stroke-width: 2; }
+.cc-art-grid { fill: none; stroke: #46525a; stroke-width: 1.5; opacity: .8; }
+.cc-art-corridor-shadow {
+  fill: none;
+  stroke: #123744;
+  stroke-width: 19;
+  stroke-linecap: square;
+  stroke-linejoin: bevel;
+}
+.cc-art-corridor {
+  fill: none;
+  stroke: #75d9ff;
+  stroke-width: 9;
+  stroke-linecap: square;
+  stroke-linejoin: bevel;
+  filter: drop-shadow(0 0 3px rgba(117, 217, 255, .55));
+}
+.cc-art-walls {
+  fill: none;
+  stroke: #8a969e;
+  stroke-width: 7;
+  stroke-linecap: square;
+}
+.cc-art-marker { fill: #bd7958; stroke: #f0b17a; stroke-width: 1; }
 .cc-card-name { min-height: 22px; color: #b9bdc4; font: 8px/1.2 var(--mono); text-align: center; }
 .pending-draw { grid-column: 1 / -1; margin: 3px 0 0; color: #d7b08d; font: 9px/1.5 var(--mono); }
 .game-status { min-height: 32px; margin: 12px 0; color: #9299a2; font-size: 10px; line-height: 1.5; }
