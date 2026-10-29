@@ -1221,7 +1221,7 @@ const unlockCurrentRoom = () => {
 const searchCurrentRoomAgain = () => {
   if (currentRoomId === null || actionsRemaining <= 0) return
   const room = rooms.find((item) => item.id === currentRoomId)
-  if (!room || !room.searched || (room.status === 'locked' && !room.unlocked)) return
+  if (!room || (room.status === 'locked' && !room.unlocked)) return
   if (room.status === 'trapped' && activeSurvivorKind !== 'stealth') {
     setStatus('Pièce piégée : seul le survivant furtif peut la fouiller.')
     return
@@ -1325,7 +1325,7 @@ const renderRoomControls = () => {
       enterButton.type = 'button'
       enterButton.className = 'action-button primary'
       enterButton.disabled = actionsRemaining <= 0
-      enterButton.textContent = 'Entrer dans la pièce · 1 action'
+      enterButton.textContent = 'Entrer dans la pièce'
       enterButton.addEventListener('click', () => enterRoom(room))
       card.append(enterButton)
       roomDoorOptionsElement.append(card)
