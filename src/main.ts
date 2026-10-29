@@ -549,7 +549,10 @@ const generatedCorridorDeck = shuffle(
   (['straight', 'left', 'right', 'tee', 'cross'] as CorridorKind[])
     .flatMap((kind) => Array.from({ length: 8 }, () => createCard(kind))),
 )
-const normalizeSavedCard = (card: CorridorCard): CorridorCard => ({ ...card, doors: card.doors ?? [] })
+const normalizeSavedCard = (card: CorridorCard): CorridorCard => ({
+  ...card,
+  doors: card.doors ?? shuffle(corridorDefinitions[card.kind].exits).slice(0, Math.floor(Math.random() * 3)),
+})
 const corridorDeck: CorridorCard[] = savedGameState ? savedGameState.deck.map(normalizeSavedCard) : generatedCorridorDeck
 const discardPile: CorridorCard[] = savedGameState ? savedGameState.discard.map(normalizeSavedCard) : []
 let hand: CorridorCard[] = savedGameState ? savedGameState.hand.map(normalizeSavedCard) : []
@@ -729,8 +732,9 @@ const setupCorridor = () => {
     const x = 0
     const z = index
     const exits: Direction[] = ['N', 'S']
-    const group = createCorridorTile(card, x, z, exits)
-    boardTiles.push({ x, z, kind: card.kind, exits, group })
+    const doors = card.doors.filter((direction) => exits.includes(direction))
+    const group = createCorridorTile(card, x, z, exits, doors)
+    boardTiles.push({ x, z, kind: card.kind, exits, doors, group })
   }
 }
 
