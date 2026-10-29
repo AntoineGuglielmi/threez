@@ -481,6 +481,8 @@ type CorridorKind = 'straight' | 'left' | 'right' | 'tee' | 'cross'
 type Direction = 'N' | 'E' | 'S' | 'W'
 type CorridorCard = { id: number; kind: CorridorKind }
 type BoardTile = { x: number; z: number; kind: CorridorKind | 'start'; exits: Direction[]; group: THREE.Group }
+type PlacementOption = { exits: Direction[]; turns: number }
+type PlacementCandidate = { x: number; z: number; options: PlacementOption[] }
 
 const directionOrder: Direction[] = ['N', 'E', 'S', 'W']
 const corridorDefinitions: Record<CorridorKind, { label: string; symbol: string; exits: Direction[] }> = {
@@ -531,6 +533,10 @@ const boardTiles: BoardTile[] = [{
 }]
 
 let currentTile = boardTiles[0]
+let placementPreview: { x: number; z: number; options: PlacementOption[]; optionIndex: number } | null = null
+const placementHighlights = new THREE.Group()
+placementHighlights.name = 'placement-highlights'
+board.add(placementHighlights)
 
 const handElement = document.querySelector<HTMLDivElement>('#cc-hand')
 const deckCountElement = document.querySelector<HTMLElement>('#cc-deck-count')
@@ -540,6 +546,8 @@ const actionsFillElement = document.querySelector<HTMLDivElement>('#actions-fill
 const statusElement = document.querySelector<HTMLParagraphElement>('#game-status')
 const drawButton = document.querySelector<HTMLButtonElement>('#draw-cc')
 const placeButton = document.querySelector<HTMLButtonElement>('#place-cc')
+const rotateButton = document.querySelector<HTMLButtonElement>('#rotate-cc')
+const cancelPlacementButton = document.querySelector<HTMLButtonElement>('#cancel-placement')
 const discardButton = document.querySelector<HTMLButtonElement>('#discard-cc')
 const replaceButton = document.querySelector<HTMLButtonElement>('#replace-cc')
 const endTurnButton = document.querySelector<HTMLButtonElement>('#end-turn')
@@ -654,28 +662,129 @@ const setupCorridor = () => {
 
 setupCorridor()
 
+const getPlacements = (card: CorridorCard): PlacementCandidate[] => {
+  const candidates = new Map<string, PlacementCandidate>()
+  const definition = corridorDefinitions[card.kind]
+
+  for (const tile of boardTiles) {
+    for (const exit of tile.exits) {
+      const [dx, dz] = directionDelta[exit]
+      const x = tile.x + dx
+      const z = tile.z + dz
+      if (boardTiles.some((placed) => placed.x === x && placed.z === z)) continue
+
+      const key = `${x},${z}`
+      const candidate = candidates.get(key) ?? { x, z, options: [] }
+
+      for (let turns = 0; turns < 4; turns += 1) {
+        const exits = definition.exits.map((direction) => rotateDirection(direction, turns))
+        if (!exits.includes(opposite[exit])) continue
+
+        const conflictsWithNeighbour = directionOrder.some((direction) => {
+          const [nextX, nextZ] = directionDelta[direction]
+          const neighbour = boardTiles.find((placed) => placed.x === x + nextX && placed.z === z + nextZ)
+          if (!neighbour) return false
+          return exits.includes(direction) !== neighbour.exits.includes(opposite[direction])
+        })
+        if (conflictsWithNeighbour) continue
+
+        const signature = directionOrder.filter((direction) => exits.includes(direction)).join('')
+        if (!candidate.options.some((option) => directionOrder.filter((direction) => option.exits.includes(direction)).join('') === signature)) {
+          candidate.options.push({ exits, turns })
+        }
+      }
+
+      if (candidate.options.length > 0) candidates.set(key, candidate)
+    }
+  }
+
+  return [...candidates.values()]
+}
+
+const updatePlacementHighlights = () => {
+  placementHighlights.clear()
+  if (selectedCardId === null || actionsRemaining <= 0 || pendingDraw) return
+  const card = hand.find((item) => item.id === selectedCardId)
+  if (!card) return
+
+  const candidates = getPlacements(card)
+  for (const candidate of candidates) {
+    const isSelected = placementPreview?.x === candidate.x && placementPreview?.z === candidate.z
+    const marker = new THREE.Group()
+    marker.name = 'placement-marker'
+    marker.userData.isPlacementMarker = true
+    marker.userData.placementX = candidate.x
+    marker.userData.placementZ = candidate.z
+    marker.position.set(candidate.x * 1.18, 0.19, candidate.z * 1.18)
+
+    const pad = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.94, 0.94),
+      new THREE.MeshBasicMaterial({
+        color: isSelected ? '#75d9ff' : '#4b9cb5',
+        transparent: true,
+        opacity: isSelected ? 0.2 : 0.09,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    )
+    pad.rotation.x = -Math.PI / 2
+    pad.userData.isPlacementHitArea = true
+    marker.add(pad)
+
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(isSelected ? 0.39 : 0.34, isSelected ? 0.43 : 0.37, 4),
+      new THREE.MeshBasicMaterial({
+        color: isSelected ? '#bcefff' : '#75d9ff',
+        transparent: true,
+        opacity: isSelected ? 1 : 0.72,
+        side: THREE.DoubleSide,
+      }),
+    )
+    ring.rotation.x = -Math.PI / 2
+    marker.add(ring)
+
+    if (isSelected && placementPreview) {
+      const option = placementPreview.options[placementPreview.optionIndex]
+      for (const direction of option.exits) {
+        const [dx, dz] = directionDelta[direction]
+        const bar = new THREE.Mesh(
+          new THREE.BoxGeometry(dx === 0 ? 0.42 : 0.055, 0.012, dz === 0 ? 0.42 : 0.055),
+          new THREE.MeshBasicMaterial({ color: '#bcefff' }),
+        )
+        bar.position.set(dx * 0.23, 0.008, dz * 0.23)
+        marker.add(bar)
+      }
+    }
+
+    placementHighlights.add(marker)
+  }
+}
+
 const spendAction = () => {
   actionsRemaining = Math.max(0, actionsRemaining - 1)
   if (actionsRemaining === 0) setStatus('Plus d’actions. Terminez le tour pour continuer.')
 }
 
-const placeCard = (card: CorridorCard, fromHand: boolean, consumeAction = true) => {
-  if (consumeAction && actionsRemaining <= 0) {
-    setStatus('Il ne reste plus d’action pour ce tour.')
-    return false
+const confirmPlacement = () => {
+  const card = hand.find((item) => item.id === selectedCardId)
+  if (!card || !placementPreview || actionsRemaining <= 0) return
+  const option = placementPreview.options[placementPreview.optionIndex]
+  const { x, z } = placementPreview
+  if (boardTiles.some((tile) => tile.x === x && tile.z === z)) {
+    placementPreview = null
+    updatePlacementHighlights()
+    setStatus('Cet emplacement n’est plus disponible. Choisissez-en un autre.')
+    return
   }
-  const placement = findPlacement(card)
-  if (!placement) return false
 
-  const group = createCorridorTile(card, placement.x, placement.z, placement.exits)
-  boardTiles.push({ x: placement.x, z: placement.z, kind: card.kind, exits: placement.exits, group })
-  if (fromHand) hand = hand.filter((item) => item.id !== card.id)
-  else pendingDraw = null
-  if (consumeAction) spendAction()
+  const group = createCorridorTile(card, x, z, option.exits)
+  boardTiles.push({ x, z, kind: card.kind, exits: option.exits, group })
+  hand = hand.filter((item) => item.id !== card.id)
+  spendAction()
   selectedCardId = null
+  placementPreview = null
   setStatus(`CC « ${corridorDefinitions[card.kind].label} » posée.`)
   renderGameUi()
-  return true
 }
 
 const drawCorridorCard = () => {
@@ -699,6 +808,7 @@ const drawCorridorCard = () => {
 }
 
 const renderGameUi = () => {
+  updatePlacementHighlights()
   if (!handElement || !deckCountElement || !discardCountElement || !actionsCountElement || !actionsFillElement) return
   handElement.replaceChildren()
   hand.forEach((card, index) => {
@@ -731,9 +841,19 @@ const renderGameUi = () => {
       .join('')
     button.innerHTML = `<span class="cc-card-index">CC ${String(index + 1).padStart(2, '0')}</span><svg class="cc-card-art" viewBox="0 0 100 100" role="img" aria-label="${corridorDefinitions[card.kind].label}"><rect class="cc-art-base" x="5" y="5" width="90" height="90" rx="2"/><path class="cc-art-grid" d="M35 8V92 M65 8V92 M8 35H92 M8 65H92"/><path class="cc-art-corridor-shadow" d="${corridorLines}"/><path class="cc-art-corridor" d="${corridorLines}"/><path class="cc-art-walls" d="${wallLines}"/><rect class="cc-art-marker" x="46" y="46" width="8" height="8"/></svg><span class="cc-card-name">${corridorDefinitions[card.kind].label}</span>`
     button.addEventListener('click', () => {
-      selectedCardId = card.id
+      if (selectedCardId === card.id) {
+        selectedCardId = null
+        placementPreview = null
+        setStatus('Sélection annulée.')
+      } else {
+        selectedCardId = card.id
+        placementPreview = null
+        const placements = getPlacements(card)
+        setStatus(placements.length
+          ? 'Choisissez un emplacement lumineux sur le plateau.'
+          : 'Aucun emplacement compatible pour cette CC.')
+      }
       renderGameUi()
-      setStatus(`CC sélectionnée : ${corridorDefinitions[card.kind].label.toLowerCase()}.`)
     })
     handElement.append(button)
   })
@@ -745,7 +865,19 @@ const renderGameUi = () => {
   actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
   const handCount = document.querySelector<HTMLElement>('.hand-heading > span')
   if (handCount) handCount.textContent = `${hand.length} CC`
-  if (placeButton) placeButton.disabled = !hand.some((card) => card.id === selectedCardId) || actionsRemaining <= 0 || Boolean(pendingDraw)
+  const selectedCard = hand.find((card) => card.id === selectedCardId)
+  const hasPreview = Boolean(selectedCard && placementPreview)
+  if (placeButton) {
+    placeButton.disabled = !hasPreview || actionsRemaining <= 0 || Boolean(pendingDraw)
+    placeButton.textContent = hasPreview ? 'Valider la pose' : 'Choisir un emplacement'
+  }
+  if (rotateButton) {
+    rotateButton.disabled = !hasPreview || (placementPreview?.options.length ?? 0) < 2
+    rotateButton.textContent = hasPreview && placementPreview
+      ? `Orientation ${placementPreview.optionIndex + 1}/${placementPreview.options.length} · ↻`
+      : 'Changer l’orientation'
+  }
+  if (cancelPlacementButton) cancelPlacementButton.disabled = selectedCardId === null
   if (discardButton) discardButton.disabled = !pendingDraw
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
   if (drawButton) drawButton.disabled = actionsRemaining <= 0 || Boolean(pendingDraw) || (corridorDeck.length === 0 && discardPile.length === 0)
@@ -761,9 +893,24 @@ const renderGameUi = () => {
 
 drawButton?.addEventListener('click', drawCorridorCard)
 placeButton?.addEventListener('click', () => {
-  const card = hand.find((item) => item.id === selectedCardId)
-  if (!card) return
-  if (!placeCard(card, true)) setStatus('Aucune sortie libre ne permet de poser cette CC pour le moment.')
+  if (!placementPreview) {
+    setStatus('Sélectionnez d’abord un emplacement lumineux sur le plateau.')
+    return
+  }
+  confirmPlacement()
+})
+rotateButton?.addEventListener('click', () => {
+  if (!placementPreview || placementPreview.options.length < 2) return
+  placementPreview.optionIndex = (placementPreview.optionIndex + 1) % placementPreview.options.length
+  updatePlacementHighlights()
+  renderGameUi()
+  setStatus(`Orientation ${placementPreview.optionIndex + 1}/${placementPreview.options.length}. Vous pouvez encore changer de case.`)
+})
+cancelPlacementButton?.addEventListener('click', () => {
+  selectedCardId = null
+  placementPreview = null
+  renderGameUi()
+  setStatus('Pose annulée. Choisissez une CC pour continuer.')
 })
 discardButton?.addEventListener('click', () => {
   if (!pendingDraw) return
@@ -799,6 +946,7 @@ endTurnButton?.addEventListener('click', () => {
   actionsRemaining = 7
   while (hand.length < 3 && corridorDeck.length > 0) hand.push(corridorDeck.pop()!)
   selectedCardId = null
+  placementPreview = null
   setStatus('Nouveau tour : 7 actions. Votre main est prête.')
   renderGameUi()
 })
@@ -871,6 +1019,34 @@ renderer.domElement.addEventListener('click', (event) => {
   pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1
   pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1
   raycaster.setFromCamera(pointer, camera)
+
+  if (selectedCardId !== null && !pendingDraw && actionsRemaining > 0) {
+    const placementHits = raycaster.intersectObjects(placementHighlights.children, true)
+    const markerHit = placementHits.find((hit) => {
+      let object: THREE.Object3D | null = hit.object
+      while (object && object.parent !== placementHighlights) object = object.parent
+      return Boolean(object?.userData.isPlacementMarker)
+    })
+    if (markerHit) {
+      let marker: THREE.Object3D | null = markerHit.object
+      while (marker && marker.parent !== placementHighlights) marker = marker.parent
+      if (marker) {
+        const x = Number(marker.userData.placementX)
+        const z = Number(marker.userData.placementZ)
+        const card = hand.find((item) => item.id === selectedCardId)
+        const candidate = card ? getPlacements(card).find((item) => item.x === x && item.z === z) : undefined
+        if (candidate) {
+          placementPreview = { x, z, options: candidate.options, optionIndex: 0 }
+          updatePlacementHighlights()
+          renderGameUi()
+          setStatus('Emplacement choisi. Changez l’orientation si besoin, puis validez la pose.')
+        }
+      }
+      return
+    }
+    setStatus('Cliquez sur un emplacement lumineux pour préparer la pose.')
+    return
+  }
 
   const hits = raycaster.intersectObjects(boardTiles.map((tile) => tile.group), true)
   const hit = hits[0]
