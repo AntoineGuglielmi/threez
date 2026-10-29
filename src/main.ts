@@ -45,16 +45,21 @@ scene.add(fillLight)
 const materials = {
   floor: new THREE.MeshStandardMaterial({ color: '#080a0d', roughness: 1 }),
   start: new THREE.MeshStandardMaterial({ color: '#39302d', roughness: 0.9 }),
-  startTop: new THREE.MeshStandardMaterial({ color: '#51413a', roughness: 0.92 }),
+  startTop: new THREE.MeshStandardMaterial({
+    color: '#747d84',
+    emissive: '#172b32',
+    emissiveIntensity: 0.65,
+    roughness: 0.82,
+  }),
   wood: new THREE.MeshStandardMaterial({ color: '#332923', roughness: 0.98 }),
   woodLight: new THREE.MeshStandardMaterial({ color: '#594438', roughness: 0.98 }),
   frame: new THREE.MeshStandardMaterial({ color: '#25272a', roughness: 0.9 }),
   tileNeon: new THREE.MeshStandardMaterial({
-    color: '#a8d9e8',
-    emissive: '#4a9bb9',
-    emissiveIntensity: 1.35,
-    roughness: 0.35,
-    metalness: 0.15,
+    color: '#e0faff',
+    emissive: '#59c9f3',
+    emissiveIntensity: 3.8,
+    roughness: 0.22,
+    metalness: 0.05,
   }),
 }
 
@@ -115,7 +120,7 @@ neon.position.y = 0.168
 start.add(neon)
 
 const neonLength = 0.92
-const neonWidth = 0.018
+const neonWidth = 0.032
 const neonOffset = 0.49
 for (const side of [-1, 1]) {
   const stripX = new THREE.Mesh(
@@ -133,10 +138,19 @@ for (const side of [-1, 1]) {
   neon.add(stripZ)
 }
 
-// A restrained pool of cold light brightens the tile without washing out the scene.
-const tileLight = new THREE.PointLight('#83c8e4', 1.15, 3.8, 2)
-tileLight.position.set(0, 0.42, 0)
+// The neon strips cast a strong, cool pool of light across the tile itself.
+const tileLight = new THREE.PointLight('#75d9ff', 4.2, 5.2, 1.5)
+tileLight.position.set(0, 0.48, 0)
 start.add(tileLight)
+
+// Additional low lights keep the corners bright instead of leaving only a lit outline.
+for (const x of [-0.38, 0.38]) {
+  for (const z of [-0.38, 0.38]) {
+    const cornerLight = new THREE.PointLight('#64c9f4', 1.15, 2.2, 1.8)
+    cornerLight.position.set(x, 0.24, z)
+    start.add(cornerLight)
+  }
+}
 
 // Barricaded hospital entrance.
 const framePosts = [-0.34, 0.34]
