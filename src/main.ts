@@ -702,6 +702,14 @@ const getPlacements = (card: CorridorCard): PlacementCandidate[] => {
 }
 
 const updatePlacementHighlights = () => {
+  for (const child of placementHighlights.children) {
+    child.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return
+      object.geometry.dispose()
+      const meshMaterials = Array.isArray(object.material) ? object.material : [object.material]
+      meshMaterials.forEach((material) => material.dispose())
+    })
+  }
   placementHighlights.clear()
   if (selectedCardId === null || actionsRemaining <= 0 || pendingDraw) return
   const card = hand.find((item) => item.id === selectedCardId)
