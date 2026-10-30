@@ -828,3 +828,17 @@ button, a { color: inherit; }
 .pa-tool-actions{display:grid;gap:7px;margin-top:16px}.pa-help{margin-top:18px;color:#89939c;font-size:10px;line-height:1.65}
 .cc-pixel-art{grid-template-columns:repeat(32,minmax(0,1fr));grid-template-rows:repeat(32,minmax(0,1fr))}
 @media(max-width:850px){.pixelart-page{padding:16px}.pa-layout{grid-template-columns:1fr}.pa-model-list{grid-template-columns:repeat(3,minmax(0,1fr))}.pa-model-list button{display:grid;gap:5px}.pa-workspace{grid-template-columns:1fr}.pa-canvas-wrap{max-width:620px;margin:auto;width:100%}.pa-tools{max-width:620px}.pa-header{flex-wrap:wrap}.pa-header>div{order:-1;flex-basis:100%}}
+
+
+/* Pixel-art editor navigation */
+.pixelart-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #bcefff;
+  text-decoration: none;
+  transition: color .18s ease;
+}
+.pixelart-link:hover { color: #fff; }
+.pixelart-link span { color: #75d9ff; font-size: 13px; }
+.pixelart-link:focus-visible { outline: 2px solid #75d9ff; outline-offset: 5px; }
