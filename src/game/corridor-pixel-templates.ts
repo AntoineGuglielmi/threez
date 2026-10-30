@@ -41,7 +41,7 @@ const decodeModel = (model: unknown): string[] => {
   if (!model || typeof model !== 'object') throw new Error('Invalid corridor model')
   const data = model as CompactModel
   if ('fill' in data) return Array(data.size ** 2).fill(data.fill)
-  return data.rows.join('').split('').map((index) => data.palette[Number.parseInt(index, 36)])
+  const encoded = data.rows.join('')\n  const step = encoded.length === data.size ** 2 ? 1 : 2\n  return Array.from({ length: data.size ** 2 }, (_, index) =>\n    data.palette[Number.parseInt(encoded.slice(index * step, (index + 1) * step), 36)],\n  )
 }
 
 const modelFiles = import.meta.glob<Record<string, unknown>>('../../references/models/*.json', {
