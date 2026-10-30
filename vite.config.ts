@@ -12,7 +12,7 @@ const decodeModel = (model: unknown): string[] => {
   if (!model || typeof model !== 'object') throw new Error('Invalid corridor model')
   const data = model as CompactModel
   if ('fill' in data) return Array(data.size ** 2).fill(data.fill)
-  return data.rows.join('').split('').map((index) => data.palette[Number.parseInt(index, 36)])
+  const encoded = data.rows.join('')\n  const step = encoded.length === data.size ** 2 ? 1 : 2\n  return Array.from({ length: data.size ** 2 }, (_, index) =>\n    data.palette[Number.parseInt(encoded.slice(index * step, (index + 1) * step), 36)],\n  )
 }
 
 const encodeModel = (pixels: string[]): CompactModel => {
@@ -21,7 +21,7 @@ const encodeModel = (pixels: string[]): CompactModel => {
   if (palette.length === 1) return { size, fill: palette[0] }
   const indexes = new Map(palette.map((color, index) => [color, index.toString(36)]))
   const rows = Array.from({ length: size }, (_, y) =>
-    pixels.slice(y * size, (y + 1) * size).map((color) => indexes.get(color)!).join(''),
+    pixels.slice(y * size, (y + 1) * size).map((color) => indexes.get(color)!.padStart(2, '0')).join(''),
   )
   return { size, palette, rows }
 }
