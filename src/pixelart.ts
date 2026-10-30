@@ -42,19 +42,24 @@ const colors = ['#171d20','#30383b','#354144','#4b5659','#626b6d','#707875','#85
 let activeId: CorridorPixelTemplateId = CORRIDOR_PIXEL_MODELS[0].id
 let activeColor = colors[4]
 let isPainting = false
+let saveTimer: ReturnType<typeof setTimeout> | undefined
 let saveQueue = Promise.resolve()
 const save = (id: CorridorPixelTemplateId) => {
-  status.textContent = 'Enregistrement…'
-  const pixels = [...templates[id]]
-  saveQueue = saveQueue.then(async () => {
-    const result = await fetch(`/__corridor-models/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pixels }),
+  window.clearTimeout(saveTimer)
+  status.textContent = 'Modifications en attente…'
+  saveTimer = window.setTimeout(() => {
+    const pixels = [...templates[id]]
+    status.textContent = 'Enregistrement…'
+    saveQueue = saveQueue.then(async () => {
+      const result = await fetch(`/__corridor-models/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pixels }),
+      })
+      if (!result.ok) throw new Error(`Échec de l'enregistrement de ${id}.json`)
+      status.textContent = `✓ ${id}.json enregistré`
+    }).catch((error: unknown) => {
+      status.textContent = error instanceof Error ? error.message : 'Erreur d’enregistrement'
     })
-    if (!result.ok) throw new Error(`Échec de l'enregistrement de ${id}.json`)
-    status.textContent = `✓ ${id}.json enregistré`
-  }).catch((error: unknown) => {
-    status.textContent = error instanceof Error ? error.message : 'Erreur d’enregistrement'
-  })
+  }, 500)
 }
 const renderNav = () => {
   nav.innerHTML = CORRIDOR_PIXEL_MODELS.map((model) => `
