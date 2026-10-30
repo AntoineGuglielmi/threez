@@ -35,7 +35,16 @@ export const rotateCorridorPixels = (source: string[], turns: number): string[] 
   return output
 }
 
-type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }\nconst decodeModel = (model: unknown): string[] => {\n  if (Array.isArray(model)) return model as string[]\n  if (!model || typeof model !== 'object') throw new Error('Invalid corridor model')\n  const data = model as CompactModel\n  if ('fill' in data) return Array(data.size ** 2).fill(data.fill)\n  return data.rows.join('').split('').map((index) => data.palette[Number.parseInt(index, 36)])\n}\n\nconst modelFiles = import.meta.glob<Record<string, unknown>>('../../references/models/*.json', {
+type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }
+const decodeModel = (model: unknown): string[] => {
+  if (Array.isArray(model)) return model as string[]
+  if (!model || typeof model !== 'object') throw new Error('Invalid corridor model')
+  const data = model as CompactModel
+  if ('fill' in data) return Array(data.size ** 2).fill(data.fill)
+  return data.rows.join('').split('').map((index) => data.palette[Number.parseInt(index, 36)])
+}
+
+const modelFiles = import.meta.glob<Record<string, unknown>>('../../references/models/*.json', {
   eager: true,
   import: 'default',
 })
