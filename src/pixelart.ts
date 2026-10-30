@@ -5,7 +5,7 @@ type ModelResponse = { id: CorridorPixelTemplateId; pixels: string[] }
 const response = await fetch('/__corridor-models')
 if (!response.ok) throw new Error('Impossible de charger les modèles JSON.')
 const models = await response.json() as ModelResponse[]
-const templates = Object.fromEntries(models.map(({ id, pixels }) => [id, pixels])) as Record<CorridorPixelTemplateId, string[]>
+const templates = Object.fromEntries(models.map(({ id, model }) => [id, decodeModel(model)])) as Record<CorridorPixelTemplateId, string[]>
 
 document.body.className = 'pixelart-page'
 document.body.innerHTML = `
