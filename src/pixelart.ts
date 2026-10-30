@@ -20,7 +20,7 @@ document.body.innerHTML = `
       <section class="pa-editor">
         <header class="pa-editor-heading"><div><span id="pa-door-count"></span><h2 id="pa-model-name"></h2></div><span id="pa-dimensions"></span></header>
         <div class="pa-workspace">
-          <div class="pa-canvas-wrap"><div class="pa-grid" role="grid" aria-label="Grille de dessin"></div></div>
+          <div class="pa-canvas-wrap"><canvas class="pa-grid" width="512" height="512" role="grid" aria-label="Grille de dessin"></canvas></div>
           <aside class="pa-tools"><h3>Couleur</h3><div class="pa-palette"></div>
             <label class="pa-custom-label">Couleur personnalisée<input id="pa-custom" type="color" value="#626b6d"></label>
             <label class="pa-brush-control" for="pa-brush-size">
@@ -36,7 +36,7 @@ document.body.innerHTML = `
   </main>`
 const root = document.querySelector<HTMLElement>('.pixelart-app')!
 const nav = root.querySelector<HTMLElement>('.pa-model-list')!
-const grid = root.querySelector<HTMLElement>('.pa-grid')!
+const grid = root.querySelector<HTMLCanvasElement>('.pa-grid')!
 const paletteElement = root.querySelector<HTMLElement>('.pa-palette')!
 const name = root.querySelector<HTMLElement>('#pa-model-name')!
 const doorCount = root.querySelector<HTMLElement>('#pa-door-count')!
@@ -73,16 +73,30 @@ const renderNav = () => {
       <span>${model.label}</span><small>${model.doors} porte${model.doors > 1 ? 's' : ''}</small>
     </button>`).join('')
 }
+const renderCanvas = () => {
+  const size = getCorridorPixelSize(templates[activeId])
+  grid.width = size
+  grid.height = size
+  const context = grid.getContext('2d')
+  if (!context) return
+  const image = context.createImageData(size, size)
+  templates[activeId].forEach((color, index) => {
+    const value = Number.parseInt(color.slice(1), 16)
+    const offset = index * 4
+    image.data[offset] = (value >> 16) & 255
+    image.data[offset + 1] = (value >> 8) & 255
+    image.data[offset + 2] = value & 255
+    image.data[offset + 3] = 255
+  })
+  context.putImageData(image, 0, 0)
+}
 const renderGrid = () => {
   const model = CORRIDOR_PIXEL_MODELS.find((item) => item.id === activeId)!
   const size = getCorridorPixelSize(templates[activeId])
   name.textContent = model.label
   doorCount.textContent = `${model.doors} PORTE${model.doors > 1 ? 'S' : ''}`
   dimensions.textContent = `${size} × ${size} pixels`
-  grid.style.gridTemplateColumns = `repeat(${size}, minmax(0, 1fr))`
-  grid.innerHTML = templates[activeId].map((color, index) =>
-    `<button type="button" class="pa-pixel" role="gridcell" data-index="${index}" style="background:${color}" aria-label="Pixel ${index % size + 1}, ${Math.floor(index / size) + 1}"></button>`,
-  ).join('')
+  renderCanvas()
   renderNav()
 }
 paletteElement.innerHTML = colors.map((color) => `<button type="button" data-color="${color}" style="--swatch:${color}" aria-label="Couleur ${color}"></button>`).join('')
@@ -114,26 +128,38 @@ const paint = (index: number) => {
       const targetIndex = y * size + x
       if (templates[activeId][targetIndex] === activeColor) continue
       templates[activeId][targetIndex] = activeColor
-      const targetPixel = grid.children.item(targetIndex) as HTMLElement | null
-      if (targetPixel) targetPixel.style.backgroundColor = activeColor
+      const context = grid.getContext('2d')
+      if (context) {
+        context.fillStyle = activeColor
+        context.fillRect(x, y, 1, 1)
+      }
       changed = true
     }
   }
 
   if (changed) save(activeId)
 }
+const getPixelIndex = (event: PointerEvent) => {
+  const bounds = grid.getBoundingClientRect()
+  const size = getCorridorPixelSize(templates[activeId])
+  const x = Math.floor((event.clientX - bounds.left) / bounds.width * size)
+  const y = Math.floor((event.clientY - bounds.top) / bounds.height * size)
+  if (x < 0 || y < 0 || x >= size || y >= size) return -1
+  return y * size + x
+}
 grid.addEventListener('pointerdown', (event) => {
-  const pixel = (event.target as HTMLElement).closest<HTMLElement>('[data-index]')
-  if (!pixel) return
   isPainting = true
-  paint(Number(pixel.dataset.index))
+  grid.setPointerCapture(event.pointerId)
+  const index = getPixelIndex(event)
+  if (index >= 0) paint(index)
 })
-grid.addEventListener('pointerover', (event) => {
-  if (!isPainting || (event as PointerEvent).buttons !== 1) return
-  const pixel = (event.target as HTMLElement).closest<HTMLElement>('[data-index]')
-  if (pixel) paint(Number(pixel.dataset.index))
+grid.addEventListener('pointermove', (event) => {
+  if (!isPainting || event.buttons !== 1) return
+  const index = getPixelIndex(event)
+  if (index >= 0) paint(index)
 })
-window.addEventListener('pointerup', () => { isPainting = false })
+grid.addEventListener('pointerup', () => { isPainting = false })
+grid.addEventListener('pointercancel', () => { isPainting = false })
 const brushInput = root.querySelector<HTMLInputElement>('#pa-brush-size')!
 const brushValue = root.querySelector<HTMLOutputElement>('#pa-brush-value')!
 brushInput.addEventListener('input', () => {
