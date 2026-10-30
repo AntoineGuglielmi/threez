@@ -1,6 +1,7 @@
 import type { CorridorKind } from './types'
 
 export const CORRIDOR_PIXEL_SIZE = 32
+export const getCorridorPixelSize = (pixels: string[]): number => Math.sqrt(pixels.length)
 export const CORRIDOR_PIXEL_MODELS = [
   { id: 'straight-0', kind: 'straight', label: 'Couloir droit', doors: 0 },
   { id: 'straight-1', kind: 'straight', label: 'Couloir droit', doors: 1 },
@@ -22,7 +23,7 @@ export const getCorridorPixelTemplateId = (kind: CorridorKind, doors: number): C
 }
 
 export const rotateCorridorPixels = (source: string[], turns: number): string[] => {
-  const size = CORRIDOR_PIXEL_SIZE
+  const size = getCorridorPixelSize(source)
   let output = [...source]
   for (let turn = 0; turn < ((turns % 4) + 4) % 4; turn += 1) {
     const rotated = Array(size * size).fill('#171d20')
@@ -34,7 +35,6 @@ export const rotateCorridorPixels = (source: string[], turns: number): string[] 
   return output
 }
 
-// JSON models are bundled from /references/models and are the single source of truth.
 const modelFiles = import.meta.glob<Record<string, string[]>>('../../references/models/*.json', {
   eager: true,
   import: 'default',
