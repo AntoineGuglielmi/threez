@@ -12,7 +12,11 @@ const decodeModel = (model: unknown): string[] => {
   if (!model || typeof model !== 'object') throw new Error('Invalid corridor model')
   const data = model as CompactModel
   if ('fill' in data) return Array(data.size ** 2).fill(data.fill)
-  const encoded = data.rows.join('')\n  const step = encoded.length === data.size ** 2 ? 1 : 2\n  return Array.from({ length: data.size ** 2 }, (_, index) =>\n    data.palette[Number.parseInt(encoded.slice(index * step, (index + 1) * step), 36)],\n  )
+  const encoded = data.rows.join('')
+  const step = encoded.length === data.size ** 2 ? 1 : 2
+  return Array.from({ length: data.size ** 2 }, (_, index) =>
+    data.palette[Number.parseInt(encoded.slice(index * step, (index + 1) * step), 36)],
+  )
 }
 
 const encodeModel = (pixels: string[]): CompactModel => {
@@ -58,7 +62,8 @@ const corridorModelsPlugin = () => ({
             response.end('Expected 262144 hexadecimal color values (512 × 512)')
             return
           }
-          await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: encodeModel(parsed.pixels) }, null, 2) + '\n', 'utf8')
+          await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: encodeModel(parsed.pixels) }, null, 2) + '
+', 'utf8')
           response.setHeader('Content-Type', 'application/json')
           response.end(JSON.stringify({ saved: id }))
         } catch {
