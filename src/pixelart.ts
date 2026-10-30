@@ -42,12 +42,13 @@ const colors = ['#171d20','#30383b','#354144','#4b5659','#626b6d','#707875','#85
 let activeId: CorridorPixelTemplateId = CORRIDOR_PIXEL_MODELS[0].id
 let activeColor = colors[4]
 let isPainting = false
-let saveTimer: ReturnType<typeof setTimeout> | undefined
+const saveTimers = new Map<CorridorPixelTemplateId, ReturnType<typeof setTimeout>>()
 let saveQueue = Promise.resolve()
 const save = (id: CorridorPixelTemplateId) => {
-  window.clearTimeout(saveTimer)
+  window.clearTimeout(saveTimers.get(id))
   status.textContent = 'Modifications en attente…'
-  saveTimer = window.setTimeout(() => {
+  saveTimers.set(id, window.setTimeout(() => {
+    saveTimers.delete(id)
     const pixels = [...templates[id]]
     status.textContent = 'Enregistrement…'
     saveQueue = saveQueue.then(async () => {
@@ -59,7 +60,7 @@ const save = (id: CorridorPixelTemplateId) => {
     }).catch((error: unknown) => {
       status.textContent = error instanceof Error ? error.message : 'Erreur d’enregistrement'
     })
-  }, 500)
+  }, 500))
 }
 const renderNav = () => {
   nav.innerHTML = CORRIDOR_PIXEL_MODELS.map((model) => `
