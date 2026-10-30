@@ -1,5 +1,5 @@
 import './style.css'
-import { CORRIDOR_PIXEL_MODELS, CORRIDOR_PIXEL_SIZE, getCorridorPixelSize, type CorridorPixelTemplateId } from './game/corridor-pixel-templates'
+import { CORRIDOR_PIXEL_MODELS, getCorridorPixelSize, type CorridorPixelTemplateId } from './game/corridor-pixel-templates'
 
 type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }
 type ModelResponse = { id: CorridorPixelTemplateId; model: CompactModel }
