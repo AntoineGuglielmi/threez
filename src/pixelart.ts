@@ -1,5 +1,5 @@
 import './style.css'
-import { CORRIDOR_PIXEL_MODELS, CORRIDOR_PIXEL_SIZE, type CorridorPixelTemplateId } from './game/corridor-pixel-templates'
+import { CORRIDOR_PIXEL_MODELS, CORRIDOR_PIXEL_SIZE, getCorridorPixelSize, type CorridorPixelTemplateId } from './game/corridor-pixel-templates'
 
 type ModelResponse = { id: CorridorPixelTemplateId; pixels: string[] }
 const response = await fetch('/__corridor-models')
@@ -18,7 +18,7 @@ document.body.innerHTML = `
     <div class="pa-layout">
       <nav class="pa-model-list" aria-label="Modèles de couloirs"></nav>
       <section class="pa-editor">
-        <header class="pa-editor-heading"><div><span id="pa-door-count"></span><h2 id="pa-model-name"></h2></div><span>32 × 32 pixels</span></header>
+        <header class="pa-editor-heading"><div><span id="pa-door-count"></span><h2 id="pa-model-name"></h2></div><span id="pa-dimensions"></span></header>
         <div class="pa-workspace">
           <div class="pa-canvas-wrap"><div class="pa-grid" role="grid" aria-label="Grille de dessin"></div></div>
           <aside class="pa-tools"><h3>Couleur</h3><div class="pa-palette"></div>
@@ -36,6 +36,7 @@ const grid = root.querySelector<HTMLElement>('.pa-grid')!
 const paletteElement = root.querySelector<HTMLElement>('.pa-palette')!
 const name = root.querySelector<HTMLElement>('#pa-model-name')!
 const doorCount = root.querySelector<HTMLElement>('#pa-door-count')!
+const dimensions = root.querySelector<HTMLElement>('#pa-dimensions')!
 const status = root.querySelector<HTMLElement>('#pa-save-status')!
 const colors = ['#171d20','#30383b','#354144','#4b5659','#626b6d','#707875','#858b83','#a4a99e','#c2c2b2','#d0b18a','#76513d','#b47d56','#3f3029','#c0c7bf','#783d3b','#a64c47']
 let activeId: CorridorPixelTemplateId = CORRIDOR_PIXEL_MODELS[0].id
@@ -63,10 +64,13 @@ const renderNav = () => {
 }
 const renderGrid = () => {
   const model = CORRIDOR_PIXEL_MODELS.find((item) => item.id === activeId)!
+  const size = getCorridorPixelSize(templates[activeId])
   name.textContent = model.label
   doorCount.textContent = `${model.doors} PORTE${model.doors > 1 ? 'S' : ''}`
+  dimensions.textContent = `${size} × ${size} pixels`
+  grid.style.gridTemplateColumns = `repeat(${size}, minmax(0, 1fr))`
   grid.innerHTML = templates[activeId].map((color, index) =>
-    `<button type="button" class="pa-pixel" role="gridcell" data-index="${index}" style="background:${color}" aria-label="Pixel ${index % CORRIDOR_PIXEL_SIZE + 1}, ${Math.floor(index / CORRIDOR_PIXEL_SIZE) + 1}"></button>`,
+    `<button type="button" class="pa-pixel" role="gridcell" data-index="${index}" style="background:${color}" aria-label="Pixel ${index % size + 1}, ${Math.floor(index / size) + 1}"></button>`,
   ).join('')
   renderNav()
 }
@@ -107,12 +111,12 @@ root.querySelector<HTMLInputElement>('#pa-custom')!.addEventListener('input', (e
   paletteElement.querySelectorAll('button').forEach((item) => item.classList.remove('is-active'))
 })
 root.querySelector<HTMLButtonElement>('#pa-fill')!.addEventListener('click', () => {
-  templates[activeId] = Array(CORRIDOR_PIXEL_SIZE ** 2).fill(activeColor)
+  templates[activeId] = Array(getCorridorPixelSize(templates[activeId]) ** 2).fill(activeColor)
   renderGrid()
   save(activeId)
 })
 root.querySelector<HTMLButtonElement>('#pa-clear')!.addEventListener('click', () => {
-  templates[activeId] = Array(CORRIDOR_PIXEL_SIZE ** 2).fill('#171d20')
+  templates[activeId] = Array(getCorridorPixelSize(templates[activeId]) ** 2).fill('#171d20')
   renderGrid()
   save(activeId)
 })
