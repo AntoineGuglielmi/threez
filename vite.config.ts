@@ -39,7 +39,7 @@ const corridorModelsPlugin = () => ({
         try {
           const models = await Promise.all(modelIds.map(async (id) => {
             const content = JSON.parse(await readFile(path.join(modelsDirectory, id + '.json'), 'utf8')) as Record<string, unknown>
-            return { id, pixels: decodeModel(content[id]) }
+            return { id, model: content[id] }
           }))
           response.setHeader('Content-Type', 'application/json')
           response.end(JSON.stringify(models))
