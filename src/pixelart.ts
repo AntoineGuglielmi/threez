@@ -23,6 +23,10 @@ document.body.innerHTML = `
           <div class="pa-canvas-wrap"><div class="pa-grid" role="grid" aria-label="Grille de dessin"></div></div>
           <aside class="pa-tools"><h3>Couleur</h3><div class="pa-palette"></div>
             <label class="pa-custom-label">Couleur personnalisée<input id="pa-custom" type="color" value="#626b6d"></label>
+            <label class="pa-brush-control" for="pa-brush-size">
+              <span>Taille du pinceau <output id="pa-brush-value">1 × 1</output></span>
+              <input id="pa-brush-size" type="range" min="1" max="9" step="1" value="1">
+            </label>
             <div class="pa-tool-actions"><button id="pa-fill" type="button">Remplir</button><button id="pa-clear" type="button">Tout effacer</button></div>
             <p class="pa-help">Chaque modification est enregistrée dans le fichier JSON du modèle. Les modèles déjà dessinés sont chargés directement depuis le projet.</p>
           </aside>
@@ -41,6 +45,7 @@ const status = root.querySelector<HTMLElement>('#pa-save-status')!
 const colors = ['#171d20','#30383b','#354144','#4b5659','#626b6d','#707875','#858b83','#a4a99e','#c2c2b2','#d0b18a','#76513d','#b47d56','#3f3029','#c0c7bf','#783d3b','#a64c47']
 let activeId: CorridorPixelTemplateId = CORRIDOR_PIXEL_MODELS[0].id
 let activeColor = colors[4]
+let brushSize = 1
 let isPainting = false
 const saveTimers = new Map<CorridorPixelTemplateId, ReturnType<typeof setTimeout>>()
 let saveQueue = Promise.resolve()
@@ -94,11 +99,28 @@ nav.addEventListener('click', (event) => {
   renderGrid()
 })
 const paint = (index: number) => {
-  if (templates[activeId][index] === activeColor) return
-  templates[activeId][index] = activeColor
-  const pixel = grid.children.item(index) as HTMLElement | null
-  if (pixel) pixel.style.backgroundColor = activeColor
-  save(activeId)
+  const size = getCorridorPixelSize(templates[activeId])
+  const centerX = index % size
+  const centerY = Math.floor(index / size)
+  const start = -Math.floor((brushSize - 1) / 2)
+  const end = Math.ceil((brushSize - 1) / 2)
+  let changed = false
+
+  for (let offsetY = start; offsetY <= end; offsetY++) {
+    for (let offsetX = start; offsetX <= end; offsetX++) {
+      const x = centerX + offsetX
+      const y = centerY + offsetY
+      if (x < 0 || y < 0 || x >= size || y >= size) continue
+      const targetIndex = y * size + x
+      if (templates[activeId][targetIndex] === activeColor) continue
+      templates[activeId][targetIndex] = activeColor
+      const targetPixel = grid.children.item(targetIndex) as HTMLElement | null
+      if (targetPixel) targetPixel.style.backgroundColor = activeColor
+      changed = true
+    }
+  }
+
+  if (changed) save(activeId)
 }
 grid.addEventListener('pointerdown', (event) => {
   const pixel = (event.target as HTMLElement).closest<HTMLElement>('[data-index]')
@@ -112,6 +134,12 @@ grid.addEventListener('pointerover', (event) => {
   if (pixel) paint(Number(pixel.dataset.index))
 })
 window.addEventListener('pointerup', () => { isPainting = false })
+const brushInput = root.querySelector<HTMLInputElement>('#pa-brush-size')!
+const brushValue = root.querySelector<HTMLOutputElement>('#pa-brush-value')!
+brushInput.addEventListener('input', () => {
+  brushSize = Number(brushInput.value)
+  brushValue.value = `${brushSize} × ${brushSize}`
+})
 root.querySelector<HTMLInputElement>('#pa-custom')!.addEventListener('input', (event) => {
   activeColor = (event.target as HTMLInputElement).value
   paletteElement.querySelectorAll('button').forEach((item) => item.classList.remove('is-active'))
