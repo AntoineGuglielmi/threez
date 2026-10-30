@@ -1,6 +1,6 @@
 import type { CorridorKind } from './types'
 
-export const CORRIDOR_PIXEL_SIZE = 128
+export const CORRIDOR_PIXEL_SIZE = 512
 export const getCorridorPixelSize = (pixels: string[]): number => Math.sqrt(pixels.length)
 export const CORRIDOR_PIXEL_MODELS = [
   { id: 'straight-0', kind: 'straight', label: 'Couloir droit', doors: 0 },
@@ -35,12 +35,12 @@ export const rotateCorridorPixels = (source: string[], turns: number): string[] 
   return output
 }
 
-const modelFiles = import.meta.glob<Record<string, string[]>>('../../references/models/*.json', {
+type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }\nconst decodeModel = (model: unknown): string[] => {\n  if (Array.isArray(model)) return model as string[]\n  if (!model || typeof model !== 'object') throw new Error('Invalid corridor model')\n  const data = model as CompactModel\n  if ('fill' in data) return Array(data.size ** 2).fill(data.fill)\n  return data.rows.join('').split('').map((index) => data.palette[Number.parseInt(index, 36)])\n}\n\nconst modelFiles = import.meta.glob<Record<string, unknown>>('../../references/models/*.json', {
   eager: true,
   import: 'default',
 })
 export const corridorPixelTemplates = Object.fromEntries(
-  Object.entries(modelFiles).map(([path, data]) => [path.split('/').pop()!.replace('.json', ''), Object.values(data)[0]]),
+  Object.entries(modelFiles).map(([path, data]) => [path.split('/').pop()!.replace('.json', ''), decodeModel(Object.values(data)[0])]),
 ) as Partial<CorridorPixelTemplates>
 export const getCorridorPixelTemplate = (id: CorridorPixelTemplateId): string[] =>
   corridorPixelTemplates[id] ?? Array(CORRIDOR_PIXEL_SIZE ** 2).fill('#171d20')
