@@ -5,6 +5,27 @@ import path from 'node:path'
 const modelIds = ['straight-0','straight-1','straight-2','turn-0','turn-1','turn-2','tee-0','tee-1','cross-0'] as const
 const modelsDirectory = path.resolve(process.cwd(), 'references/models')
 
+type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }
+
+const decodeModel = (model: unknown): string[] => {
+  if (Array.isArray(model)) return model as string[]
+  if (!model || typeof model !== 'object') throw new Error('Invalid corridor model')
+  const data = model as CompactModel
+  if ('fill' in data) return Array(data.size ** 2).fill(data.fill)
+  return data.rows.join('').split('').map((index) => data.palette[Number.parseInt(index, 36)])
+}
+
+const encodeModel = (pixels: string[]): CompactModel => {
+  const size = Math.sqrt(pixels.length)
+  const palette = [...new Set(pixels)]
+  if (palette.length === 1) return { size, fill: palette[0] }
+  const indexes = new Map(palette.map((color, index) => [color, index.toString(36)]))
+  const rows = Array.from({ length: size }, (_, y) =>
+    pixels.slice(y * size, (y + 1) * size).map((color) => indexes.get(color)!).join(''),
+  )
+  return { size, palette, rows }
+}
+
 const corridorModelsPlugin = () => ({
   name: 'corridor-model-json-api',
   configureServer(server: import('vite').ViteDevServer) {
@@ -32,9 +53,9 @@ const corridorModelsPlugin = () => ({
           let body = ''
           for await (const chunk of request) body += chunk
           const parsed = JSON.parse(body) as { pixels?: unknown }
-          if (!Array.isArray(parsed.pixels) || ![1024, 4096].includes(parsed.pixels.length) || !parsed.pixels.every((color) => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) {
+          if (!Array.isArray(parsed.pixels) || parsed.pixels.length !== 512 ** 2 || !parsed.pixels.every((color) => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) {
             response.statusCode = 400
-            response.end('Expected 1024 or 4096 hexadecimal color values')
+            response.end('Expected 262144 hexadecimal color values (512 × 512)')
             return
           }
           await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: parsed.pixels }, null, 4) + '\n', 'utf8')
