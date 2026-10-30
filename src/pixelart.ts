@@ -1,7 +1,16 @@
 import './style.css'
 import { CORRIDOR_PIXEL_MODELS, CORRIDOR_PIXEL_SIZE, getCorridorPixelSize, type CorridorPixelTemplateId } from './game/corridor-pixel-templates'
 
-type ModelResponse = { id: CorridorPixelTemplateId; pixels: string[] }
+type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }
+type ModelResponse = { id: CorridorPixelTemplateId; model: CompactModel }
+const decodeModel = (model: CompactModel): string[] => {
+  if ('fill' in model) return Array(model.size ** 2).fill(model.fill)
+  const encoded = model.rows.join('')
+  const step = encoded.length === model.size ** 2 ? 1 : 2
+  return Array.from({ length: model.size ** 2 }, (_, index) =>
+    model.palette[Number.parseInt(encoded.slice(index * step, (index + 1) * step), 36)],
+  )
+}
 const response = await fetch('/__corridor-models')
 if (!response.ok) throw new Error('Impossible de charger les modèles JSON.')
 const models = await response.json() as ModelResponse[]
