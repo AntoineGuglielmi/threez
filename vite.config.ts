@@ -50,8 +50,7 @@ const corridorModelsPlugin = () => ({
             response.end('Expected 262144 hexadecimal color values (512 × 512)')
             return
           }
-          await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: encodeModel(parsed.pixels) }, null, 2) + '
-', 'utf8')
+          await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: encodeModel(parsed.pixels) }, null, 2) + '\n', 'utf8')
           response.setHeader('Content-Type', 'application/json')
           response.end(JSON.stringify({ saved: id }))
         } catch {
