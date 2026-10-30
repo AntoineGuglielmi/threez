@@ -780,9 +780,7 @@ button, a { color: inherit; }
 /* Editable HTML pixel-art corridor cards */
 .cc-card-art { display: none; }
 .cc-pixel-art {
-  display: grid;
-  grid-template-columns: repeat(64, minmax(0, 1fr));
-  grid-template-rows: repeat(64, minmax(0, 1fr));
+  display: block;
   width: min(100%, 112px);
   aspect-ratio: 1;
   overflow: hidden;
@@ -790,12 +788,11 @@ button, a { color: inherit; }
   image-rendering: pixelated;
   box-shadow: 0 2px 0 #080d10, 0 0 0 1px rgba(192, 204, 208, .12);
 }
-.cc-pixel {
-  grid-column: calc(var(--x) + 1);
-  grid-row: calc(var(--y) + 1);
-  min-width: 0;
-  min-height: 0;
-  background: var(--pixel-color);
+.cc-pixel-art canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
 }
 .cc-card.is-selected .cc-pixel-art {
   outline: 1px solid #75d9ff;
