@@ -7,18 +7,6 @@ const modelsDirectory = path.resolve(process.cwd(), 'references/models')
 
 type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }
 
-const decodeModel = (model: unknown): string[] => {
-  if (Array.isArray(model)) return model as string[]
-  if (!model || typeof model !== 'object') throw new Error('Invalid corridor model')
-  const data = model as CompactModel
-  if ('fill' in data) return Array(data.size ** 2).fill(data.fill)
-  const encoded = data.rows.join('')
-  const step = encoded.length === data.size ** 2 ? 1 : 2
-  return Array.from({ length: data.size ** 2 }, (_, index) =>
-    data.palette[Number.parseInt(encoded.slice(index * step, (index + 1) * step), 36)],
-  )
-}
-
 const encodeModel = (pixels: string[]): CompactModel => {
   const size = Math.sqrt(pixels.length)
   const palette = [...new Set(pixels)]
