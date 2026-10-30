@@ -1,6 +1,6 @@
 import type { CorridorKind } from './types'
 
-export const CORRIDOR_PIXEL_SIZE = 64
+export const CORRIDOR_PIXEL_SIZE = 128
 export const getCorridorPixelSize = (pixels: string[]): number => Math.sqrt(pixels.length)
 export const CORRIDOR_PIXEL_MODELS = [
   { id: 'straight-0', kind: 'straight', label: 'Couloir droit', doors: 0 },
