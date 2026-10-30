@@ -54,4 +54,10 @@ const corridorModelsPlugin = () => ({
 export default defineConfig({
   base: './',
   plugins: [corridorModelsPlugin()],
+  server: {
+    watch: {
+      // Editing a model must not trigger a full-page reload in the pixel-art editor.
+      ignored: ['**/references/models/**'],
+    },
+  },
 })
