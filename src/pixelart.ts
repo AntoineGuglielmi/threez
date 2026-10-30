@@ -25,7 +25,7 @@ document.body.innerHTML = `
             <label class="pa-custom-label">Couleur personnalisée<input id="pa-custom" type="color" value="#626b6d"></label>
             <label class="pa-brush-control" for="pa-brush-size">
               <span>Taille du pinceau <output id="pa-brush-value">1 × 1</output></span>
-              <input id="pa-brush-size" type="range" min="1" max="9" step="2" value="1">
+              <input id="pa-brush-size" type="range" min="1" max="9" step="1" value="1">
             </label>
             <div class="pa-tool-actions"><button id="pa-fill" type="button">Remplir</button><button id="pa-clear" type="button">Tout effacer</button></div>
             <p class="pa-help">Chaque modification est enregistrée dans le fichier JSON du modèle. Les modèles déjà dessinés sont chargés directement depuis le projet.</p>
