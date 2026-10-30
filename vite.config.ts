@@ -32,9 +32,9 @@ const corridorModelsPlugin = () => ({
           let body = ''
           for await (const chunk of request) body += chunk
           const parsed = JSON.parse(body) as { pixels?: unknown }
-          if (!Array.isArray(parsed.pixels) || parsed.pixels.length !== 1024 || !parsed.pixels.every((color) => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) {
+          if (!Array.isArray(parsed.pixels) || ![1024, 4096].includes(parsed.pixels.length) || !parsed.pixels.every((color) => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) {
             response.statusCode = 400
-            response.end('Expected 1024 hexadecimal color values')
+            response.end('Expected 1024 or 4096 hexadecimal color values')
             return
           }
           await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: parsed.pixels }, null, 4) + '\n', 'utf8')
