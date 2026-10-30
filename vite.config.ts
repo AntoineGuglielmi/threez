@@ -34,8 +34,8 @@ const corridorModelsPlugin = () => ({
       if (url.pathname === '/__corridor-models' && request.method === 'GET') {
         try {
           const models = await Promise.all(modelIds.map(async (id) => {
-            const content = JSON.parse(await readFile(path.join(modelsDirectory, id + '.json'), 'utf8')) as Record<string, string[]>
-            return { id, pixels: content[id] }
+            const content = JSON.parse(await readFile(path.join(modelsDirectory, id + '.json'), 'utf8')) as Record<string, unknown>
+            return { id, pixels: decodeModel(content[id]) }
           }))
           response.setHeader('Content-Type', 'application/json')
           response.end(JSON.stringify(models))
@@ -58,7 +58,7 @@ const corridorModelsPlugin = () => ({
             response.end('Expected 262144 hexadecimal color values (512 × 512)')
             return
           }
-          await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: parsed.pixels }, null, 4) + '\n', 'utf8')
+          await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: encodeModel(parsed.pixels) }, null, 2) + '\n', 'utf8')
           response.setHeader('Content-Type', 'application/json')
           response.end(JSON.stringify({ saved: id }))
         } catch {
