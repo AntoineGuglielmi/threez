@@ -1,4 +1,5 @@
-import { rotateCorridorPixels, getCorridorPixelTemplateId, getCorridorPixelTemplate, getCorridorPixelSize } from '../game/corridor-pixel-templates'
+import { rotateCorridorPixels, getCorridorPixelTemplateId, getCorridorPixelTemplate, getCorridorPixelSize, getCorridorPixelRotation } from '../game/corridor-pixel-templates'
+import { corridorDefinitions, rotateDirection } from '../game/directions'
 import type { CorridorCard } from '../game/types'
 
 export const createCorridorPixelArt = (card: CorridorCard, turns: number): HTMLSpanElement => {
@@ -6,7 +7,8 @@ export const createCorridorPixelArt = (card: CorridorCard, turns: number): HTMLS
   const id = getCorridorPixelTemplateId(card.kind, doors)
   const source = getCorridorPixelTemplate(id)
   const size = getCorridorPixelSize(source)
-  const pixels = rotateCorridorPixels(source, turns)
+  const exits = corridorDefinitions[card.kind].exits.map((direction) => rotateDirection(direction, turns))
+  const pixels = rotateCorridorPixels(source, getCorridorPixelRotation(card.kind, exits))
   const image = document.createElement('span')
   image.className = 'cc-pixel-art'
   image.setAttribute('role', 'img')
