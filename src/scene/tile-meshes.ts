@@ -61,7 +61,7 @@ export const createRoomTile = (
 
   const top = new THREE.Mesh(
     new THREE.PlaneGeometry(1.065, 1.065),
-    new THREE.MeshBasicMaterial({ map: createRoomCardTexture() }),
+    new THREE.MeshBasicMaterial({ map: createRoomCardTexture(room.direction) }),
   )
   top.rotation.x = -Math.PI / 2
   top.position.y = 0.121
