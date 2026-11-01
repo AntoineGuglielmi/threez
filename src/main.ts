@@ -717,12 +717,14 @@ const renderGameUi = () => {
 
 unlockRoomButton?.addEventListener('click', unlockCurrentRoom)
 returnRoomButton?.addEventListener('click', returnToCorridor)
-drawRoomButton?.addEventListener('click', () => {
-  if (drawRoomButton.getAttribute('aria-disabled') === 'true') return
+drawRoomButton?.addEventListener('click', (event) => {
+  const stack = event.currentTarget
+  if (!(stack instanceof HTMLElement) || stack.getAttribute('aria-disabled') === 'true') return
   drawRoomCard()
 })
 drawRoomButton?.addEventListener('keydown', (event) => {
-  if ((event.key === 'Enter' || event.key === ' ') && drawRoomButton.getAttribute('aria-disabled') !== 'true') {
+  const stack = event.currentTarget
+  if ((event.key === 'Enter' || event.key === ' ') && stack instanceof HTMLElement && stack.getAttribute('aria-disabled') !== 'true') {
     event.preventDefault()
     drawRoomCard()
   }
@@ -730,7 +732,8 @@ drawRoomButton?.addEventListener('keydown', (event) => {
 
 drawButton?.addEventListener('click', refillHand)
 drawButton?.addEventListener('keydown', (event) => {
-  if ((event.key === 'Enter' || event.key === ' ') && drawButton.getAttribute('aria-disabled') !== 'true') {
+  const stack = event.currentTarget
+  if ((event.key === 'Enter' || event.key === ' ') && stack instanceof HTMLElement && stack.getAttribute('aria-disabled') !== 'true') {
     event.preventDefault()
     refillHand()
   }
