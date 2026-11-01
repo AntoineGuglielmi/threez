@@ -77,21 +77,16 @@
           <button id="reset-game" class="reset-button" type="button">Réinitialiser la partie</button>
         </aside>
         <aside class="deck-piles" aria-label="Pioches">
-          <section class="decks-section" aria-label="Pioches">
-            <div class="deck-card">
-              <div class="deck-card-top"><span class="pile-icon" aria-hidden="true"><span class="pile-shape corridor-shape"></span></span><span class="deck-card-count"><strong id="cc-deck-count">37</strong><small>cartes</small></span></div>
-              <div class="deck-card-label">Couloirs</div>
-              <div class="deck-card-meta">Défausse <strong id="cc-discard-count">0</strong></div>
-              <button id="draw-cc" class="action-button primary deck-draw-button">Compléter ma main</button>
-            </div>
-            <div class="deck-card">
-              <div class="deck-card-top"><span class="pile-icon cp-icon" aria-hidden="true"><span class="pile-shape room-shape"></span></span><span class="deck-card-count"><strong id="cp-deck-count">24</strong><small>cartes</small></span></div>
-              <div class="deck-card-label">Pièces</div>
-              <div class="deck-card-meta">À découvrir</div>
-              <span class="deck-card-hint">Par une porte</span>
-              <button id="draw-cp" class="action-button primary deck-draw-button">Piocher une pièce</button>
-            </div>
-          </section>
+          <div id="draw-cc" class="deck-stack deck-stack-corridor" role="button" tabindex="0" aria-label="Piocher des cartes Couloir" aria-disabled="false">
+            <span class="deck-stack-card deck-stack-card-back" aria-hidden="true"></span>
+            <span class="deck-stack-card deck-stack-card-middle" aria-hidden="true"></span>
+            <span class="deck-stack-card deck-stack-card-top">Couloir</span>
+          </div>
+          <div id="draw-cp" class="deck-stack deck-stack-room" role="button" tabindex="0" aria-label="Piocher des cartes Pièce" aria-disabled="false">
+            <span class="deck-stack-card deck-stack-card-back" aria-hidden="true"></span>
+            <span class="deck-stack-card deck-stack-card-middle" aria-hidden="true"></span>
+            <span class="deck-stack-card deck-stack-card-top">Pièce</span>
+          </div>
         </aside>
         <aside id="room-hover-card" class="room-hover-card" aria-live="polite" hidden></aside>
         <div class="tile-label" aria-hidden="true"><span class="tile-label-dot"></span> DÉPART <b>CD</b></div>
