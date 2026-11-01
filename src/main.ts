@@ -423,13 +423,14 @@ const confirmPlacement = () => {
   if (!card || !placementPreview) return
   const { x, z } = placementPreview
   const validCandidate = getPlacements(card, selectedCardTurns).find((candidate) => candidate.x === x && candidate.z === z)
-  if (!validCandidate || boardTiles.some((tile) => tile.x === x && tile.z === z)) {
+  const validOption = validCandidate?.options.find((option) => option.turns === selectedCardTurns)
+  if (!validCandidate || !validOption || boardTiles.some((tile) => tile.x === x && tile.z === z)) {
     setStatus('Cette orientation ne convient pas à cet emplacement. Tournez la carte ou choisissez un autre emplacement.')
     return
   }
 
   const doors = card.doors.map((direction) => rotateDirection(direction, selectedCardTurns))
-  const exits = validCandidate.options[0].exits
+  const exits = validOption.exits
   const group = createCorridorTile(board, materials, card, x, z, exits, doors)
   const placedTile: BoardTile = { x, z, kind: card.kind, exits, doors, usedDoors: [], group }
   boardTiles.push(placedTile)
@@ -749,7 +750,8 @@ const rotateSelectedCorridor = () => {
   if (previousPreview && card) {
     const samePosition = getPlacements(card, selectedCardTurns)
       .find((candidate) => candidate.x === previousPreview.x && candidate.z === previousPreview.z)
-    placementPreview = samePosition
+    const matchingOrientation = samePosition?.options.some((option) => option.turns === selectedCardTurns)
+    placementPreview = samePosition && matchingOrientation
       ? { ...samePosition, optionIndex: 0 }
       : { ...previousPreview, options: [], optionIndex: 0 }
   }
@@ -1033,6 +1035,7 @@ renderer.domElement.addEventListener('click', (event) => {
         ? getPlacements(card).find((item) => item.x === hit.x && item.z === hit.z)
         : undefined
       if (candidate) {
+        selectedCardTurns = candidate.options[0].turns
         placementPreview = { x: hit.x, z: hit.z, options: candidate.options, optionIndex: 0 }
         updatePlacementHighlights()
         renderGameUi()
