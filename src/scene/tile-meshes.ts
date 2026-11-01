@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { createCorridorCardTexture } from './corridor-card-texture'
+import { createRoomCardTexture } from './room-card-texture'
 import type { CorridorCard, Direction, SavedRoom } from '../game/types'
 import type { createScene } from '../scene'
 
