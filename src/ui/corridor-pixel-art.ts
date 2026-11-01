@@ -15,6 +15,10 @@ export const createCorridorPixelArt = (card: CorridorCard, turns: number): HTMLS
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
+  canvas.style.display = 'block'
+  canvas.style.width = '100%'
+  canvas.style.height = '100%'
+  canvas.style.imageRendering = 'pixelated'
   canvas.setAttribute('aria-hidden', 'true')
   const context = canvas.getContext('2d')
   if (!context) return image
