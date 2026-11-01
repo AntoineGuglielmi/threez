@@ -31,12 +31,23 @@ export const getCorridorPlacements = ({
       const exits = definition.exits.map((direction) => rotateDirection(direction, turns))
       if (!exits.includes(opposite[exit])) continue
 
-      // Every side touching an existing tile must agree on whether a passage exists.
+      const doors = card.doors.map((direction) => rotateDirection(direction, turns))
+
+      // Every adjacent corridor must agree on passage connectivity. Doors are
+      // reserved for rooms and cannot face another corridor or an existing room.
       const conflictsWithNeighbour = directionOrder.some((direction) => {
         const [nextX, nextZ] = directionDelta[direction]
-        const neighbour = boardTiles.find((placed) => placed.x === x + nextX && placed.z === z + nextZ)
+        const neighbourX = x + nextX
+        const neighbourZ = z + nextZ
+        const neighbour = boardTiles.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
+        const room = rooms.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
+
+        if (room) return exits.includes(direction) || doors.includes(direction)
         if (!neighbour) return false
-        return exits.includes(direction) !== neighbour.exits.includes(opposite[direction])
+
+        const hasMatchingPassage = exits.includes(direction) === neighbour.exits.includes(opposite[direction])
+        const hasDoorConflict = doors.includes(direction) || neighbour.doors.includes(opposite[direction])
+        return !hasMatchingPassage || hasDoorConflict
       })
       if (conflictsWithNeighbour) continue
 
