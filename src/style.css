@@ -1232,3 +1232,53 @@ button, a { color: inherit; }
 @media (max-width: 900px) {
   .cc-pixel-art { min-height: 1px; }
 }
+
+
+/* Hand cards are transparent controls: the pixel art is the only visible surface. */
+.cc-card,
+.cc-card:hover:not(:disabled),
+.cc-card.is-selected,
+.cc-card.is-replaceable {
+  min-height: 0;
+  padding: 0;
+  gap: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.cc-card {
+  flex: 0 0 104px;
+  width: 104px;
+  aspect-ratio: 1;
+  justify-content: center;
+  align-items: center;
+}
+.cc-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+.cc-card.is-selected {
+  transform: translateY(-4px);
+}
+.cc-card:disabled {
+  opacity: .6;
+}
+.cc-pixel-art {
+  width: 100%;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: 0;
+}
+.cc-card:focus-visible {
+  outline: 2px solid #bd9878;
+  outline-offset: 4px;
+}
+@media (max-width: 900px) {
+  .cc-card {
+    flex-basis: 88px;
+    width: 88px;
+  }
+}
