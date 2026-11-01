@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { createCorridorCardTexture } from './scene/corridor-card-texture'
 import type { SurvivorKind } from './game/types'
 
 export const createScene = (activeSurvivorKind: SurvivorKind) => {
@@ -129,110 +130,21 @@ export const createScene = (activeSurvivorKind: SurvivorKind) => {
   start.add(shadow)
 
   const slab = new THREE.Mesh(
-    new THREE.BoxGeometry(1.18, 0.14, 1.18),
-    materials.start,
+    new THREE.BoxGeometry(1.08, 0.12, 1.08),
+    new THREE.MeshStandardMaterial({ color: '#252b2e', roughness: 0.82 }),
   )
-  slab.position.y = 0.07
+  slab.position.y = 0.06
   slab.castShadow = true
   slab.receiveShadow = true
   start.add(slab)
 
-  const top = new THREE.Mesh(
-    new THREE.BoxGeometry(1.08, 0.025, 1.08),
-    materials.startTop,
+  const startTop = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.065, 1.065),
+    new THREE.MeshBasicMaterial({ map: createDefaultCorridorCardTexture() }),
   )
-  top.position.y = 0.152
-  top.receiveShadow = true
-  start.add(top)
-
-  // The starting room reads as a short hospital corridor, with modular floor panels.
-  for (let x = -1; x <= 1; x += 1) {
-    for (let z = -1; z <= 1; z += 1) {
-      const panel = new THREE.Mesh(
-        new THREE.BoxGeometry(0.32, 0.009, 0.32),
-        (x + z) % 2 === 0 ? materials.floorPanel : materials.floorPanelDark,
-      )
-      panel.position.set(x * 0.34, 0.169, z * 0.34)
-      panel.receiveShadow = true
-      start.add(panel)
-    }
-  }
-
-  // Low industrial walls frame the passage without hiding the floor or entrance.
-  for (const side of [-1, 1]) {
-    const wall = new THREE.Mesh(
-      new THREE.BoxGeometry(0.055, 0.29, 0.78),
-      materials.corridorWall,
-    )
-    wall.position.set(side * 0.49, 0.31, 0.045)
-    wall.castShadow = true
-    wall.receiveShadow = true
-    start.add(wall)
-
-    for (const z of [-0.2, 0.16, 0.42]) {
-      const panel = new THREE.Mesh(
-        new THREE.BoxGeometry(0.012, 0.13, 0.19),
-        materials.corridorPanel,
-      )
-      panel.position.set(side * 0.455, 0.32, z)
-      start.add(panel)
-    }
-
-    const safetyStripe = new THREE.Mesh(
-      new THREE.BoxGeometry(0.014, 0.025, 0.76),
-      materials.warning,
-    )
-    safetyStripe.position.set(side * 0.452, 0.205, 0.045)
-    start.add(safetyStripe)
-  }
-
-  // Small amber floor markers add a little warmth against the cold neon.
-  for (const z of [-0.22, 0.22]) {
-    const marker = new THREE.Mesh(
-      new THREE.BoxGeometry(0.045, 0.012, 0.045),
-      materials.warning,
-    )
-    marker.position.set(0, 0.18, z)
-    start.add(marker)
-  }
-
-  // Cool neon strips trace the tile edges, like floor lighting in an abandoned facility.
-  const neon = new THREE.Group()
-  neon.position.y = 0.168
-  start.add(neon)
-
-  const neonLength = 0.92
-  const neonWidth = 0.032
-  const neonOffset = 0.49
-  for (const side of [-1, 1]) {
-    const stripX = new THREE.Mesh(
-      new THREE.BoxGeometry(neonWidth, 0.012, neonLength),
-      materials.tileNeon,
-    )
-    stripX.position.set(side * neonOffset, 0, 0)
-    neon.add(stripX)
-
-    const stripZ = new THREE.Mesh(
-      new THREE.BoxGeometry(neonLength, 0.012, neonWidth),
-      materials.tileNeon,
-    )
-    stripZ.position.set(0, 0, side * neonOffset)
-    neon.add(stripZ)
-  }
-
-  // The neon strips cast a strong, cool pool of light across the tile itself.
-  const tileLight = new THREE.PointLight('#75d9ff', 4.2, 5.2, 1.5)
-  tileLight.position.set(0, 0.48, 0)
-  start.add(tileLight)
-
-  // Additional low lights keep the corners bright instead of leaving only a lit outline.
-  for (const x of [-0.38, 0.38]) {
-    for (const z of [-0.38, 0.38]) {
-      const cornerLight = new THREE.PointLight('#64c9f4', 1.15, 2.2, 1.8)
-      cornerLight.position.set(x, 0.24, z)
-      start.add(cornerLight)
-    }
-  }
+  startTop.rotation.x = -Math.PI / 2
+  startTop.position.y = 0.121
+  start.add(startTop)
 
   // Survivors are simple low-poly figures built from primitives, so they stay editable in code.
   const characterMaterials = {

@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { directionDelta } from '../game/directions'
+import { createCorridorCardTexture } from './corridor-card-texture'
 import type { CorridorCard, Direction, SavedRoom } from '../game/types'
 import type { createScene } from '../scene'
 
@@ -8,115 +8,34 @@ type CorridorMaterials = Pick<SceneMaterials, 'start' | 'startTop' | 'floorPanel
 
 export const createCorridorTile = (
   board: THREE.Group,
-  materials: CorridorMaterials,
+  _materials: CorridorMaterials,
   card: CorridorCard,
   x: number,
   z: number,
   exits: Direction[],
   doors: Direction[] = [],
-  usedDoors: Direction[] = [],
+  _usedDoors: Direction[] = [],
 ) => {
   const group = new THREE.Group()
   group.position.set(x * 1.18, 0.025, z * 1.18)
 
-  const base = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.14, 1.18), materials.start)
-  base.position.y = 0.07
-  base.castShadow = true
-  base.receiveShadow = true
-  group.add(base)
+  const sideMaterial = new THREE.MeshStandardMaterial({ color: '#252b2e', roughness: 0.82 })
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.12, 1.08), sideMaterial)
+  slab.position.y = 0.06
+  slab.castShadow = true
+  slab.receiveShadow = true
+  group.add(slab)
 
-  const surface = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.025, 1.08), materials.startTop)
-  surface.position.y = 0.152
-  surface.receiveShadow = true
-  group.add(surface)
-
-  for (let px = -1; px <= 1; px += 1) {
-    for (let pz = -1; pz <= 1; pz += 1) {
-      const panel = new THREE.Mesh(
-        new THREE.BoxGeometry(0.32, 0.009, 0.32),
-        (px + pz) % 2 === 0 ? materials.floorPanel : materials.floorPanelDark,
-      )
-      panel.position.set(px * 0.34, 0.169, pz * 0.34)
-      panel.receiveShadow = true
-      group.add(panel)
-    }
-  }
-
-  const edgeSpecs: Array<{ direction: Direction; position: [number, number, number]; size: [number, number, number] }> = [
-    { direction: 'N', position: [0, 0.31, -0.55], size: [1.08, 0.29, 0.055] },
-    { direction: 'S', position: [0, 0.31, 0.55], size: [1.08, 0.29, 0.055] },
-    { direction: 'E', position: [0.55, 0.31, 0], size: [0.055, 0.29, 1.08] },
-    { direction: 'W', position: [-0.55, 0.31, 0], size: [0.055, 0.29, 1.08] },
-  ]
-
-  for (const edge of edgeSpecs) {
-    if (exits.includes(edge.direction)) continue
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(...edge.size), materials.corridorWall)
-    wall.position.set(...edge.position)
-    wall.castShadow = true
-    wall.receiveShadow = true
-    group.add(wall)
-  }
-
-  for (const direction of doors.filter((item) => !exits.includes(item))) {
-    const horizontal = direction === 'N' || direction === 'S'
-    const edgeOffset = direction === 'N' ? -0.51 : direction === 'S' ? 0.51 : direction === 'W' ? -0.51 : 0.51
-    const door = new THREE.Group()
-    door.userData.doorDirection = direction
-    door.visible = !usedDoors.includes(direction)
-    door.position.set(horizontal ? 0 : edgeOffset, 0, horizontal ? edgeOffset : 0)
-
-    const panel = new THREE.Mesh(
-      new THREE.BoxGeometry(horizontal ? 0.48 : 0.045, 0.235, horizontal ? 0.045 : 0.48),
-      new THREE.MeshStandardMaterial({ color: '#79513f', metalness: 0.62, roughness: 0.48 }),
-    )
-    panel.position.y = 0.31
-    panel.castShadow = true
-    panel.receiveShadow = true
-    door.add(panel)
-
-    const frameMaterial = new THREE.MeshStandardMaterial({ color: '#aab5bd', metalness: 0.8, roughness: 0.32 })
-    for (const side of [-1, 1]) {
-      const post = new THREE.Mesh(
-        new THREE.BoxGeometry(horizontal ? 0.035 : 0.065, 0.29, horizontal ? 0.065 : 0.035),
-        frameMaterial,
-      )
-      post.position.set(horizontal ? side * 0.27 : 0, 0.31, horizontal ? 0 : side * 0.27)
-      door.add(post)
-    }
-
-    const lintel = new THREE.Mesh(
-      new THREE.BoxGeometry(horizontal ? 0.58 : 0.065, 0.035, horizontal ? 0.065 : 0.58),
-      frameMaterial,
-    )
-    lintel.position.y = 0.465
-    door.add(lintel)
-
-    const handle = new THREE.Mesh(
-      new THREE.SphereGeometry(0.018, 8, 6),
-      new THREE.MeshStandardMaterial({ color: '#e5b16c', metalness: 0.6, roughness: 0.35 }),
-    )
-    handle.position.set(horizontal ? 0.16 : 0, 0.31, horizontal ? 0 : 0.16)
-    door.add(handle)
-    group.add(door)
-  }
-
-  for (const direction of exits) {
-    const [dx, dz] = directionDelta[direction]
-    const strip = new THREE.Mesh(
-      new THREE.BoxGeometry(dx === 0 ? 0.76 : 0.035, 0.012, dz === 0 ? 0.76 : 0.035),
-      materials.tileNeon,
-    )
-    strip.position.set(dx * 0.43, 0.18, dz * 0.43)
-    group.add(strip)
-  }
-
-  const marker = new THREE.Mesh(
-    new THREE.BoxGeometry(0.12, 0.025, 0.12),
-    new THREE.MeshBasicMaterial({ color: card.kind === 'cross' ? '#bd7958' : '#75d9ff' }),
+  const texture = createCorridorCardTexture(card.kind, doors, exits)
+  const top = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.065, 1.065),
+    new THREE.MeshBasicMaterial({ map: texture }),
   )
-  marker.position.set(0, 0.19, 0)
-  group.add(marker)
+  top.rotation.x = -Math.PI / 2
+  top.position.y = 0.121
+  top.receiveShadow = true
+  group.add(top)
+
   board.add(group)
   return group
 }
