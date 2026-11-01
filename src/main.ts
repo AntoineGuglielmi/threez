@@ -626,10 +626,10 @@ const renderGameUi = () => {
     handElement.append(button)
   })
 
-  deckCountElement.textContent = String(corridorDeck.length)
-  discardCountElement.textContent = String(discardPile.length)
-  actionsCountElement.textContent = String(actionsRemaining)
-  actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
+  if (deckCountElement) deckCountElement.textContent = String(corridorDeck.length)
+  if (discardCountElement) discardCountElement.textContent = String(discardPile.length)
+  if (actionsCountElement) actionsCountElement.textContent = String(actionsRemaining)
+  if (actionsFillElement) actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
 
   if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
 
