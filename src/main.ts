@@ -340,7 +340,7 @@ const updatePlacementHighlights = () => {
         const pad = new THREE.Mesh(
           new THREE.PlaneGeometry(0.94, 0.94),
           new THREE.MeshBasicMaterial({
-            color: isSelected ? '#75d9ff' : '#4b9cb5',
+            color: isSelected ? '#bd9878' : '#9a8067',
             transparent: true,
             opacity: isSelected ? 0.2 : 0.09,
             depthWrite: false,
@@ -352,7 +352,7 @@ const updatePlacementHighlights = () => {
         const ring = new THREE.Mesh(
           new THREE.RingGeometry(isSelected ? 0.39 : 0.34, isSelected ? 0.43 : 0.37, 4),
           new THREE.MeshBasicMaterial({
-            color: isSelected ? '#bcefff' : '#75d9ff',
+            color: isSelected ? '#ead8c7' : '#bd9878',
             transparent: true,
             opacity: isSelected ? 1 : 0.72,
             side: THREE.DoubleSide,
@@ -366,7 +366,7 @@ const updatePlacementHighlights = () => {
           const [dx, dz] = directionDelta[direction]
           const exitMarker = new THREE.Mesh(
             new THREE.BoxGeometry(dx === 0 ? 0.22 : 0.055, 0.018, dz === 0 ? 0.22 : 0.055),
-            new THREE.MeshBasicMaterial({ color: '#75d9ff' }),
+            new THREE.MeshBasicMaterial({ color: '#bd9878' }),
           )
           exitMarker.position.set(dx * 0.43, 0.02, dz * 0.43)
           marker.add(exitMarker)
@@ -375,7 +375,7 @@ const updatePlacementHighlights = () => {
           const [dx, dz] = directionDelta[direction]
           const doorMarker = new THREE.Mesh(
             new THREE.BoxGeometry(dx === 0 ? 0.22 : 0.055, 0.018, dz === 0 ? 0.22 : 0.055),
-            new THREE.MeshBasicMaterial({ color: '#f0b17a' }),
+            new THREE.MeshBasicMaterial({ color: '#c18b66' }),
           )
           doorMarker.position.set(dx * 0.43, 0.024, dz * 0.43)
           marker.add(doorMarker)
@@ -401,7 +401,7 @@ const updatePlacementHighlights = () => {
       marker.add(pad)
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.34, 0.4, 4),
-        new THREE.MeshBasicMaterial({ color: '#f0b17a', side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({ color: '#c18b66', side: THREE.DoubleSide }),
       )
       ring.rotation.x = -Math.PI / 2
       ring.position.y = 0.006
