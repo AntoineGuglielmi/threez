@@ -850,7 +850,7 @@ const showRoomHoverCard = (room: RoomTile, event: PointerEvent) => {
 
   const difficulty = document.createElement('p')
   difficulty.className = 'room-hover-difficulty'
-  difficulty.textContent = `Difficulté ${getDifficultyLabel(room.difficulty).toLowerCase()}${room.searched ? ' · Déjà fouillée' : ''}`
+  difficulty.textContent = `Difficulté ${getDifficultyLabel(room.difficulty).toLowerCase()}`
 
   const lootHeading = document.createElement('span')
   lootHeading.className = 'room-hover-section'
