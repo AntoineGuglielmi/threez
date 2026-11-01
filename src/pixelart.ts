@@ -2,8 +2,11 @@ import './style.css'
 import { CORRIDOR_PIXEL_MODELS, getCorridorPixelSize, type CorridorPixelTemplateId } from './game/corridor-pixel-templates'
 import { CORRIDOR_PIXEL_CONFIG } from './game/corridor-pixel-config'
 
+type PixelModelId = CorridorPixelTemplateId | 'room-0'
+type PixelModelDefinition = { id: PixelModelId; label: string; doors?: number }
 type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }
-type ModelResponse = { id: CorridorPixelTemplateId; model: CompactModel }
+type ModelResponse = { id: PixelModelId; model: CompactModel }
+const pixelModels: PixelModelDefinition[] = [...CORRIDOR_PIXEL_MODELS, { id: 'room-0', label: 'Pièce (CP)' }]
 const decodeModel = (model: CompactModel): string[] => {
   if ('fill' in model) return Array(model.size ** 2).fill(model.fill)
   const encoded = model.rows.join('')
@@ -15,7 +18,7 @@ const decodeModel = (model: CompactModel): string[] => {
 const response = await fetch('/__corridor-models')
 if (!response.ok) throw new Error('Impossible de charger les modèles JSON.')
 const models = await response.json() as ModelResponse[]
-const templates = Object.fromEntries(models.map(({ id, model }) => [id, decodeModel(model)])) as Record<CorridorPixelTemplateId, string[]>
+const templates = Object.fromEntries(models.map(({ id, model }) => [id, decodeModel(model)])) as Record<PixelModelId, string[]>
 
 document.body.className = 'pixelart-page'
 document.body.innerHTML = `
@@ -53,13 +56,13 @@ const doorCount = root.querySelector<HTMLElement>('#pa-door-count')!
 const dimensions = root.querySelector<HTMLElement>('#pa-dimensions')!
 const status = root.querySelector<HTMLElement>('#pa-save-status')!
 const colors = [...CORRIDOR_PIXEL_CONFIG.editor.palette]
-let activeId: CorridorPixelTemplateId = CORRIDOR_PIXEL_MODELS[0].id
+let activeId: PixelModelId = CORRIDOR_PIXEL_MODELS[0].id
 let activeColor = CORRIDOR_PIXEL_CONFIG.editor.initialColor
 let brushSize = CORRIDOR_PIXEL_CONFIG.editor.brush.initial
 let isPainting = false
-const saveTimers = new Map<CorridorPixelTemplateId, ReturnType<typeof setTimeout>>()
+const saveTimers = new Map<PixelModelId, ReturnType<typeof setTimeout>>()
 let saveQueue = Promise.resolve()
-const save = (id: CorridorPixelTemplateId) => {
+const save = (id: PixelModelId) => {
   window.clearTimeout(saveTimers.get(id))
   status.textContent = 'Modifications en attente…'
   saveTimers.set(id, window.setTimeout(() => {
@@ -78,9 +81,9 @@ const save = (id: CorridorPixelTemplateId) => {
   }, CORRIDOR_PIXEL_CONFIG.editor.saveDebounceMs))
 }
 const renderNav = () => {
-  nav.innerHTML = CORRIDOR_PIXEL_MODELS.map((model) => `
+  nav.innerHTML = pixelModels.map((model) => `
     <button type="button" data-model="${model.id}" class="${model.id === activeId ? 'is-active' : ''}">
-      <span>${model.label}</span><small>${model.doors} porte${model.doors > 1 ? 's' : ''}</small>
+      <span>${model.label}</span><small>${model.doors === undefined ? 'Modèle unique' : `${model.doors} porte${model.doors > 1 ? 's' : ''}`}</small>
     </button>`).join('')
 }
 const renderCanvas = () => {
@@ -101,10 +104,10 @@ const renderCanvas = () => {
   context.putImageData(image, 0, 0)
 }
 const renderGrid = () => {
-  const model = CORRIDOR_PIXEL_MODELS.find((item) => item.id === activeId)!
+  const model = pixelModels.find((item) => item.id === activeId)!
   const size = getCorridorPixelSize(templates[activeId])
   name.textContent = model.label
-  doorCount.textContent = `${model.doors} PORTE${model.doors > 1 ? 'S' : ''}`
+  doorCount.textContent = model.doors === undefined ? 'CARTE PIÈCE' : `${model.doors} PORTE${model.doors > 1 ? 'S' : ''}`
   dimensions.textContent = `${size} × ${size} pixels`
   renderCanvas()
   renderNav()
@@ -119,7 +122,7 @@ paletteElement.addEventListener('click', (event) => {
 nav.addEventListener('click', (event) => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-model]')
   if (!button) return
-  activeId = button.dataset.model as CorridorPixelTemplateId
+  activeId = button.dataset.model as PixelModelId
   renderGrid()
 })
 const paint = (index: number) => {
