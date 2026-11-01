@@ -83,6 +83,16 @@ export const resourceLabels: Record<ResourceType, string> = {
   munition: 'Munition',
 }
 
+export const getRoomResourceChances = (difficulty: RoomDifficulty) =>
+  (Object.keys(resourceLabels) as ResourceType[]).map((resource) => {
+    const threshold = resourceThresholds[difficulty][resource]
+    return {
+      resource,
+      threshold,
+      chancePercent: Math.round(((7 - threshold) / 6) * 100),
+    }
+  })
+
 const resourceThresholds: Record<RoomDifficulty, Record<ResourceType, number>> = {
   easy: { cafe: 4, croissant: 3, citron: 4, bonbon: 3, munition: 4 },
   medium: { cafe: 5, croissant: 4, citron: 5, bonbon: 4, munition: 5 },
