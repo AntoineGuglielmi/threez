@@ -834,7 +834,7 @@ const resize = () => {
   if (width === 0 || height === 0) return
 
   const aspect = width / height
-  const viewHeight = aspect < 1 ? 22 : 19
+  const viewHeight = aspect < 1 ? 13 : 11
   camera.left = (-viewHeight * aspect) / 2
   camera.right = (viewHeight * aspect) / 2
   camera.top = viewHeight / 2
