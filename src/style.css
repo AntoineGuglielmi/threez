@@ -1033,3 +1033,5 @@ button, a { color: inherit; }
   .deck-piles .deck-card-meta, .deck-piles .deck-card-count small { font-size: 10px; }
   .deck-piles .deck-draw-button { min-height: 30px; padding: 5px; font-size: 10px; }
 }
+
+.deck-piles .decks-section { display: grid; }
