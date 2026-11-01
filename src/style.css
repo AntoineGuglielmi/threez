@@ -1209,3 +1209,26 @@ button, a { color: inherit; }
 @media (max-width: 900px) {
   .cc-card { flex-basis: 88px; width: 88px; }
 }
+
+
+/* Keep the corridor illustration at a definite, visible size inside each card. */
+.cc-pixel-art {
+  display: block;
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  min-height: 1px;
+  overflow: hidden;
+  background: #171d20;
+}
+.cc-pixel-art canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+@media (max-width: 900px) {
+  .cc-pixel-art { min-height: 1px; }
+}
