@@ -1381,3 +1381,7 @@ button, a { color: inherit; }
   }
   .camera-controls { top: 10px; left: 10px; }
 }
+
+
+/* The old floating start label no longer belongs to the full-screen board. */
+.tile-label { display: none !important; }
