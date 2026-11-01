@@ -1,4 +1,5 @@
-import type { CorridorKind } from './types'
+import type { CorridorKind, Direction } from './types'
+import { corridorDefinitions, rotateDirection } from './directions'
 import { CORRIDOR_PIXEL_CONFIG } from './corridor-pixel-config'
 
 export const CORRIDOR_PIXEL_SIZE = CORRIDOR_PIXEL_CONFIG.size
@@ -22,6 +23,20 @@ export const getCorridorPixelTemplateId = (kind: CorridorKind, doors: number): C
   const shape = kind === 'left' || kind === 'right' ? 'turn' : kind
   const count = shape === 'tee' ? Math.min(doors, 1) : shape === 'cross' ? 0 : Math.min(doors, 2)
   return `${shape}-${count}` as CorridorPixelTemplateId
+}
+
+export const getCorridorPixelRotation = (kind: CorridorKind, exits: Direction[]): number => {
+  // Turn templates are drawn with openings to the west and south, not in the
+  // logical north-west orientation used by the corridor definitions.
+  const templateExits: Direction[] = kind === 'left' || kind === 'right'
+    ? ['W', 'S']
+    : corridorDefinitions[kind].exits
+
+  return [0, 1, 2, 3].find((turns) => {
+    const rotated = templateExits.map((direction) => rotateDirection(direction, turns))
+    return rotated.every((direction) => exits.includes(direction))
+      && exits.every((direction) => rotated.includes(direction))
+  }) ?? 0
 }
 
 export const rotateCorridorPixels = (source: string[], turns: number): string[] => {
