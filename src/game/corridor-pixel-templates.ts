@@ -1,6 +1,7 @@
 import type { CorridorKind } from './types'
+import { CORRIDOR_PIXEL_CONFIG } from './corridor-pixel-config'
 
-export const CORRIDOR_PIXEL_SIZE = 512
+export const CORRIDOR_PIXEL_SIZE = CORRIDOR_PIXEL_CONFIG.size
 export const getCorridorPixelSize = (pixels: string[]): number => Math.sqrt(pixels.length)
 export const CORRIDOR_PIXEL_MODELS = [
   { id: 'straight-0', kind: 'straight', label: 'Couloir droit', doors: 0 },
@@ -56,4 +57,4 @@ export const corridorPixelTemplates = Object.fromEntries(
   Object.entries(modelFiles).map(([path, data]) => [path.split('/').pop()!.replace('.json', ''), decodeModel(Object.values(data)[0])]),
 ) as Partial<CorridorPixelTemplates>
 export const getCorridorPixelTemplate = (id: CorridorPixelTemplateId): string[] =>
-  corridorPixelTemplates[id] ?? Array(CORRIDOR_PIXEL_SIZE ** 2).fill('#171d20')
+  corridorPixelTemplates[id] ?? Array(CORRIDOR_PIXEL_SIZE ** 2).fill(CORRIDOR_PIXEL_CONFIG.background)

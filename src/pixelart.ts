@@ -1,5 +1,6 @@
 import './style.css'
 import { CORRIDOR_PIXEL_MODELS, getCorridorPixelSize, type CorridorPixelTemplateId } from './game/corridor-pixel-templates'
+import { CORRIDOR_PIXEL_CONFIG } from './game/corridor-pixel-config'
 
 type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }
 type ModelResponse = { id: CorridorPixelTemplateId; model: CompactModel }
@@ -34,7 +35,7 @@ document.body.innerHTML = `
             <label class="pa-custom-label">Couleur personnalisée<input id="pa-custom" type="color" value="#626b6d"></label>
             <label class="pa-brush-control" for="pa-brush-size">
               <span>Taille du pinceau <output id="pa-brush-value">1 × 1</output></span>
-              <input id="pa-brush-size" type="range" min="1" max="9" step="1" value="1">
+              <input id="pa-brush-size" type="range" min="${CORRIDOR_PIXEL_CONFIG.editor.brush.min}" max="${CORRIDOR_PIXEL_CONFIG.editor.brush.max}" step="1" value="${CORRIDOR_PIXEL_CONFIG.editor.brush.initial}">
             </label>
             <div class="pa-tool-actions"><button id="pa-fill" type="button">Remplir</button><button id="pa-clear" type="button">Tout effacer</button></div>
             <p class="pa-help">Chaque modification est enregistrée dans le fichier JSON du modèle. Les modèles déjà dessinés sont chargés directement depuis le projet.</p>
@@ -51,10 +52,10 @@ const name = root.querySelector<HTMLElement>('#pa-model-name')!
 const doorCount = root.querySelector<HTMLElement>('#pa-door-count')!
 const dimensions = root.querySelector<HTMLElement>('#pa-dimensions')!
 const status = root.querySelector<HTMLElement>('#pa-save-status')!
-const colors = ['#171d20','#30383b','#354144','#4b5659','#626b6d','#707875','#858b83','#a4a99e','#c2c2b2','#d0b18a','#76513d','#b47d56','#3f3029','#c0c7bf','#783d3b','#a64c47']
+const colors = [...CORRIDOR_PIXEL_CONFIG.editor.palette]
 let activeId: CorridorPixelTemplateId = CORRIDOR_PIXEL_MODELS[0].id
 let activeColor = colors[4]
-let brushSize = 1
+let brushSize = CORRIDOR_PIXEL_CONFIG.editor.brush.initial
 let isPainting = false
 const saveTimers = new Map<CorridorPixelTemplateId, ReturnType<typeof setTimeout>>()
 let saveQueue = Promise.resolve()
@@ -74,7 +75,7 @@ const save = (id: CorridorPixelTemplateId) => {
     }).catch((error: unknown) => {
       status.textContent = error instanceof Error ? error.message : 'Erreur d’enregistrement'
     })
-  }, 500))
+  }, CORRIDOR_PIXEL_CONFIG.editor.saveDebounceMs))
 }
 const renderNav = () => {
   nav.innerHTML = CORRIDOR_PIXEL_MODELS.map((model) => `
@@ -185,7 +186,7 @@ root.querySelector<HTMLButtonElement>('#pa-fill')!.addEventListener('click', () 
   save(activeId)
 })
 root.querySelector<HTMLButtonElement>('#pa-clear')!.addEventListener('click', () => {
-  templates[activeId] = Array(getCorridorPixelSize(templates[activeId]) ** 2).fill('#171d20')
+  templates[activeId] = Array(getCorridorPixelSize(templates[activeId]) ** 2).fill(CORRIDOR_PIXEL_CONFIG.background)
   renderGrid()
   save(activeId)
 })

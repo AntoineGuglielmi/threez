@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { CORRIDOR_PIXEL_CONFIG } from './src/game/corridor-pixel-config'
 
 const modelIds = ['straight-0','straight-1','straight-2','turn-0','turn-1','turn-2','tee-0','tee-1','cross-0'] as const
 const modelsDirectory = path.resolve(process.cwd(), 'references/models')
@@ -45,9 +46,9 @@ const corridorModelsPlugin = () => ({
           let body = ''
           for await (const chunk of request) body += chunk
           const parsed = JSON.parse(body) as { pixels?: unknown }
-          if (!Array.isArray(parsed.pixels) || parsed.pixels.length !== 512 ** 2 || !parsed.pixels.every((color) => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) {
+          if (!Array.isArray(parsed.pixels) || parsed.pixels.length !== CORRIDOR_PIXEL_CONFIG.size ** 2 || !parsed.pixels.every((color) => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) {
             response.statusCode = 400
-            response.end('Expected 262144 hexadecimal color values (512 × 512)')
+            response.end('Expected ${CORRIDOR_PIXEL_CONFIG.size ** 2} hexadecimal color values (${CORRIDOR_PIXEL_CONFIG.size} × ${CORRIDOR_PIXEL_CONFIG.size})')
             return
           }
           await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: encodeModel(parsed.pixels) }, null, 2) + '\n', 'utf8')
