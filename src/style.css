@@ -1061,7 +1061,7 @@ button, a { color: inherit; }
 }
 
 
-/* Quiet, tactile card piles */
+/* Compact square card piles with loose, irregularly spread cards */
 .deck-piles {
   position: absolute;
   z-index: 4;
@@ -1069,60 +1069,68 @@ button, a { color: inherit; }
   right: calc(360px + 22px);
   display: flex;
   align-items: flex-start;
-  gap: 18px;
+  gap: 22px;
 }
 .deck-stack {
   position: relative;
   width: 88px;
-  height: 122px;
+  height: 88px;
   flex: 0 0 88px;
   cursor: pointer;
   outline: none;
   transition: transform .18s ease, opacity .18s ease;
 }
 .deck-stack:hover:not(.is-disabled) { transform: translateY(-4px); }
-.deck-stack:focus-visible { outline: 2px solid #bd9878; outline-offset: 6px; border-radius: 12px; }
+.deck-stack:focus-visible { outline: 2px solid #bd9878; outline-offset: 7px; border-radius: 10px; }
 .deck-stack.is-disabled { cursor: default; opacity: .58; }
 .deck-stack-card {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(36, 31, 27, .24);
-  border-radius: 10px;
-  box-shadow: 0 5px 12px rgba(0,0,0,.24);
+  border: 1px solid rgba(0, 0, 0, .55);
+  border-radius: 9px;
+  background: #20272b;
+  box-shadow: 0 5px 12px rgba(0,0,0,.28);
 }
 .deck-stack-card-back {
-  background: #e5ded2;
-  transform: translate(5px, 3px) rotate(7deg);
+  transform: translate(9px, -3px) rotate(12deg);
 }
 .deck-stack-card-middle {
-  background: #d7cfc2;
-  transform: translate(-4px, 2px) rotate(-5deg);
+  transform: translate(-7px, 5px) rotate(-9deg);
+}
+.deck-stack-card-loose {
+  transform: translate(4px, 8px) rotate(4deg);
 }
 .deck-stack-card-top {
   inset: 0;
-  border: 1px solid rgba(255,255,255,.34);
-  color: #f8f3ec;
-  font: 700 15px/1.1 'DM Sans', sans-serif;
+  border: 2px solid var(--deck-accent);
+  background: #171d21;
+  color: #e9e5de;
+  font: 650 14px/1.1 'DM Sans', sans-serif;
   letter-spacing: -.02em;
   text-shadow: none;
+  box-shadow: 0 5px 12px rgba(0,0,0,.32), inset 0 0 0 1px rgba(255,255,255,.035);
 }
-.deck-stack-corridor .deck-stack-card-top { background: #806a58; }
-.deck-stack-room .deck-stack-card-top { background: #66745f; }
-.deck-stack-corridor .deck-stack-card-middle { background: #c8b8a7; }
-.deck-stack-room .deck-stack-card-middle { background: #c2c7b5; }
-.deck-stack-corridor .deck-stack-card-back { background: #d8c9b9; }
-.deck-stack-room .deck-stack-card-back { background: #d4d8c9; }
+.deck-stack-corridor { --deck-accent: #b68b68; }
+.deck-stack-room { --deck-accent: #829477; }
+.deck-stack-corridor .deck-stack-card-top,
+.deck-stack-corridor .deck-stack-card-back,
+.deck-stack-corridor .deck-stack-card-middle,
+.deck-stack-corridor .deck-stack-card-loose { border-color: #b68b68; }
+.deck-stack-room .deck-stack-card-top,
+.deck-stack-room .deck-stack-card-back,
+.deck-stack-room .deck-stack-card-middle,
+.deck-stack-room .deck-stack-card-loose { border-color: #829477; }
 @media (max-width: 900px) {
-  .deck-piles { top: 12px; right: 12px; gap: 12px; }
-  .deck-stack { width: 70px; height: 98px; flex-basis: 70px; }
+  .deck-piles { top: 12px; right: 12px; gap: 14px; }
+  .deck-stack { width: 70px; height: 70px; flex-basis: 70px; }
   .deck-stack-card { border-radius: 8px; }
   .deck-stack-card-top { font-size: 12px; }
 }
 @media (max-width: 520px) {
-  .deck-piles { top: 10px; right: 10px; gap: 10px; }
-  .deck-stack { width: 58px; height: 82px; flex-basis: 58px; }
+  .deck-piles { top: 10px; right: 10px; gap: 12px; }
+  .deck-stack { width: 58px; height: 58px; flex-basis: 58px; }
   .deck-stack-card-top { font-size: 11px; }
 }
 
