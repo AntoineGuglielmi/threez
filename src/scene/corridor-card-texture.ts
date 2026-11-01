@@ -1,6 +1,5 @@
 import * as THREE from 'three'
-import { corridorDefinitions, rotateDirection } from '../game/directions'
-import { getCorridorPixelTemplate, getCorridorPixelTemplateId, rotateCorridorPixels, getCorridorPixelSize } from '../game/corridor-pixel-templates'
+import { getCorridorPixelTemplate, getCorridorPixelTemplateId, getCorridorPixelRotation, rotateCorridorPixels, getCorridorPixelSize } from '../game/corridor-pixel-templates'
 import type { CorridorKind, Direction } from '../game/types'
 
 export const createCorridorCardTexture = (
@@ -10,11 +9,7 @@ export const createCorridorCardTexture = (
 ): THREE.CanvasTexture => {
   const templateId = getCorridorPixelTemplateId(kind, doors.length)
   const source = getCorridorPixelTemplate(templateId)
-  const baseExits = corridorDefinitions[kind].exits
-  const turns = [0, 1, 2, 3].find((rotation) =>
-    baseExits.every((direction) => exits.includes(rotateDirection(direction, rotation)))
-    && exits.every((direction) => baseExits.map((item) => rotateDirection(item, rotation)).includes(direction)),
-  ) ?? 0
+  const turns = getCorridorPixelRotation(kind, exits)
   const pixels = rotateCorridorPixels(source, turns)
   const size = getCorridorPixelSize(pixels)
   const canvas = document.createElement('canvas')
