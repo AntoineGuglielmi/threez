@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { CORRIDOR_PIXEL_CONFIG } from './src/game/corridor-pixel-config'
 
-const modelIds = ['straight-0','straight-1','straight-2','turn-0','turn-1','turn-2','tee-0','tee-1','cross-0'] as const
+const modelIds = ['straight-0','straight-1','straight-2','turn-0','turn-1','turn-2','tee-0','tee-1','cross-0','room-0'] as const
 const modelsDirectory = path.resolve(process.cwd(), 'references/models')
 
 type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }
