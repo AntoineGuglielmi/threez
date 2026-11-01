@@ -1,4 +1,4 @@
-import { CORRIDOR_PIXEL_CONFIG } from '../game/corridor-pixel-config'
+import { CORRIDOR_PIXEL_CONFIG } from './corridor-pixel-config'
 
 type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }
 
