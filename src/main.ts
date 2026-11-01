@@ -6,7 +6,7 @@ import { readSavedGameState, STORAGE_KEY } from './game/persistence'
 import { shuffle } from './game/random'
 import { createCorridorCardFactory } from './game/corridor-cards'
 import { createRoomCardFactory } from './game/room-cards'
-import { getAvailableRoomDoors, getCorridorPlacements, resourceLabels, rollRoomSearch } from './game/rules'
+import { getAvailableRoomDoors, getCorridorPlacements, getRoomResourceChances, resourceLabels, rollRoomSearch } from './game/rules'
 import { evaluateCorridorMove } from './game/movement'
 import { createCorridorHandCard } from './ui/corridor-hand-card'
 import { setupBoardViewport } from './ui/board-viewport'
@@ -824,8 +824,86 @@ const resize = () => {
 
 const raycaster = new THREE.Raycaster()
 const pointer = new THREE.Vector2()
+const roomHoverCard = document.querySelector<HTMLDivElement>('#room-hover-card')
+
+const hideRoomHoverCard = () => {
+  if (roomHoverCard) roomHoverCard.hidden = true
+}
+
+const showRoomHoverCard = (room: RoomTile, event: PointerEvent) => {
+  if (!roomHoverCard) return
+
+  const status = room.status === 'locked'
+    ? room.unlocked ? 'Déverrouillée' : 'Verrouillée'
+    : room.status === 'trapped' ? 'Piégée' : 'Non verrouillée'
+  const statusClass = room.status === 'locked' && !room.unlocked
+    ? 'is-locked'
+    : room.status === 'trapped' ? 'is-trapped' : 'is-safe'
+
+  const heading = document.createElement('strong')
+  heading.className = 'room-hover-title'
+  heading.textContent = `Pièce ${String(room.id).padStart(2, '0')}`
+
+  const statusLine = document.createElement('div')
+  statusLine.className = `room-hover-status ${statusClass}`
+  statusLine.textContent = status
+
+  const difficulty = document.createElement('p')
+  difficulty.className = 'room-hover-difficulty'
+  difficulty.textContent = `Difficulté ${getDifficultyLabel(room.difficulty).toLowerCase()}${room.searched ? ' · Déjà fouillée' : ''}`
+
+  const lootHeading = document.createElement('span')
+  lootHeading.className = 'room-hover-section'
+  lootHeading.textContent = 'Chances de trouver'
+
+  const lootList = document.createElement('div')
+  lootList.className = 'room-hover-loot'
+  getRoomResourceChances(room.difficulty).forEach(({ resource, chancePercent }) => {
+    const row = document.createElement('div')
+    row.className = 'room-hover-loot-row'
+    const name = document.createElement('span')
+    name.textContent = resourceLabels[resource]
+    const chance = document.createElement('strong')
+    chance.textContent = `${chancePercent} %`
+    row.append(name, chance)
+    lootList.append(row)
+  })
+
+  roomHoverCard.replaceChildren(heading, statusLine, difficulty, lootHeading, lootList)
+  const bounds = roomHoverCard.parentElement?.getBoundingClientRect()
+  if (bounds) {
+    const left = event.clientX - bounds.left
+    const top = event.clientY - bounds.top
+    roomHoverCard.style.left = `${Math.max(8, Math.min(left + 18, bounds.width - 252))}px`
+    roomHoverCard.style.top = `${Math.max(8, Math.min(top + 18, bounds.height - 206))}px`
+  }
+  roomHoverCard.hidden = false
+}
 let zoom = THREE.MathUtils.clamp(savedGameState?.zoom ?? 1, 1, 3.2)
 let currentZoom = zoom
+renderer.domElement.addEventListener('pointermove', (event) => {
+  if (viewport.hasDragged() || phase !== 'actions' || currentRoomId !== null || pendingRoomDraw || selectedCardId !== null) {
+    hideRoomHoverCard()
+    return
+  }
+
+  const hit = resolveBoardHit({
+    event,
+    canvas: renderer.domElement,
+    camera,
+    raycaster,
+    pointer,
+    mode: 'normal',
+    roomPlacementHighlights,
+    placementHighlights,
+    rooms,
+    boardTiles,
+  })
+  if (hit.type === 'room') showRoomHoverCard(hit.room, event)
+  else hideRoomHoverCard()
+})
+renderer.domElement.addEventListener('pointerleave', hideRoomHoverCard)
+
 const cameraTarget = new THREE.Vector3(savedGameState?.cameraTarget.x ?? 0, 0, savedGameState?.cameraTarget.z ?? 0)
 const cameraDistance = Math.hypot(13, 13)
 const initialCameraAngle = Math.atan2(13, 13)
