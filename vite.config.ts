@@ -48,7 +48,7 @@ const corridorModelsPlugin = () => ({
           const parsed = JSON.parse(body) as { pixels?: unknown }
           if (!Array.isArray(parsed.pixels) || parsed.pixels.length !== CORRIDOR_PIXEL_CONFIG.size ** 2 || !parsed.pixels.every((color) => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) {
             response.statusCode = 400
-            response.end('Expected ${CORRIDOR_PIXEL_CONFIG.size ** 2} hexadecimal color values (${CORRIDOR_PIXEL_CONFIG.size} × ${CORRIDOR_PIXEL_CONFIG.size})')
+            response.end(`Expected ${CORRIDOR_PIXEL_CONFIG.size ** 2} hexadecimal color values (${CORRIDOR_PIXEL_CONFIG.size} × ${CORRIDOR_PIXEL_CONFIG.size})`)
             return
           }
           await writeFile(path.join(modelsDirectory, id + '.json'), JSON.stringify({ [id]: encodeModel(parsed.pixels) }, null, 2) + '\n', 'utf8')

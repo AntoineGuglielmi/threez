@@ -27,7 +27,7 @@ export const rotateCorridorPixels = (source: string[], turns: number): string[] 
   const size = getCorridorPixelSize(source)
   let output = [...source]
   for (let turn = 0; turn < ((turns % 4) + 4) % 4; turn += 1) {
-    const rotated = Array(size * size).fill('#171d20')
+    const rotated = Array(size * size).fill(CORRIDOR_PIXEL_CONFIG.background)
     for (let y = 0; y < size; y += 1) for (let x = 0; x < size; x += 1) {
       rotated[x * size + (size - 1 - y)] = output[y * size + x]
     }
