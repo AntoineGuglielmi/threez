@@ -30,9 +30,9 @@ document.body.innerHTML = `
       <section class="pa-editor">
         <header class="pa-editor-heading"><div><span id="pa-door-count"></span><h2 id="pa-model-name"></h2></div><span id="pa-dimensions"></span></header>
         <div class="pa-workspace">
-          <div class="pa-canvas-wrap"><canvas class="pa-grid" width="512" height="512" role="grid" aria-label="Grille de dessin"></canvas></div>
+          <div class="pa-canvas-wrap"><canvas class="pa-grid" width="${CORRIDOR_PIXEL_CONFIG.size}" height="${CORRIDOR_PIXEL_CONFIG.size}" role="grid" aria-label="Grille de dessin"></canvas></div>
           <aside class="pa-tools"><h3>Couleur</h3><div class="pa-palette"></div>
-            <label class="pa-custom-label">Couleur personnalisée<input id="pa-custom" type="color" value="#626b6d"></label>
+            <label class="pa-custom-label">Couleur personnalisée<input id="pa-custom" type="color" value="${CORRIDOR_PIXEL_CONFIG.editor.initialColor}"></label>
             <label class="pa-brush-control" for="pa-brush-size">
               <span>Taille du pinceau <output id="pa-brush-value">1 × 1</output></span>
               <input id="pa-brush-size" type="range" min="${CORRIDOR_PIXEL_CONFIG.editor.brush.min}" max="${CORRIDOR_PIXEL_CONFIG.editor.brush.max}" step="1" value="${CORRIDOR_PIXEL_CONFIG.editor.brush.initial}">
@@ -54,7 +54,7 @@ const dimensions = root.querySelector<HTMLElement>('#pa-dimensions')!
 const status = root.querySelector<HTMLElement>('#pa-save-status')!
 const colors = [...CORRIDOR_PIXEL_CONFIG.editor.palette]
 let activeId: CorridorPixelTemplateId = CORRIDOR_PIXEL_MODELS[0].id
-let activeColor = colors[4]
+let activeColor = CORRIDOR_PIXEL_CONFIG.editor.initialColor
 let brushSize = CORRIDOR_PIXEL_CONFIG.editor.brush.initial
 let isPainting = false
 const saveTimers = new Map<CorridorPixelTemplateId, ReturnType<typeof setTimeout>>()

@@ -6,6 +6,7 @@ export const CORRIDOR_PIXEL_CONFIG = {
   size: 64,
   background: '#171d20',
   editor: {
+    initialColor: '#626b6d',
     palette: [
       '#171d20', '#30383b', '#354144', '#4b5659',
       '#626b6d', '#707875', '#858b83', '#a4a99e',
