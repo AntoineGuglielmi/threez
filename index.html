@@ -38,6 +38,45 @@
           <div class="actions-track" aria-hidden="true"><div id="actions-fill"></div></div>
           <p id="phase-label" class="phase-label">Phase 1 — Compléter la main à 3 couloirs</p>
 
+
+
+          <section class="room-exploration" aria-label="Actions dans la pièce" hidden>
+            <div class="section-heading"><h2>Pièce actuelle</h2></div>
+            <p id="room-state" class="room-state"></p>
+            <div id="room-result" class="room-result" aria-live="polite"></div>
+            <div id="cp-door-options" class="cp-door-options"></div>
+            <button id="unlock-room" class="action-button primary" hidden>Déverrouiller · 1 action</button>
+            <button id="return-room" class="action-button subtle" hidden>Retour au couloir · 1 action</button>
+          </section>
+
+          <section class="hand-disclosure" aria-label="Couloirs en main">
+            <div class="sidebar-section-heading"><h2>Couloirs en main</h2><strong id="cc-hand-count">3 cartes</strong></div>
+            <div id="cc-hand" class="cc-hand"></div>
+            <p id="game-status" class="game-status" role="status">Sélectionnez un couloir pour afficher les emplacements possibles sur le plateau.</p>
+            <div class="game-actions">
+              <p class="hand-placement-hint">Sélectionnez un couloir, puis cliquez sur un emplacement lumineux du plateau.</p>
+              <button id="place-cc" class="action-button primary" disabled hidden>Valider la pose</button>
+              <button id="rotate-cc" class="action-button" disabled hidden>Tourner</button>
+              <button id="cancel-placement" class="action-button subtle" disabled hidden>Annuler</button>
+              <button id="discard-cc" class="action-button subtle" disabled>Défausser la pioche</button>
+              <button id="replace-cc" class="action-button subtle" disabled>Remplacer un couloir en main</button>
+            </div>
+          </section>
+
+          <section class="inventory-disclosure" aria-label="Ressources">
+            <div class="sidebar-section-heading"><h2>Ressources</h2><strong>Inventaire</strong></div>
+            <div class="resource-grid">
+              <span>Café <b id="resource-cafe">0</b></span>
+              <span>Croissant <b id="resource-croissant">0</b></span>
+              <span>Citron <b id="resource-citron">0</b></span>
+              <span>Bonbon acidulé <b id="resource-bonbon">0</b></span>
+              <span>Munition <b id="resource-munition">0</b></span>
+            </div>
+          </section>
+          <button id="end-turn" class="end-turn">Terminer le tour <span>↗</span></button>
+          <button id="reset-game" class="reset-button" type="button">Réinitialiser la partie</button>
+        </aside>
+        <aside class="deck-piles" aria-label="Pioches">
           <section class="decks-section" aria-label="Pioches">
             <div class="deck-card">
               <div class="deck-card-top"><span class="pile-icon" aria-hidden="true"><span class="pile-shape corridor-shape"></span></span><span class="deck-card-count"><strong id="cc-deck-count">37</strong><small>cartes</small></span></div>
@@ -53,42 +92,6 @@
               <button id="draw-cp" class="action-button primary deck-draw-button">Piocher une pièce</button>
             </div>
           </section>
-
-          <section class="room-exploration" aria-label="Pièce à proximité">
-            <div class="section-heading"><h2>À proximité</h2><span>EXPLORATION</span></div>
-            <p id="room-state" class="room-state">Aucune pièce à proximité</p>
-            <div id="room-result" class="room-result" aria-live="polite"></div>
-            <div id="cp-door-options" class="cp-door-options">Aucune porte sur ce couloir</div>
-            <button id="unlock-room" class="action-button primary" hidden>Déverrouiller · 1 action</button>
-            <button id="return-room" class="action-button subtle" hidden>Retour au couloir · 1 action</button>
-          </section>
-
-          <details class="hand-disclosure">
-            <summary><span>Couloirs en main</span><strong id="cc-hand-count">3 cartes</strong></summary>
-            <div id="cc-hand" class="cc-hand"></div>
-            <p id="game-status" class="game-status" role="status">Sélectionnez un couloir pour afficher les emplacements possibles sur le plateau.</p>
-            <div class="game-actions">
-              <p class="hand-placement-hint">Sélectionnez un couloir, puis cliquez sur un emplacement lumineux du plateau.</p>
-              <button id="place-cc" class="action-button primary" disabled hidden>Valider la pose</button>
-              <button id="rotate-cc" class="action-button" disabled hidden>Tourner</button>
-              <button id="cancel-placement" class="action-button subtle" disabled hidden>Annuler</button>
-              <button id="discard-cc" class="action-button subtle" disabled>Défausser la pioche</button>
-              <button id="replace-cc" class="action-button subtle" disabled>Remplacer un couloir en main</button>
-            </div>
-          </details>
-
-          <details class="inventory-disclosure">
-            <summary><span>Ressources</span><strong>Inventaire</strong></summary>
-            <div class="resource-grid">
-              <span>Café <b id="resource-cafe">0</b></span>
-              <span>Croissant <b id="resource-croissant">0</b></span>
-              <span>Citron <b id="resource-citron">0</b></span>
-              <span>Bonbon acidulé <b id="resource-bonbon">0</b></span>
-              <span>Munition <b id="resource-munition">0</b></span>
-            </div>
-          </details>
-          <button id="end-turn" class="end-turn">Terminer le tour <span>↗</span></button>
-          <button id="reset-game" class="reset-button" type="button">Réinitialiser la partie</button>
         </aside>
         <aside id="room-hover-card" class="room-hover-card" aria-live="polite" hidden></aside>
         <div class="tile-label" aria-hidden="true"><span class="tile-label-dot"></span> DÉPART <b>CD</b></div>
