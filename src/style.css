@@ -544,7 +544,7 @@ button, a { color: inherit; }
   height: 42px;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(117, 217, 255, .45);
+  border: 1px solid rgba(189, 152, 120, .24);
   border-radius: 50%;
   background: radial-gradient(circle at 50% 25%, #314955, #111a20 72%);
 }
@@ -853,7 +853,7 @@ button, a { color: inherit; }
   z-index: 6;
   width: 236px;
   padding: 12px;
-  border: 1px solid rgba(117, 217, 255, .32);
+  border: 1px solid rgba(189, 152, 120, .22);
   background: rgba(8, 12, 16, .96);
   box-shadow: 0 12px 34px rgba(0, 0, 0, .48);
   color: #e5e8ec;
