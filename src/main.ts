@@ -603,7 +603,6 @@ const renderGameUi = () => {
     const cardTurns = selected ? selectedCardTurns : 0
     const button = createCorridorHandCard({
       card,
-      index,
       selected,
       turns: cardTurns,
       disabled: phase !== 'actions' || Boolean(pendingDraw) || activeSurvivorKind === 'injured',
