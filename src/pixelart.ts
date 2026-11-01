@@ -29,7 +29,7 @@ document.body.innerHTML = `
       <span class="pa-save-status" id="pa-save-status">Modèles chargés</span>
     </header>
     <div class="pa-layout">
-      <nav class="pa-model-list" aria-label="Modèles de couloirs"></nav>
+      <nav class="pa-model-list" aria-label="Modèles de cartes"></nav>
       <section class="pa-editor">
         <header class="pa-editor-heading"><div><span id="pa-door-count"></span><h2 id="pa-model-name"></h2></div><span id="pa-dimensions"></span></header>
         <div class="pa-workspace">
