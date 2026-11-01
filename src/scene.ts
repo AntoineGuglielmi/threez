@@ -46,7 +46,7 @@ export const createScene = (activeSurvivorKind: SurvivorKind) => {
   scene.add(fillLight)
 
   const materials = {
-    floor: new THREE.MeshStandardMaterial({ color: '#080a0d', roughness: 1 }),
+    floor: new THREE.MeshStandardMaterial({ color: '#11171c', roughness: 1 }),
     start: new THREE.MeshStandardMaterial({ color: '#39302d', roughness: 0.9 }),
     startTop: new THREE.MeshStandardMaterial({
       color: '#747d84',
@@ -101,13 +101,13 @@ export const createScene = (activeSurvivorKind: SurvivorKind) => {
 
   // A broad placement grid fades into darkness instead of ending at a board border.
   const gridSize = 120
-  const grid = new THREE.GridHelper(gridSize, gridSize, '#343940', '#24282e')
+  const grid = new THREE.GridHelper(gridSize, gridSize, '#65717a', '#424b53')
   grid.position.y = -0.012
   const gridMaterials = Array.isArray(grid.material) ? grid.material : [grid.material]
   gridMaterials.forEach((material) => {
     const lineMaterial = material as THREE.LineBasicMaterial
     lineMaterial.transparent = true
-    lineMaterial.opacity = 0.42
+    lineMaterial.opacity = 0.78
     lineMaterial.depthWrite = false
   })
   scene.add(grid)
@@ -131,7 +131,7 @@ export const createScene = (activeSurvivorKind: SurvivorKind) => {
 
   const slab = new THREE.Mesh(
     new THREE.BoxGeometry(1.08, 0.12, 1.08),
-    new THREE.MeshStandardMaterial({ color: '#252b2e', roughness: 0.82 }),
+    new THREE.MeshStandardMaterial({ color: '#424b50', roughness: 0.82 }),
   )
   slab.position.y = 0.06
   slab.castShadow = true
