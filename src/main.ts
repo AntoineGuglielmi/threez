@@ -443,25 +443,28 @@ const confirmPlacement = () => {
   renderGameUi()
 }
 
-const refillHand = () => {
-  if (phase !== 'draw' || activeSurvivorKind === 'injured') return
-  let drawn = 0
-  while (hand.length < 3) {
-    if (corridorDeck.length === 0 && discardPile.length > 0) {
-      corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
-    }
-    const card = corridorDeck.pop()
-    if (!card) break
-    hand.push(card)
-    drawn += 1
+const drawCorridorCard = () => {
+  if (phase !== 'draw' || activeSurvivorKind === 'injured' || hand.length >= 3) return
+
+  if (corridorDeck.length === 0 && discardPile.length > 0) {
+    corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
   }
-  phase = 'actions'
+
+  const card = corridorDeck.pop()
+  if (!card) {
+    phase = 'actions'
+    setStatus('La pioche est épuisée. Vous pouvez passer aux actions.')
+  } else {
+    hand.push(card)
+    setStatus(hand.length >= 3
+      ? 'Main complète. Phase d’actions.'
+      : `Couloir pioché. Encore ${3 - hand.length} carte${3 - hand.length > 1 ? 's' : ''} à piocher.`)
+  }
+
+  if (hand.length >= 3) phase = 'actions'
   selectedCardId = null
   placementPreview = null
   pendingDraw = null
-  setStatus(drawn > 0
-    ? `Main complétée : ${drawn} carte${drawn > 1 ? 's' : ''} piochée${drawn > 1 ? 's' : ''}. Phase d’actions.`
-    : 'Phase d’actions : votre main contient déjà 3 couloirs, ou la pioche est épuisée.')
   saveGameState()
   renderGameUi()
 }
@@ -735,7 +738,7 @@ drawButton?.addEventListener('keydown', (event) => {
   const stack = event.currentTarget
   if ((event.key === 'Enter' || event.key === ' ') && stack instanceof HTMLElement && stack.getAttribute('aria-disabled') !== 'true') {
     event.preventDefault()
-    refillHand()
+    drawCorridorCard()
   }
 })
 placeButton?.addEventListener('click', confirmPlacement)
