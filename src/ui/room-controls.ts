@@ -4,7 +4,7 @@ type RoomControlsOptions = {
   roomDeckCountElement: HTMLElement | null
   roomDoorOptionsElement: HTMLDivElement | null
   roomStateElement: HTMLElement | null
-  drawRoomButton: HTMLButtonElement | null
+  drawRoomButton: HTMLElement | null
   roomResultElement: HTMLDivElement | null
   unlockRoomButton: HTMLButtonElement | null
   returnRoomButton: HTMLButtonElement | null
@@ -53,8 +53,9 @@ export const renderRoomControls = ({
   roomDoorOptionsElement.replaceChildren()
   const currentRoom = currentRoomId === null ? null : rooms.find((room) => room.id === currentRoomId) ?? null
   if (drawRoomButton) {
-    drawRoomButton.disabled = phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId !== null || availableDoors.length === 0 || roomDeckLength === 0 || pendingRoomDraw !== null
-    drawRoomButton.textContent = pendingRoomDraw ? 'Choisir un emplacement' : 'Piocher une pièce'
+    const disabled = phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId !== null || availableDoors.length === 0 || roomDeckLength === 0 || pendingRoomDraw !== null
+    drawRoomButton.setAttribute('aria-disabled', String(disabled))
+    drawRoomButton.classList.toggle('is-disabled', disabled)
   }
   if (roomResultElement) roomResultElement.replaceChildren()
   if (roomSection) roomSection.hidden = !currentRoom
