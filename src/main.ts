@@ -133,7 +133,7 @@ const discardCountElement = document.querySelector<HTMLElement>('#cc-discard-cou
 const actionsCountElement = document.querySelector<HTMLElement>('#actions-count')
 const actionsFillElement = document.querySelector<HTMLDivElement>('#actions-fill')
 const statusElement = document.querySelector<HTMLParagraphElement>('#game-status')
-const drawButton = document.querySelector<HTMLButtonElement>('#draw-cc')
+const drawButton = document.querySelector<HTMLElement>('#draw-cc')
 const placeButton = document.querySelector<HTMLButtonElement>('#place-cc')
 const rotateButton = document.querySelector<HTMLButtonElement>('#rotate-cc')
 const cancelPlacementButton = document.querySelector<HTMLButtonElement>('#cancel-placement')
@@ -469,7 +469,7 @@ const refillHand = () => {
 
 const roomDoorOptionsElement = document.querySelector<HTMLDivElement>('#cp-door-options')
 const roomDeckCountElement = document.querySelector<HTMLElement>('#cp-deck-count')
-const drawRoomButton = document.querySelector<HTMLButtonElement>('#draw-cp')
+const drawRoomButton = document.querySelector<HTMLElement>('#draw-cp')
 const roomStateElement = document.querySelector<HTMLElement>('#room-state')
 const roomResultElement = document.querySelector<HTMLDivElement>('#room-result')
 const unlockRoomButton = document.querySelector<HTMLButtonElement>('#unlock-room')
@@ -677,8 +677,9 @@ const renderGameUi = () => {
   if (discardButton) discardButton.disabled = !pendingDraw
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
   if (drawButton) {
-    drawButton.disabled = phase !== 'draw' || hand.length >= 3 || activeSurvivorKind === 'injured'
-    drawButton.textContent = phase === 'draw' ? 'Compléter ma main' : 'Pioche terminée'
+    const disabled = phase !== 'draw' || hand.length >= 3 || activeSurvivorKind === 'injured'
+    drawButton.setAttribute('aria-disabled', String(disabled))
+    drawButton.classList.toggle('is-disabled', disabled)
   }
   if (endTurnButton) endTurnButton.disabled = phase !== 'actions' || Boolean(pendingDraw) || Boolean(pendingRoomDraw)
 
@@ -716,9 +717,24 @@ const renderGameUi = () => {
 
 unlockRoomButton?.addEventListener('click', unlockCurrentRoom)
 returnRoomButton?.addEventListener('click', returnToCorridor)
-drawRoomButton?.addEventListener('click', drawRoomCard)
+drawRoomButton?.addEventListener('click', () => {
+  if (drawRoomButton.getAttribute('aria-disabled') === 'true') return
+  drawRoomCard()
+})
+drawRoomButton?.addEventListener('keydown', (event) => {
+  if ((event.key === 'Enter' || event.key === ' ') && drawRoomButton.getAttribute('aria-disabled') !== 'true') {
+    event.preventDefault()
+    drawRoomCard()
+  }
+})
 
 drawButton?.addEventListener('click', refillHand)
+drawButton?.addEventListener('keydown', (event) => {
+  if ((event.key === 'Enter' || event.key === ' ') && drawButton.getAttribute('aria-disabled') !== 'true') {
+    event.preventDefault()
+    refillHand()
+  }
+})
 placeButton?.addEventListener('click', confirmPlacement)
 const rotateSelectedCorridor = () => {
   if (selectedCardId === null || phase !== 'actions') return
