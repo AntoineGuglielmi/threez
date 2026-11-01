@@ -596,7 +596,7 @@ const enterRoom = (room: RoomTile) => {
 const renderGameUi = () => {
   survivorCards[activeSurvivorKind] = { deck: corridorDeck, discard: discardPile, hand }
   updatePlacementHighlights()
-  if (!handElement || !deckCountElement || !discardCountElement || !actionsCountElement || !actionsFillElement) return
+  if (!handElement) return
   handElement.replaceChildren()
   hand.forEach((card, index) => {
     const selected = selectedCardId === card.id
