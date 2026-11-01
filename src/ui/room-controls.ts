@@ -48,6 +48,7 @@ export const renderRoomControls = ({
   onEnterRoom,
 }: RoomControlsOptions) => {
   if (roomDeckCountElement) roomDeckCountElement.textContent = String(roomDeckLength)
+  const roomSection = roomStateElement?.closest<HTMLElement>('.room-exploration')
   if (!roomDoorOptionsElement || !roomStateElement) return
   roomDoorOptionsElement.replaceChildren()
   const currentRoom = currentRoomId === null ? null : rooms.find((room) => room.id === currentRoomId) ?? null
@@ -56,6 +57,7 @@ export const renderRoomControls = ({
     drawRoomButton.textContent = pendingRoomDraw ? 'Choisir un emplacement' : 'Piocher une pièce'
   }
   if (roomResultElement) roomResultElement.replaceChildren()
+  if (roomSection) roomSection.hidden = !currentRoom
   if (currentRoom) {
     if (roomResultElement && currentRoom.lastRoll) {
       const resultHeading = document.createElement('strong')
@@ -112,42 +114,10 @@ export const renderRoomControls = ({
 
   if (unlockRoomButton) unlockRoomButton.hidden = true
   if (returnRoomButton) returnRoomButton.hidden = true
-  const adjacentRooms = rooms.filter((room) => room.originX === currentTile.x && room.originZ === currentTile.z)
-
-  if (adjacentRooms.length > 0) {
-    roomStateElement.textContent = adjacentRooms.length === 1 ? 'Pièce adjacente' : 'Pièces adjacentes'
-    adjacentRooms.forEach((room) => {
-      const card = document.createElement('div')
-      card.className = 'room-property-card'
-      const statusLabel = room.status === 'locked' && room.unlocked ? 'Déverrouillée' : getRoomStatusLabel(room.status)
-      const heading = document.createElement('strong')
-      heading.textContent = `Pièce ${String(room.id).padStart(2, '0')}`
-      const properties = document.createElement('span')
-      properties.textContent = `${statusLabel} · ${getDifficultyLabel(room.difficulty)} · ${room.searched ? 'Déjà fouillée' : 'Non fouillée'}`
-      card.append(heading, properties)
-      const enterButton = document.createElement('button')
-      enterButton.type = 'button'
-      enterButton.className = 'action-button primary'
-      enterButton.disabled = phase !== 'actions' || actionsRemaining <= 0
-      enterButton.textContent = 'Entrer dans la pièce'
-      enterButton.addEventListener('click', () => onEnterRoom(room))
-      card.append(enterButton)
-      roomDoorOptionsElement.append(card)
-    })
-  } else {
-    roomStateElement.textContent = 'Aucune pièce à proximité'
-  }
-
   if (pendingRoomDraw) {
     const note = document.createElement('p')
     note.className = 'room-draw-prompt'
     note.textContent = 'Pièce piochée : cliquez sur un emplacement lumineux du plateau.'
     roomDoorOptionsElement.append(note)
-  }
-
-  if (adjacentRooms.length === 0 && availableDoors.length === 0 && !pendingRoomDraw) {
-    roomDoorOptionsElement.textContent = currentTile.doors.length
-      ? 'Aucune porte inutilisée'
-      : 'Aucune porte sur ce couloir'
   }
 }
