@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { createCorridorCardTexture } from './scene/corridor-card-texture'
+import { createDefaultCorridorCardTexture } from './scene/corridor-card-texture'
 import type { SurvivorKind } from './game/types'
 
 export const createScene = (activeSurvivorKind: SurvivorKind) => {
