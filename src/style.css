@@ -1282,3 +1282,10 @@ button, a { color: inherit; }
     width: 88px;
   }
 }
+
+
+/* Match corridor hand-card borders to the corridor draw-pile cards. */
+.cc-pixel-art {
+  box-sizing: border-box;
+  border: 2px solid #b68b68;
+}
