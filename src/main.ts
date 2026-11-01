@@ -733,7 +733,7 @@ drawRoomButton?.addEventListener('keydown', (event) => {
   }
 })
 
-drawButton?.addEventListener('click', refillHand)
+drawButton?.addEventListener('click', drawCorridorCard)
 drawButton?.addEventListener('keydown', (event) => {
   const stack = event.currentTarget
   if ((event.key === 'Enter' || event.key === ' ') && stack instanceof HTMLElement && stack.getAttribute('aria-disabled') !== 'true') {
