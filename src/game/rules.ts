@@ -17,6 +17,7 @@ export const getCorridorPlacements = ({
 }: CorridorPlacementInput): PlacementCandidate[] => {
   const candidates = new Map<string, PlacementCandidate>()
   const definition = corridorDefinitions[card.kind]
+  const rotationOrder = [turns, ...[0, 1, 2, 3].filter((rotation) => rotation !== turns)]
 
   for (const tile of boardTiles) {
     for (const exit of tile.exits) {
@@ -28,33 +29,36 @@ export const getCorridorPlacements = ({
 
       const key = `${x},${z}`
       const candidate = candidates.get(key) ?? { x, z, options: [] }
-      const exits = definition.exits.map((direction) => rotateDirection(direction, turns))
-      if (!exits.includes(opposite[exit])) continue
 
-      const doors = card.doors.map((direction) => rotateDirection(direction, turns))
+      for (const rotation of rotationOrder) {
+        const exits = definition.exits.map((direction) => rotateDirection(direction, rotation))
+        if (!exits.includes(opposite[exit])) continue
 
-      // Every adjacent corridor must agree on passage connectivity. Doors are
-      // reserved for rooms and cannot face another corridor or an existing room.
-      const conflictsWithNeighbour = directionOrder.some((direction) => {
-        const [nextX, nextZ] = directionDelta[direction]
-        const neighbourX = x + nextX
-        const neighbourZ = z + nextZ
-        const neighbour = boardTiles.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
-        const room = rooms.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
+        const doors = card.doors.map((direction) => rotateDirection(direction, rotation))
 
-        if (room) return exits.includes(direction) || doors.includes(direction)
-        if (!neighbour) return false
+        // Every adjacent corridor must agree on passage connectivity. Doors are
+        // reserved for rooms and cannot face another corridor or an existing room.
+        const conflictsWithNeighbour = directionOrder.some((direction) => {
+          const [nextX, nextZ] = directionDelta[direction]
+          const neighbourX = x + nextX
+          const neighbourZ = z + nextZ
+          const neighbour = boardTiles.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
+          const room = rooms.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
 
-        const hasMatchingPassage = exits.includes(direction) === neighbour.exits.includes(opposite[direction])
-        const hasDoorConflict = doors.includes(direction) || neighbour.doors.includes(opposite[direction])
-        return !hasMatchingPassage || hasDoorConflict
-      })
-      if (conflictsWithNeighbour) continue
+          if (room) return exits.includes(direction) || doors.includes(direction)
+          if (!neighbour) return false
 
-      const signature = directionOrder.filter((direction) => exits.includes(direction)).join('')
-      if (!candidate.options.some((option) => directionOrder.filter((direction) => option.exits.includes(direction)).join('') === signature)) {
-        candidate.options.push({ exits, turns })
+          const hasMatchingPassage = exits.includes(direction) === neighbour.exits.includes(opposite[direction])
+          const hasDoorConflict = doors.includes(direction) || neighbour.doors.includes(opposite[direction])
+          return !hasMatchingPassage || hasDoorConflict
+        })
+        if (conflictsWithNeighbour) continue
+
+        if (!candidate.options.some((option) => option.turns === rotation)) {
+          candidate.options.push({ exits, turns: rotation })
+        }
       }
+
       if (candidate.options.length > 0) candidates.set(key, candidate)
     }
   }
