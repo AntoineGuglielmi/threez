@@ -1035,3 +1035,27 @@ button, a { color: inherit; }
 }
 
 .deck-piles .decks-section { display: grid; }
+
+
+/* Room hover card follows the same readable visual language */
+.room-hover-card {
+  width: 286px;
+  padding: 16px;
+  border: 1px solid rgba(227, 161, 125, .36);
+  border-radius: 16px;
+  background: rgba(27, 33, 37, .97);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, .34);
+  color: #f1f3f4;
+  backdrop-filter: blur(16px);
+}
+.room-hover-title { font: 700 18px/1.2 'DM Sans', sans-serif; }
+.room-hover-status { margin-top: 9px; padding: 5px 9px; border-radius: 999px; font: 700 11px 'DM Sans', sans-serif; letter-spacing: .02em; }
+.room-hover-difficulty { margin: 10px 0 14px; color: #c0c9ce; font: 500 13px/1.4 'DM Sans', sans-serif; }
+.room-hover-section { margin-bottom: 8px; color: #efb18f; font: 700 11px 'DM Sans', sans-serif; letter-spacing: .04em; }
+.room-hover-loot { gap: 8px 14px; }
+.room-hover-loot-row { color: #c9d1d5; font: 500 12px/1.4 'DM Sans', sans-serif; }
+.room-hover-loot-row strong { color: #fff; font: 700 13px 'DM Sans', sans-serif; }
+@media (max-width: 720px) {
+  .room-hover-card { width: 260px; padding: 14px; }
+  .room-hover-loot-row { font-size: 11px; }
+}
