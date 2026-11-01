@@ -518,7 +518,7 @@ button, a { color: inherit; }
 
 
 /* Compact gameplay HUD */
-.game { grid-template-rows: 58px minmax(0, 1fr); }
+.game { grid-template-rows: minmax(0, 1fr); }
 .scene { min-height: 0; }
 .scene-grain, .scene-caption, .scene-footer, .toolbar { display: none !important; }
 .game-panel {
@@ -1288,4 +1288,70 @@ button, a { color: inherit; }
 .cc-pixel-art {
   box-sizing: border-box;
   border: 2px solid #b68b68;
+}
+
+
+/* Full-screen board: keep the rendered world above the scene background. */
+.scene { position: relative; }
+#scene-root {
+  z-index: 0;
+}
+
+/* Floating camera controls in the upper-left corner. */
+.camera-controls {
+  top: 16px;
+  left: 16px;
+  right: auto;
+}
+.camera-controls > span { display: none; }
+
+/* Give the sidebar breathing room and round all four corners. */
+.game-panel {
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 22px;
+}
+
+/* Hand cards inherit the same warm edge and rounded silhouette as the draw pile. */
+.cc-pixel-art {
+  border: 2px solid #b68b68;
+  border-radius: 9px;
+  background: #171d21;
+  overflow: hidden;
+}
+
+.deck-piles {
+  right: calc(360px + 38px);
+}
+
+@media (max-width: 900px) {
+  .camera-controls {
+    top: 12px;
+    left: 12px;
+    right: auto;
+  }
+  .game-panel {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-height: 62%;
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+  }
+  .deck-piles { right: 12px; }
+}
+
+@media (max-width: 520px) {
+  .game-panel {
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    max-height: 68%;
+    border-radius: 20px;
+  }
+  .camera-controls { top: 10px; left: 10px; }
 }
