@@ -1,4 +1,4 @@
-import type { Direction, RoomCard, RoomTile, SurvivorKind } from '../game/types'
+import type { RoomCard, RoomTile, SurvivorKind } from '../game/types'
 
 type RoomControlsOptions = {
   roomDoorOptionsElement: HTMLDivElement | null
@@ -9,7 +9,6 @@ type RoomControlsOptions = {
   phase: 'draw' | 'actions'
   activeSurvivorKind: SurvivorKind
   actionsRemaining: number
-  availableDoors: Direction[]
   unusedDoors: Direction[]
   rooms: RoomTile[]
   onSearchRoom: () => void
@@ -24,7 +23,6 @@ export const renderRoomControls = ({
   phase,
   activeSurvivorKind,
   actionsRemaining,
-  availableDoors,
   unusedDoors,
   rooms,
   onSearchRoom,
