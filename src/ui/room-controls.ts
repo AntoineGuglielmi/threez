@@ -1,13 +1,13 @@
-import type { RoomCard, RoomTile, SurvivorKind } from '../game/types'
+import type { RoomTile, SurvivorKind } from '../game/types'
 
 type RoomControlsOptions = {
   roomDoorOptionsElement: HTMLDivElement | null
   drawRoomButton: HTMLElement | null
   currentRoomId: number | null
-   phase: 'draw' | 'actions'
+  phase: 'draw' | 'actions'
   activeSurvivorKind: SurvivorKind
   actionsRemaining: number
-   rooms: RoomTile[]
+  rooms: RoomTile[]
   onSearchRoom: () => void
 }
 
