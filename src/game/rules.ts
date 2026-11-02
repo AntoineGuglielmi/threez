@@ -63,14 +63,18 @@ export const getCorridorPlacements = ({
 
         const candidateOpens = exits.includes(direction)
         const neighbourOpens = neighbour.exits.includes(opposite[direction])
-        if (candidateOpens !== neighbourOpens ||
-          doors.includes(direction) ||
-          neighbour.doors.includes(opposite[direction])) {
+        const candidateHasDoor = doors.includes(direction)
+        const neighbourHasDoor = neighbour.doors.includes(opposite[direction])
+
+        // Adjacent corridors must connect exit-to-exit. A door or a wall
+        // cannot face another corridor, and two adjacent corridors cannot
+        // sit next to each other without a passage between them.
+        if (!candidateOpens || !neighbourOpens || candidateHasDoor || neighbourHasDoor) {
           hasConflict = true
           break
         }
 
-        if (candidateOpens && neighbourOpens) hasConnection = true
+        hasConnection = true
       }
 
       if (!hasConflict && hasConnection &&
@@ -87,15 +91,26 @@ export const getCorridorPlacements = ({
 
 export const getAvailableRoomDoors = (
   tile: Pick<BoardTile, 'x' | 'z' | 'doors' | 'usedDoors'>,
-  boardTiles: Pick<BoardTile, 'x' | 'z'>[],
+  boardTiles: Pick<BoardTile, 'x' | 'z' | 'exits'>[],
   rooms: OccupiedRoom[],
 ): Direction[] => tile.doors.filter((direction) => {
   if (tile.usedDoors.includes(direction)) return false
   const [dx, dz] = directionDelta[direction]
   const x = tile.x + dx
   const z = tile.z + dz
-  return !boardTiles.some((placed) => placed.x === x && placed.z === z) &&
-    !rooms.some((room) => room.x === x && room.z === z)
+
+  if (boardTiles.some((placed) => placed.x === x && placed.z === z) ||
+    rooms.some((room) => room.x === x && room.z === z)) return false
+
+  // A room can occupy this cell only if no neighbouring corridor has
+  // an exit pointing into it. The originating corridor has a door here.
+  return !boardTiles.some((placed) => {
+    const neighbourDirection = directionOrder.find((candidate) => {
+      const [neighbourDx, neighbourDz] = directionDelta[candidate]
+      return placed.x + neighbourDx === x && placed.z + neighbourDz === z
+    })
+    return neighbourDirection !== undefined && placed.exits.includes(neighbourDirection)
+  })
 })
 
 export const resourceLabels: Record<ResourceType, string> = {
