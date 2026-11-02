@@ -569,21 +569,19 @@ type RoomPlacementCandidate = {
   tile: BoardTile
 }
 
-const getAvailableDoors = (): RoomPlacementCandidate[] => boardTiles
-  .filter((tile) => tile.kind !== 'start')
-  .flatMap((tile) => tile.doors
-    .filter((direction) => !tile.usedDoors.includes(direction))
-    .map((direction) => {
-      const [dx, dz] = directionDelta[direction]
-      return {
-        x: tile.x + dx,
-        z: tile.z + dz,
-        direction,
-        originX: tile.x,
-        originZ: tile.z,
-        tile,
-      }
-    }))
+const getAvailableDoors = (): RoomPlacementCandidate[] => currentTile.doors
+  .filter((direction) => !currentTile.usedDoors.includes(direction))
+  .map((direction) => {
+    const [dx, dz] = directionDelta[direction]
+    return {
+      x: currentTile.x + dx,
+      z: currentTile.z + dz,
+      direction,
+      originX: currentTile.x,
+      originZ: currentTile.z,
+      tile: currentTile,
+    }
+  })
   .filter(({ x, z }) =>
     !boardTiles.some((tile) => tile.x === x && tile.z === z) &&
     !rooms.some((room) => room.x === x && room.z === z),
