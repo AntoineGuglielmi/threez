@@ -125,6 +125,8 @@ if (savedGameState?.activeSurvivorKind && characterOrder.includes(savedGameState
   characterIndex = characterOrder.indexOf(activeSurvivorKind)
 }
 let placementPreview: { x: number; z: number; options: PlacementOption[]; optionIndex: number } | null = null
+let boardEditMode = false
+let selectedBoardCard: { type: 'tile'; tile: BoardTile } | { type: 'room'; room: RoomTile } | null = null
 const placementHighlights = new THREE.Group()
 placementHighlights.name = 'placement-highlights'
 board.add(placementHighlights)
@@ -138,6 +140,11 @@ let ghostTile: THREE.Group | null = null
 const placementActions = document.querySelector<HTMLDivElement>('#placement-actions')
 const rotateGhostButton = document.querySelector<HTMLButtonElement>('#rotate-ghost')
 const confirmGhostButton = document.querySelector<HTMLButtonElement>('#confirm-ghost')
+const editModeButton = document.querySelector<HTMLButtonElement>('#toggle-edit-mode')
+const boardEditActions = document.querySelector<HTMLDivElement>('#board-edit-actions')
+const boardEditLabel = document.querySelector<HTMLSpanElement>('#board-edit-label')
+const rotateBoardCardButton = document.querySelector<HTMLButtonElement>('#rotate-board-card')
+const closeBoardEditButton = document.querySelector<HTMLButtonElement>('#close-board-edit')
 
 const handElement = document.querySelector<HTMLDivElement>('#cc-hand')
 const deckCountElement = document.querySelector<HTMLElement>('#cc-deck-count')
@@ -489,7 +496,7 @@ const confirmPlacement = () => {
   }
 
   const doors = card.doors.map((direction) => rotateDirection(direction, selectedCardTurns))
-  const exits = validOption.exits
+  const exits = corridorDefinitions[card.kind].exits.map((direction) => rotateDirection(direction, selectedCardTurns))
   const group = createCorridorTile(board, materials, card, x, z, exits, doors)
   const placedTile: BoardTile = { x, z, kind: card.kind, exits, doors, usedDoors: [], group }
   boardTiles.push(placedTile)
@@ -1050,8 +1057,10 @@ renderer.domElement.addEventListener('click', (event) => {
     return
   }
 
-  const mode = pendingRoomDraw
-    ? 'room-placement'
+  const mode = boardEditMode
+    ? 'normal'
+    : pendingRoomDraw
+      ? 'room-placement'
     : selectedCardId !== null && !pendingDraw
       ? 'corridor-placement'
       : 'normal'
@@ -1067,6 +1076,30 @@ renderer.domElement.addEventListener('click', (event) => {
     rooms,
     boardTiles,
   })
+
+  if (boardEditMode) {
+    if (hit.type === 'tile' && hit.tile.kind !== 'start') {
+      selectedBoardCard = { type: 'tile', tile: hit.tile }
+      if (boardEditActions && boardEditLabel) {
+        boardEditLabel.textContent = 'Couloir sélectionné'
+        boardEditActions.style.left = `${event.clientX - renderer.domElement.getBoundingClientRect().left + 12}px`
+        boardEditActions.style.top = `${event.clientY - renderer.domElement.getBoundingClientRect().top + 12}px`
+        boardEditActions.hidden = false
+      }
+    } else if (hit.type === 'room') {
+      selectedBoardCard = { type: 'room', room: hit.room }
+      if (boardEditActions && boardEditLabel) {
+        boardEditLabel.textContent = 'Pièce sélectionnée'
+        boardEditActions.style.left = `${event.clientX - renderer.domElement.getBoundingClientRect().left + 12}px`
+        boardEditActions.style.top = `${event.clientY - renderer.domElement.getBoundingClientRect().top + 12}px`
+        boardEditActions.hidden = false
+      }
+    } else {
+      selectedBoardCard = null
+      if (boardEditActions) boardEditActions.hidden = true
+    }
+    return
+  }
 
   if (pendingRoomDraw) {
     if (hit.type === 'room-placement') {
@@ -1178,6 +1211,44 @@ renderer.domElement.addEventListener('click', (event) => {
   setStatus(`Déplacement effectué. ${actionsRemaining} action${actionsRemaining > 1 ? 's' : ''} restante${actionsRemaining > 1 ? 's' : ''}.`)
   saveGameState()
   renderGameUi()
+})
+
+
+editModeButton?.addEventListener('click', () => {
+  boardEditMode = !boardEditMode
+  selectedBoardCard = null
+  if (boardEditActions) boardEditActions.hidden = true
+  if (editModeButton) {
+    editModeButton.setAttribute('aria-pressed', String(boardEditMode))
+    editModeButton.textContent = boardEditMode ? 'Quitter édition' : 'Éditer'
+  }
+  selectedCardId = null
+  placementPreview = null
+  pendingRoomDraw = null
+  clearGhostTile()
+  renderGameUi()
+  setStatus(boardEditMode ? 'Mode édition : sélectionnez une carte du plateau.' : 'Mode édition désactivé.')
+})
+closeBoardEditButton?.addEventListener('click', () => {
+  selectedBoardCard = null
+  if (boardEditActions) boardEditActions.hidden = true
+})
+rotateBoardCardButton?.addEventListener('click', () => {
+  if (!selectedBoardCard) return
+  const turns = 1
+  if (selectedBoardCard.type === 'tile') {
+    const tile = selectedBoardCard.tile
+    tile.exits = tile.exits.map((direction) => rotateDirection(direction, turns))
+    tile.doors = tile.doors.map((direction) => rotateDirection(direction, turns))
+    tile.usedDoors = tile.usedDoors.map((direction) => rotateDirection(direction, turns))
+    tile.group.rotation.y += Math.PI / 2
+  } else {
+    const room = selectedBoardCard.room
+    room.direction = rotateDirection(room.direction, turns)
+    room.group.rotation.y += Math.PI / 2
+  }
+  saveGameState()
+  setStatus('Orientation de la carte modifiée.')
 })
 
 document.querySelector<HTMLButtonElement>('#reset-game')?.addEventListener('click', () => {
