@@ -539,13 +539,13 @@ const roomDoorOptionsElement = document.querySelector<HTMLDivElement>('#cp-door-
 const roomDeckCountElement = document.querySelector<HTMLElement>('#cp-deck-count')
 const drawRoomButton = document.querySelector<HTMLElement>('#draw-cp')
 
+const getUnusedDoors = () => currentTile.doors.filter((direction) => !currentTile.usedDoors.includes(direction))
 const getAvailableDoors = () => getAvailableRoomDoors(currentTile, boardTiles, rooms)
 
 const drawRoomCard = () => {
   if (activeSurvivorKind === 'injured' || currentRoomId !== null || pendingRoomDraw) return
-  const availableDoors = getAvailableDoors()
-  if (availableDoors.length === 0) {
-    setStatus('Aucune porte libre pour placer une nouvelle pièce.')
+  if (getUnusedDoors().length === 0) {
+    setStatus('Aucune porte non exploitée sur ce couloir.')
     return
   }
   const card = roomDeck.pop()
@@ -768,6 +768,7 @@ const renderGameUi = () => {
     activeSurvivorKind,
     actionsRemaining,
     availableDoors: getAvailableDoors(),
+    unusedDoors: getUnusedDoors(),
     onSearchRoom: searchCurrentRoom,
   })
 }
