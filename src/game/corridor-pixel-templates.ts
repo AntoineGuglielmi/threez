@@ -74,3 +74,31 @@ export const corridorPixelTemplates = Object.fromEntries(
 ) as Partial<CorridorPixelTemplates>
 export const getCorridorPixelTemplate = (id: CorridorPixelTemplateId): string[] =>
   corridorPixelTemplates[id] ?? Array(CORRIDOR_PIXEL_SIZE ** 2).fill(CORRIDOR_PIXEL_CONFIG.background)
+
+/** Adds doorways from the card data, so the artwork always matches game directions. */
+export const addCorridorDoorPixels = (source: string[], doors: Direction[]): string[] => {
+  const pixels = [...source]
+  const size = getCorridorPixelSize(pixels)
+  const frame = '#76513d'
+  const opening = '#171d20'
+  const center = Math.floor(size / 2)
+  const halfWidth = 5
+  const depth = 7
+
+  doors.forEach((direction) => {
+    for (let offset = -halfWidth; offset <= halfWidth; offset += 1) {
+      for (let distance = 0; distance < depth; distance += 1) {
+        const x = direction === 'W' ? distance
+          : direction === 'E' ? size - 1 - distance
+            : center + offset
+        const y = direction === 'N' ? distance
+          : direction === 'S' ? size - 1 - distance
+            : center + offset
+        const isFrame = Math.abs(offset) === halfWidth || distance === 0 || distance === depth - 1
+        pixels[y * size + x] = isFrame ? frame : opening
+      }
+    }
+  })
+
+  return pixels
+}
