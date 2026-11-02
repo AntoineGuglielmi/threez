@@ -16,7 +16,6 @@ type RoomControlsOptions = {
 export const renderRoomControls = ({
   roomDoorOptionsElement,
   drawRoomButton,
-  roomDeckLength,
   currentRoomId,
   pendingRoomDraw,
   phase,
