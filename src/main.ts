@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import './style.css'
 import { createScene } from './scene'
 import { directionDelta, opposite, corridorDefinitions, rotateDirection } from './game/directions'
-import { readSavedGameState, STORAGE_KEY } from './game/persistence'
+import { readSavedGameState } from './game/persistence'
 import { shuffle } from './game/random'
 import { createCorridorCardFactory } from './game/corridor-cards'
 import { getCorridorPixelRotation } from './game/corridor-pixel-templates'
@@ -20,7 +20,7 @@ let activeSurvivorKind: SurvivorKind = 'stealth'
 const sceneSetup = createScene(activeSurvivorKind)
 const { root, scene, camera, renderer, materials, board, start, activeRing, beacon, characterKeyLight, characterFillLight, warmRimLight, otherCharacters } = sceneSetup
 let activeCharacter = sceneSetup.activeCharacter
-const savedGameState = readSavedGameState()
+const savedGameState = await readSavedGameState()
 
 const corridorCards = createCorridorCardFactory(savedGameState?.nextCardId ?? 1)
 const { createCorridorDeck, normalizeSavedCard } = corridorCards
@@ -1081,16 +1081,15 @@ const saveGameState = () => {
       nextRoomCardId: roomCards.getNextCardId(),
     } satisfies SavedGameState
     const serialized = JSON.stringify(state)
-    localStorage.setItem(STORAGE_KEY, serialized)
     void fetch('/__game-state', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: serialized,
     }).catch(() => {
-      setStatus('Sauvegarde locale effectuée, mais impossible d’écrire le fichier de partie.')
+      setStatus('Impossible d’écrire la sauvegarde de partie commitée.')
     })
   } catch {
-    setStatus('Impossible de sauvegarder la partie dans ce navigateur.')
+    setStatus('Impossible de préparer la sauvegarde de partie.')
   }
 }
 
@@ -1312,11 +1311,7 @@ rotateBoardCardButton?.addEventListener('click', () => {
 document.querySelector<HTMLButtonElement>('#reset-game')?.addEventListener('click', () => {
   const confirmed = window.confirm('Réinitialiser la partie ? Le plateau actuel sera perdu.')
   if (!confirmed) return
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } finally {
-    window.location.reload()
-  }
+  window.location.reload()
 })
 
 document.querySelector<HTMLButtonElement>('#rotate-left')?.addEventListener('click', () => {
