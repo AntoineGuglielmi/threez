@@ -1005,7 +1005,7 @@ const showRoomHoverCard = (room: RoomTile, event: PointerEvent) => {
 let zoom = THREE.MathUtils.clamp(savedGameState?.zoom ?? 1, 1, 3.2)
 let currentZoom = zoom
 renderer.domElement.addEventListener('pointermove', (event) => {
-  if (viewport.hasDragged() || phase !== 'actions' || currentRoomId !== null || pendingRoomDraw || selectedCardId !== null) {
+  if (viewport.hasDragged()) {
     hideRoomHoverCard()
     return
   }
