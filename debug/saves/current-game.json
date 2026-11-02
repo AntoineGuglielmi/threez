@@ -31,8 +31,8 @@
         "N"
       ],
       "doors": [
-        "S",
-        "E"
+        "N",
+        "W"
       ],
       "usedDoors": [
         "E",
@@ -48,7 +48,7 @@
         "E"
       ],
       "doors": [
-        "W",
+        "E",
         "N"
       ],
       "usedDoors": [
@@ -400,10 +400,10 @@
   ],
   "characterIndex": 2,
   "injuredMovedThisTurn": false,
-  "zoom": 2.4499999114990225,
+  "zoom": 2.049999935913084,
   "cameraTarget": {
-    "x": -0.05107170329247119,
-    "z": 1.8272808737343085
+    "x": 0.29672802196125897,
+    "z": 0.8769487130245518
   },
   "cameraAngle": 0.7853981633974483,
   "deck": [
@@ -418,7 +418,7 @@
       "id": 150,
       "kind": "tee",
       "doors": [
-        "S"
+        "W"
       ]
     },
     {
@@ -430,7 +430,7 @@
       "id": 128,
       "kind": "straight",
       "doors": [
-        "E"
+        "S"
       ]
     },
     {
@@ -450,14 +450,14 @@
       "id": 131,
       "kind": "left",
       "doors": [
-        "S"
+        "N"
       ]
     },
     {
       "id": 144,
       "kind": "right",
       "doors": [
-        "W"
+        "S"
       ]
     },
     {
@@ -469,7 +469,7 @@
       "id": 139,
       "kind": "right",
       "doors": [
-        "W"
+        "N"
       ]
     },
     {
@@ -495,7 +495,7 @@
       "id": 142,
       "kind": "right",
       "doors": [
-        "S",
+        "N",
         "W"
       ]
     },
@@ -518,7 +518,7 @@
       "id": 151,
       "kind": "tee",
       "doors": [
-        "S"
+        "W"
       ]
     },
     {
@@ -530,7 +530,7 @@
       "id": 124,
       "kind": "straight",
       "doors": [
-        "E"
+        "N"
       ]
     },
     {
@@ -547,15 +547,15 @@
       "id": 136,
       "kind": "left",
       "doors": [
-        "S",
-        "E"
+        "W",
+        "N"
       ]
     },
     {
       "id": 135,
       "kind": "left",
       "doors": [
-        "S"
+        "E"
       ]
     },
     {
@@ -574,7 +574,7 @@
       "id": 147,
       "kind": "tee",
       "doors": [
-        "S"
+        "N"
       ]
     },
     {
@@ -591,7 +591,7 @@
       "id": 138,
       "kind": "right",
       "doors": [
-        "S",
+        "N",
         "W"
       ]
     },
@@ -604,7 +604,7 @@
       "id": 145,
       "kind": "tee",
       "doors": [
-        "S"
+        "E"
       ]
     },
     {
@@ -616,8 +616,8 @@
       "id": 126,
       "kind": "straight",
       "doors": [
-        "W",
-        "E"
+        "S",
+        "N"
       ]
     },
     {
@@ -649,7 +649,7 @@
       "id": 127,
       "kind": "straight",
       "doors": [
-        "W"
+        "N"
       ]
     },
     {
@@ -679,14 +679,14 @@
           "id": 9,
           "kind": "left",
           "doors": [
-            "S"
+            "N"
           ]
         },
         {
           "id": 12,
           "kind": "left",
           "doors": [
-            "S"
+            "E"
           ]
         },
         {
@@ -710,7 +710,7 @@
           "id": 4,
           "kind": "straight",
           "doors": [
-            "E"
+            "S"
           ]
         },
         {
@@ -727,8 +727,8 @@
           "id": 10,
           "kind": "left",
           "doors": [
-            "S",
-            "E"
+            "W",
+            "N"
           ]
         },
         {
@@ -768,7 +768,7 @@
           "id": 27,
           "kind": "tee",
           "doors": [
-            "S"
+            "W"
           ]
         },
         {
@@ -780,7 +780,7 @@
           "id": 22,
           "kind": "right",
           "doors": [
-            "W"
+            "S"
           ]
         },
         {
@@ -795,8 +795,8 @@
           "id": 2,
           "kind": "straight",
           "doors": [
-            "E",
-            "W"
+            "S",
+            "N"
           ]
         },
         {
@@ -808,7 +808,7 @@
           "id": 11,
           "kind": "left",
           "doors": [
-            "S"
+            "E"
           ]
         },
         {
@@ -825,8 +825,8 @@
           "id": 19,
           "kind": "right",
           "doors": [
-            "W",
-            "S"
+            "E",
+            "N"
           ]
         },
         {
@@ -858,7 +858,7 @@
           "id": 20,
           "kind": "right",
           "doors": [
-            "W"
+            "S"
           ]
         },
         {
@@ -890,7 +890,7 @@
           "id": 14,
           "kind": "left",
           "doors": [
-            "S"
+            "W"
           ]
         }
       ]
@@ -908,22 +908,22 @@
           "id": 65,
           "kind": "tee",
           "doors": [
-            "S"
+            "W"
           ]
         },
         {
           "id": 50,
           "kind": "left",
           "doors": [
-            "S"
+            "N"
           ]
         },
         {
           "id": 55,
           "kind": "left",
           "doors": [
-            "E",
-            "S"
+            "N",
+            "E"
           ]
         },
         {
@@ -956,7 +956,7 @@
           "kind": "right",
           "doors": [
             "W",
-            "S"
+            "N"
           ]
         },
         {
@@ -968,8 +968,8 @@
           "id": 43,
           "kind": "straight",
           "doors": [
-            "E",
-            "W"
+            "N",
+            "S"
           ]
         },
         {
@@ -1012,7 +1012,7 @@
           "id": 66,
           "kind": "tee",
           "doors": [
-            "S"
+            "N"
           ]
         },
         {
@@ -1041,7 +1041,7 @@
           "id": 44,
           "kind": "straight",
           "doors": [
-            "W"
+            "N"
           ]
         },
         {
@@ -1058,14 +1058,14 @@
           "id": 71,
           "kind": "tee",
           "doors": [
-            "S"
+            "N"
           ]
         },
         {
           "id": 53,
           "kind": "left",
           "doors": [
-            "S",
+            "N",
             "E"
           ]
         },
@@ -1078,23 +1078,23 @@
           "id": 61,
           "kind": "right",
           "doors": [
-            "W",
-            "S"
+            "N",
+            "W"
           ]
         },
         {
           "id": 58,
           "kind": "right",
           "doors": [
-            "S",
-            "W"
+            "N",
+            "E"
           ]
         },
         {
           "id": 56,
           "kind": "left",
           "doors": [
-            "S"
+            "E"
           ]
         },
         {
@@ -1106,7 +1106,7 @@
           "id": 42,
           "kind": "straight",
           "doors": [
-            "W"
+            "N"
           ]
         },
         {
@@ -1121,7 +1121,7 @@
           "id": 68,
           "kind": "tee",
           "doors": [
-            "S"
+            "E"
           ]
         },
         {
@@ -1164,14 +1164,14 @@
           "id": 107,
           "kind": "tee",
           "doors": [
-            "S"
+            "N"
           ]
         },
         {
           "id": 99,
           "kind": "right",
           "doors": [
-            "W"
+            "S"
           ]
         },
         {
@@ -1203,7 +1203,7 @@
           "id": 112,
           "kind": "tee",
           "doors": [
-            "S"
+            "W"
           ]
         },
         {
@@ -1217,8 +1217,8 @@
           "id": 81,
           "kind": "straight",
           "doors": [
-            "W",
-            "E"
+            "S",
+            "N"
           ]
         },
         {
@@ -1230,8 +1230,8 @@
           "id": 86,
           "kind": "straight",
           "doors": [
-            "E",
-            "W"
+            "S",
+            "N"
           ]
         },
         {
@@ -1276,7 +1276,7 @@
           "id": 109,
           "kind": "tee",
           "doors": [
-            "S"
+            "W"
           ]
         },
         {
@@ -1301,22 +1301,22 @@
           "id": 84,
           "kind": "straight",
           "doors": [
-            "E",
-            "W"
+            "N",
+            "S"
           ]
         },
         {
           "id": 92,
           "kind": "left",
           "doors": [
-            "S"
+            "N"
           ]
         },
         {
           "id": 85,
           "kind": "straight",
           "doors": [
-            "W"
+            "S"
           ]
         },
         {
@@ -1331,7 +1331,7 @@
           "id": 89,
           "kind": "left",
           "doors": [
-            "E",
+            "W",
             "S"
           ]
         },
@@ -1344,7 +1344,7 @@
           "id": 87,
           "kind": "straight",
           "doors": [
-            "W"
+            "S"
           ]
         },
         {
@@ -1359,21 +1359,21 @@
           "id": 111,
           "kind": "tee",
           "doors": [
-            "S"
+            "W"
           ]
         },
         {
           "id": 103,
           "kind": "right",
           "doors": [
-            "W"
+            "E"
           ]
         },
         {
           "id": 100,
           "kind": "right",
           "doors": [
-            "W"
+            "S"
           ]
         },
         {
@@ -1409,7 +1409,7 @@
           "id": 150,
           "kind": "tee",
           "doors": [
-            "S"
+            "W"
           ]
         },
         {
@@ -1421,7 +1421,7 @@
           "id": 128,
           "kind": "straight",
           "doors": [
-            "E"
+            "S"
           ]
         },
         {
@@ -1441,14 +1441,14 @@
           "id": 131,
           "kind": "left",
           "doors": [
-            "S"
+            "N"
           ]
         },
         {
           "id": 144,
           "kind": "right",
           "doors": [
-            "W"
+            "S"
           ]
         },
         {
@@ -1460,7 +1460,7 @@
           "id": 139,
           "kind": "right",
           "doors": [
-            "W"
+            "N"
           ]
         },
         {
@@ -1486,7 +1486,7 @@
           "id": 142,
           "kind": "right",
           "doors": [
-            "S",
+            "N",
             "W"
           ]
         },
@@ -1509,7 +1509,7 @@
           "id": 151,
           "kind": "tee",
           "doors": [
-            "S"
+            "W"
           ]
         },
         {
@@ -1521,7 +1521,7 @@
           "id": 124,
           "kind": "straight",
           "doors": [
-            "E"
+            "N"
           ]
         },
         {
@@ -1538,15 +1538,15 @@
           "id": 136,
           "kind": "left",
           "doors": [
-            "S",
-            "E"
+            "W",
+            "N"
           ]
         },
         {
           "id": 135,
           "kind": "left",
           "doors": [
-            "S"
+            "E"
           ]
         },
         {
@@ -1565,7 +1565,7 @@
           "id": 147,
           "kind": "tee",
           "doors": [
-            "S"
+            "N"
           ]
         },
         {
@@ -1582,7 +1582,7 @@
           "id": 138,
           "kind": "right",
           "doors": [
-            "S",
+            "N",
             "W"
           ]
         },
@@ -1595,7 +1595,7 @@
           "id": 145,
           "kind": "tee",
           "doors": [
-            "S"
+            "E"
           ]
         },
         {
@@ -1607,8 +1607,8 @@
           "id": 126,
           "kind": "straight",
           "doors": [
-            "W",
-            "E"
+            "S",
+            "N"
           ]
         },
         {
@@ -1640,7 +1640,7 @@
           "id": 127,
           "kind": "straight",
           "doors": [
-            "W"
+            "N"
           ]
         },
         {
@@ -1665,15 +1665,15 @@
           "id": 166,
           "kind": "straight",
           "doors": [
-            "E"
+            "N"
           ]
         },
         {
           "id": 180,
           "kind": "right",
           "doors": [
-            "W",
-            "S"
+            "E",
+            "N"
           ]
         },
         {
@@ -1697,7 +1697,7 @@
           "id": 186,
           "kind": "tee",
           "doors": [
-            "S"
+            "N"
           ]
         },
         {
@@ -1727,7 +1727,7 @@
           "id": 167,
           "kind": "straight",
           "doors": [
-            "W"
+            "N"
           ]
         },
         {
@@ -1739,8 +1739,8 @@
           "id": 176,
           "kind": "left",
           "doors": [
-            "E",
-            "S"
+            "S",
+            "W"
           ]
         },
         {
@@ -1775,7 +1775,7 @@
           "id": 182,
           "kind": "right",
           "doors": [
-            "W"
+            "S"
           ]
         },
         {
@@ -1787,7 +1787,7 @@
           "id": 179,
           "kind": "right",
           "doors": [
-            "W"
+            "N"
           ]
         },
         {
@@ -1812,7 +1812,7 @@
           "id": 171,
           "kind": "left",
           "doors": [
-            "S"
+            "W"
           ]
         },
         {
@@ -1824,8 +1824,8 @@
           "id": 165,
           "kind": "straight",
           "doors": [
-            "W",
-            "E"
+            "S",
+            "N"
           ]
         },
         {
@@ -1866,15 +1866,15 @@
           "id": 170,
           "kind": "left",
           "doors": [
-            "S",
-            "E"
+            "N",
+            "W"
           ]
         },
         {
           "id": 185,
           "kind": "tee",
           "doors": [
-            "S"
+            "E"
           ]
         },
         {
@@ -1908,6 +1908,6 @@
   "pendingDraw": null,
   "actionsRemaining": 0,
   "turnNumber": 1,
-  "nextCardId": 201,
+  "nextCardId": 205,
   "nextRoomCardId": 25
 }
