@@ -3,7 +3,6 @@ import type { RoomCard, RoomTile, SurvivorKind } from '../game/types'
 type RoomControlsOptions = {
   roomDoorOptionsElement: HTMLDivElement | null
   drawRoomButton: HTMLElement | null
-  roomDeckLength: number
   currentRoomId: number | null
   pendingRoomDraw: RoomCard | null
   phase: 'draw' | 'actions'
@@ -35,7 +34,7 @@ export const renderRoomControls = ({
   if (drawRoomButton) {
     const disabled = phase !== 'actions' || activeSurvivorKind === 'injured' ||
       currentRoomId !== null || !hasAvailableDoors ||
-      roomDeckLength === 0 || pendingRoomDraw !== null
+      pendingRoomDraw !== null
     drawRoomButton.setAttribute('aria-disabled', String(disabled))
     drawRoomButton.classList.toggle('is-disabled', disabled)
   }
