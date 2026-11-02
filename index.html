@@ -18,6 +18,7 @@
         <div class="camera-controls" role="group" aria-label="Rotation du plateau">
           <button id="rotate-left" type="button" aria-label="Pivoter le plateau vers la gauche" title="Pivoter vers la gauche">↶</button>
           <button id="rotate-right" type="button" aria-label="Pivoter le plateau vers la droite" title="Pivoter vers la droite">↷</button>
+          <button id="toggle-edit-mode" type="button" aria-pressed="false">Éditer</button>
         </div>
         <aside id="game-ui" class="game-panel" aria-label="État de la partie">
           <section class="turn-summary" aria-label="Joueur actif et actions">
@@ -81,6 +82,11 @@
           </div>
         </aside>
         <aside id="room-hover-card" class="room-hover-card" aria-live="polite" hidden></aside>
+        <div id="board-edit-actions" class="placement-actions board-edit-actions" hidden role="group" aria-label="Édition de la carte sélectionnée">
+          <span id="board-edit-label">Carte sélectionnée</span>
+          <button id="rotate-board-card" type="button" aria-label="Tourner la carte">↻</button>
+          <button id="close-board-edit" type="button" aria-label="Fermer l’édition">×</button>
+        </div>
       </section>
     </main>
     <script type="module">if (location.pathname === "/pixelart") { await import("/src/pixelart.ts") } else { await import("/src/main.ts") }</script>
