@@ -19,48 +19,67 @@ export const getCorridorPlacements = ({
   const definition = corridorDefinitions[card.kind]
   const rotationOrder = [turns, ...[0, 1, 2, 3].filter((rotation) => rotation !== turns)]
 
+  // Build the candidate set from every empty cell touching the corridor network.
+  // Starting only from a tile's exits can miss a valid cell when several tiles
+  // meet around it or when the first tile considered is not the one that
+  // ultimately provides the valid connection.
+  const candidatePositions = new Map<string, { x: number; z: number }>()
   for (const tile of boardTiles) {
-    for (const exit of tile.exits) {
-      const [dx, dz] = directionDelta[exit]
+    for (const direction of directionOrder) {
+      const [dx, dz] = directionDelta[direction]
       const x = tile.x + dx
       const z = tile.z + dz
       if (boardTiles.some((placed) => placed.x === x && placed.z === z) ||
         rooms.some((room) => room.x === x && room.z === z)) continue
+      candidatePositions.set(`${x},${z}`, { x, z })
+    }
+  }
 
-      const key = `${x},${z}`
-      const candidate = candidates.get(key) ?? { x, z, options: [] }
+  for (const { x, z } of candidatePositions.values()) {
+    const options: PlacementCandidate['options'] = []
 
-      for (const rotation of rotationOrder) {
-        const exits = definition.exits.map((direction) => rotateDirection(direction, rotation))
-        if (!exits.includes(opposite[exit])) continue
+    for (const rotation of rotationOrder) {
+      const exits = definition.exits.map((direction) => rotateDirection(direction, rotation))
+      const doors = card.doors.map((direction) => rotateDirection(direction, rotation))
+      let hasConnection = false
+      let hasConflict = false
 
-        const doors = card.doors.map((direction) => rotateDirection(direction, rotation))
+      for (const direction of directionOrder) {
+        const [dx, dz] = directionDelta[direction]
+        const neighbourX = x + dx
+        const neighbourZ = z + dz
+        const neighbour = boardTiles.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
+        const room = rooms.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
 
-        // Every adjacent corridor must agree on passage connectivity. Doors are
-        // reserved for rooms and cannot face another corridor or an existing room.
-        const conflictsWithNeighbour = directionOrder.some((direction) => {
-          const [nextX, nextZ] = directionDelta[direction]
-          const neighbourX = x + nextX
-          const neighbourZ = z + nextZ
-          const neighbour = boardTiles.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
-          const room = rooms.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
-
-          if (room) return exits.includes(direction) || doors.includes(direction)
-          if (!neighbour) return false
-
-          const hasMatchingPassage = exits.includes(direction) === neighbour.exits.includes(opposite[direction])
-          const hasDoorConflict = doors.includes(direction) || neighbour.doors.includes(opposite[direction])
-          return !hasMatchingPassage || hasDoorConflict
-        })
-        if (conflictsWithNeighbour) continue
-
-        if (!candidate.options.some((option) => option.turns === rotation)) {
-          candidate.options.push({ exits, turns: rotation })
+        if (room) {
+          if (exits.includes(direction) || doors.includes(direction)) {
+            hasConflict = true
+            break
+          }
+          continue
         }
+
+        if (!neighbour) continue
+
+        const candidateOpens = exits.includes(direction)
+        const neighbourOpens = neighbour.exits.includes(opposite[direction])
+        if (candidateOpens !== neighbourOpens ||
+          doors.includes(direction) ||
+          neighbour.doors.includes(opposite[direction])) {
+          hasConflict = true
+          break
+        }
+
+        if (candidateOpens && neighbourOpens) hasConnection = true
       }
 
-      if (candidate.options.length > 0) candidates.set(key, candidate)
+      if (!hasConflict && hasConnection &&
+        !options.some((option) => option.turns === rotation)) {
+        options.push({ exits, turns: rotation })
+      }
     }
+
+    if (options.length > 0) candidates.set(`${x},${z}`, { x, z, options })
   }
 
   return [...candidates.values()]
