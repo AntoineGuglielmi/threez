@@ -132,6 +132,13 @@ const deckCountElement = document.querySelector<HTMLElement>('#cc-deck-count')
 const discardCountElement = document.querySelector<HTMLElement>('#cc-discard-count')
 const actionsCountElement = document.querySelector<HTMLElement>('#actions-count')
 const actionsFillElement = document.querySelector<HTMLDivElement>('#actions-fill')
+const resourceElements: Record<ResourceType, HTMLElement | null> = {
+  cafe: document.querySelector<HTMLElement>('#resource-cafe'),
+  croissant: document.querySelector<HTMLElement>('#resource-croissant'),
+  citron: document.querySelector<HTMLElement>('#resource-citron'),
+  bonbon: document.querySelector<HTMLElement>('#resource-bonbon'),
+  munition: document.querySelector<HTMLElement>('#resource-munition'),
+}
 const statusElement = document.querySelector<HTMLParagraphElement>('#game-status')
 const drawButton = document.querySelector<HTMLElement>('#draw-cc')
 const placeButton = document.querySelector<HTMLButtonElement>('#place-cc')
@@ -631,6 +638,10 @@ const renderGameUi = () => {
   if (discardCountElement) discardCountElement.textContent = String(discardPile.length)
   if (actionsCountElement) actionsCountElement.textContent = String(actionsRemaining)
   if (actionsFillElement) actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
+  for (const resource of Object.keys(resources) as ResourceType[]) {
+    const element = resourceElements[resource]
+    if (element) element.textContent = String(resources[resource])
+  }
 
   if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
 
