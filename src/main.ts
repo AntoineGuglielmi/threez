@@ -35,6 +35,8 @@ const createResourceInventory = (source?: Partial<Record<ResourceType, number>>)
   citron: source?.citron ?? 0,
   bonbon: source?.bonbon ?? 0,
   munition: source?.munition ?? 0,
+  vie: source?.vie ?? 0,
+  bombe: source?.bombe ?? 0,
 })
 const resourceOwnerOnLegacySave = savedGameState?.activeSurvivorKind ?? 'stealth'
 const resourcesBySurvivor: Record<SurvivorKind, Record<ResourceType, number>> = {
@@ -221,6 +223,8 @@ const resourceElements: Record<ResourceType, HTMLElement | null> = {
   citron: document.querySelector<HTMLElement>('#resource-citron'),
   bonbon: document.querySelector<HTMLElement>('#resource-bonbon'),
   munition: document.querySelector<HTMLElement>('#resource-munition'),
+  vie: document.querySelector<HTMLElement>('#resource-vie'),
+  bombe: document.querySelector<HTMLElement>('#resource-bombe'),
 }
 const statusElement = document.querySelector<HTMLParagraphElement>('#game-status')
 const drawButton = document.querySelector<HTMLElement>('#draw-cc')
@@ -241,6 +245,8 @@ const getSurvivorLabel = (kind: SurvivorKind) => ({
   stealth: 'Furtif', heavy: 'Costaud', military: 'Militaire', scientist: 'Scientifique', injured: 'Blessé',
 })[kind]
 
+const craftSectionElement = document.querySelector<HTMLElement>('#resource-craft')
+const craftControlsElement = document.querySelector<HTMLDivElement>('#resource-craft-controls')
 const tradeSectionElement = document.querySelector<HTMLElement>('#resource-trade')
 const tradeControlsElement = document.querySelector<HTMLDivElement>('#resource-trade-controls')
 let selectedTradeRecipient: SurvivorKind | null = null
@@ -248,7 +254,7 @@ const globalResourceInventoryElement = document.querySelector<HTMLDivElement>('#
 const survivorKinds: SurvivorKind[] = ['stealth', 'heavy', 'military', 'scientist', 'injured']
 const renderGlobalResourceInventory = () => {
   if (!globalResourceInventoryElement) return
-  const resourceOrder: ResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition']
+  const resourceOrder: ResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition', 'vie', 'bombe']
   const totals = createResourceInventory()
   survivorKinds.forEach((kind) => {
     resourceOrder.forEach((resource) => { totals[resource] += resourcesBySurvivor[kind][resource] })
@@ -819,6 +825,64 @@ const enterRoom = (room: RoomTile) => {
   renderGameUi()
 }
 
+const renderCraftSection = () => {
+  if (!craftSectionElement || !craftControlsElement) return
+  craftSectionElement.hidden = activeSurvivorKind !== 'scientist'
+  if (craftSectionElement.hidden) {
+    craftControlsElement.replaceChildren()
+    return
+  }
+
+  const canCraft = phase === 'actions' && actionsRemaining > 0 && !pendingDraw && !pendingRoomDraw
+  const recipes: Array<{
+    resource: 'vie' | 'bombe'
+    label: string
+    ingredients: Array<{ resource: 'cafe' | 'citron' | 'bonbon'; amount: number }>
+  }> = [
+    { resource: 'vie', label: 'Point de vie', ingredients: [{ resource: 'cafe', amount: 1 }, { resource: 'citron', amount: 1 }] },
+    { resource: 'bombe', label: 'Bombe', ingredients: [{ resource: 'citron', amount: 1 }, { resource: 'bonbon', amount: 2 }] },
+  ]
+
+  const list = document.createElement('div')
+  list.className = 'craft-recipes'
+  recipes.forEach((recipe) => {
+    const row = document.createElement('div')
+    row.className = 'craft-recipe'
+    const details = document.createElement('div')
+    details.className = 'craft-recipe-details'
+    const name = document.createElement('strong')
+    name.textContent = recipe.label
+    const ingredients = document.createElement('span')
+    ingredients.textContent = recipe.ingredients
+      .map(({ resource, amount }) => `${amount} ${resourceLabels[resource]}`)
+      .join(' + ')
+    details.append(name, ingredients)
+
+    const canAfford = recipe.ingredients.every(({ resource, amount }) => resourcesBySurvivor.scientist[resource] >= amount)
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'craft-submit'
+    button.textContent = 'Fabriquer · 1 action'
+    button.disabled = !canCraft || !canAfford
+    button.addEventListener('click', () => {
+      if (activeSurvivorKind !== 'scientist' || phase !== 'actions' || actionsRemaining <= 0 || pendingDraw || pendingRoomDraw) return
+      if (!recipe.ingredients.every(({ resource, amount }) => resourcesBySurvivor.scientist[resource] >= amount)) return
+
+      recipe.ingredients.forEach(({ resource, amount }) => {
+        resourcesBySurvivor.scientist[resource] -= amount
+      })
+      resourcesBySurvivor.scientist[recipe.resource] += 1
+      spendAction()
+      setStatus(`${recipe.label} fabriqué. 1 action dépensée.`)
+      saveGameState()
+      renderGameUi()
+    })
+    row.append(details, button)
+    list.append(row)
+  })
+  craftControlsElement.replaceChildren(list)
+}
+
 const renderTradeSection = () => {
   if (!tradeSectionElement || !tradeControlsElement) return
   const activePosition = survivorPositions[activeSurvivorKind]
@@ -844,7 +908,7 @@ const renderTradeSection = () => {
   recipientLabel.append(recipientSelect)
   const resourceList = document.createElement('div')
   resourceList.className = 'trade-resources'
-  const resourceOrder: ResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition']
+  const resourceOrder: ResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition', 'vie', 'bombe']
   const amountInputs: Partial<Record<ResourceType, HTMLInputElement>> = {}
   resourceOrder.forEach((resource) => {
     const row = document.createElement('label'); row.className = 'trade-resource'
@@ -918,6 +982,7 @@ const renderGameUi = () => {
     if (element) element.textContent = String(personalResources[resource])
   }
   renderGlobalResourceInventory()
+  renderCraftSection()
   renderTradeSection()
 
   if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
