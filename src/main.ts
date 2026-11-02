@@ -426,7 +426,8 @@ const updatePlacementHighlights = () => {
         ring.position.y = 0.006
         marker.add(ring)
 
-        for (const direction of candidate.options[0]?.exits ?? []) {
+        const selectedOption = candidate.options.find((option) => option.turns === selectedCardTurns) ?? candidate.options[0]
+        for (const direction of selectedOption?.exits ?? []) {
           const [dx, dz] = directionDelta[direction]
           const exitMarker = new THREE.Mesh(
             new THREE.BoxGeometry(dx === 0 ? 0.22 : 0.055, 0.018, dz === 0 ? 0.22 : 0.055),
@@ -435,7 +436,7 @@ const updatePlacementHighlights = () => {
           exitMarker.position.set(dx * 0.43, 0.02, dz * 0.43)
           marker.add(exitMarker)
         }
-        for (const direction of card.doors.map((item) => rotateDirection(item, selectedCardTurns)).filter((item) => !candidate.options[0]?.exits.includes(item))) {
+        for (const direction of card.doors.map((item) => rotateDirection(item, selectedOption?.turns ?? selectedCardTurns)).filter((item) => !selectedOption?.exits.includes(item))) {
           const [dx, dz] = directionDelta[direction]
           const doorMarker = new THREE.Mesh(
             new THREE.BoxGeometry(dx === 0 ? 0.22 : 0.055, 0.018, dz === 0 ? 0.22 : 0.055),
@@ -796,24 +797,18 @@ drawButton?.addEventListener('keydown', (event) => {
 placeButton?.addEventListener('click', confirmPlacement)
 const rotateSelectedCorridor = () => {
   if (selectedCardId === null || phase !== 'actions') return
-  selectedCardTurns = (selectedCardTurns + 1) % 4
-  const previousPreview = placementPreview
-  const card = hand.find((item) => item.id === selectedCardId)
-  if (previousPreview && card) {
-    const samePosition = getPlacements(card, selectedCardTurns)
-      .find((candidate) => candidate.x === previousPreview.x && candidate.z === previousPreview.z)
-    const matchingOrientation = samePosition?.options.some((option) => option.turns === selectedCardTurns)
-    placementPreview = samePosition && matchingOrientation
-      ? { ...samePosition, optionIndex: 0 }
-      : { ...previousPreview, options: [], optionIndex: 0 }
+  if (placementPreview && placementPreview.options.length > 0) {
+    const nextOptionIndex = (placementPreview.optionIndex + 1) % placementPreview.options.length
+    placementPreview.optionIndex = nextOptionIndex
+    selectedCardTurns = placementPreview.options[nextOptionIndex].turns
+  } else {
+    selectedCardTurns = (selectedCardTurns + 1) % 4
   }
   updatePlacementHighlights()
   renderGameUi()
-  setStatus(placementPreview?.options.length
-    ? 'Orientation modifiée. Vérifiez les passages et validez la pose.'
-    : placementPreview
-      ? 'Cette orientation ne convient pas à cet emplacement. Tournez encore ou choisissez un autre emplacement.'
-      : 'Orientation modifiée. Choisissez un emplacement compatible.')
+  setStatus(placementPreview
+    ? 'Orientation valide modifiée. Vérifiez les passages et validez la pose.'
+    : 'Orientation modifiée. Choisissez un emplacement compatible.')
 }
 rotateButton?.addEventListener('click', rotateSelectedCorridor)
 rotateGhostButton?.addEventListener('click', rotateSelectedCorridor)
@@ -1097,8 +1092,14 @@ renderer.domElement.addEventListener('click', (event) => {
         ? getPlacements(card).find((item) => item.x === hit.x && item.z === hit.z)
         : undefined
       if (candidate) {
-        selectedCardTurns = candidate.options[0].turns
-        placementPreview = { x: hit.x, z: hit.z, options: candidate.options, optionIndex: 0 }
+        const optionIndex = candidate.options.findIndex((option) => option.turns === selectedCardTurns)
+        placementPreview = {
+          x: hit.x,
+          z: hit.z,
+          options: candidate.options,
+          optionIndex: optionIndex >= 0 ? optionIndex : 0,
+        }
+        selectedCardTurns = candidate.options[placementPreview.optionIndex].turns
         updatePlacementHighlights()
         renderGameUi()
         setStatus('Couloir pré-positionné. Tournez-le si besoin, puis validez à côté de la carte.')
