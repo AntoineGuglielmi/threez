@@ -560,8 +560,6 @@ const discardSelectedCorridorAndDraw = () => {
 }
 
 const drawCorridorCard = () => {
-  if (phase !== 'draw' || activeSurvivorKind === 'injured' || hand.length >= 3) return
-
   if (corridorDeck.length === 0 && discardPile.length > 0) {
     corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
   }
@@ -648,11 +646,7 @@ window.addEventListener('keydown', (event) => {
 })
 
 const drawRoomCard = () => {
-  if (activeSurvivorKind === 'injured' || currentRoomId !== null || pendingRoomDraw) return
-  if (getAvailableDoors().length === 0) {
-    setStatus('Aucune porte libre sur les couloirs déjà posés.')
-    return
-  }
+  if (pendingRoomDraw) roomDeck.push(pendingRoomDraw)
   const card = roomDeck.pop() ?? roomCards.createRoomCard()
   lastDraw = { type: 'room', card }
   pendingRoomDraw = card
@@ -856,9 +850,8 @@ const renderGameUi = () => {
   if (discardButton) discardButton.disabled = !pendingDraw
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
   if (drawButton) {
-    const disabled = phase !== 'draw' || hand.length >= 3 || activeSurvivorKind === 'injured'
-    drawButton.setAttribute('aria-disabled', String(disabled))
-    drawButton.classList.toggle('is-disabled', disabled)
+    drawButton.removeAttribute('aria-disabled')
+    drawButton.classList.remove('is-disabled')
   }
   if (endTurnButton) endTurnButton.disabled = phase !== 'actions' || Boolean(pendingDraw) || Boolean(pendingRoomDraw)
 
@@ -882,14 +875,9 @@ const renderGameUi = () => {
     onSearchRoom: searchCurrentRoom,
   })
 }
-drawRoomButton?.addEventListener('click', (event) => {
-  const stack = event.currentTarget
-  if (!(stack instanceof HTMLElement) || stack.getAttribute('aria-disabled') === 'true') return
-  drawRoomCard()
-})
+drawRoomButton?.addEventListener('click', drawRoomCard)
 drawRoomButton?.addEventListener('keydown', (event) => {
-  const stack = event.currentTarget
-  if ((event.key === 'Enter' || event.key === ' ') && stack instanceof HTMLElement && stack.getAttribute('aria-disabled') !== 'true') {
+  if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault()
     drawRoomCard()
   }
@@ -897,8 +885,7 @@ drawRoomButton?.addEventListener('keydown', (event) => {
 
 drawButton?.addEventListener('click', drawCorridorCard)
 drawButton?.addEventListener('keydown', (event) => {
-  const stack = event.currentTarget
-  if ((event.key === 'Enter' || event.key === ' ') && stack instanceof HTMLElement && stack.getAttribute('aria-disabled') !== 'true') {
+  if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault()
     drawCorridorCard()
   }
