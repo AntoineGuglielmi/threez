@@ -9,7 +9,7 @@ type CorridorPlacementInput = {
   rooms: OccupiedRoom[]
 }
 
-export const getCorridorPlacements = ({ boardTiles, rooms }: CorridorPlacementInput): PlacementCandidate[] => {
+export const getCorridorPlacements = ({ card, boardTiles, rooms }: CorridorPlacementInput): PlacementCandidate[] => {
   const candidates = new Map<string, PlacementCandidate>()
 
   // Every empty cell directly adjacent to the existing network is a possible
@@ -25,7 +25,7 @@ export const getCorridorPlacements = ({ boardTiles, rooms }: CorridorPlacementIn
       const key = `${x},${z}`
       if (candidates.has(key)) continue
       const options = [0, 1, 2, 3].map((rotation) => ({
-        exits: corridorDefinitionsForPlacement(rotation),
+        exits: corridorDefinitions[card.kind].exits.map((direction) => rotateDirection(direction, rotation)),
         turns: rotation,
       }))
       candidates.set(key, { x, z, options })
@@ -34,12 +34,6 @@ export const getCorridorPlacements = ({ boardTiles, rooms }: CorridorPlacementIn
 
   return [...candidates.values()]
 }
-
-const corridorDefinitionsForPlacement = (rotation: number): Direction[] =>
-  rotateDirections(['N', 'S'], rotation)
-
-const rotateDirections = (directions: Direction[], turns: number): Direction[] =>
-  directions.map((direction) => rotateDirection(direction, turns))
 
 export const getAvailableRoomDoors = (
   tile: Pick<BoardTile, 'x' | 'z' | 'doors' | 'usedDoors'>,
