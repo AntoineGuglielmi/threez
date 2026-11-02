@@ -97,6 +97,66 @@ const boardTiles: BoardTile[] = [{
 }]
 
 let currentTile = boardTiles[0]
+
+type SurvivorMovementAnimation = {
+  characterStart: THREE.Vector3
+  characterEnd: THREE.Vector3
+  ringStart: THREE.Vector3
+  ringEnd: THREE.Vector3
+  elapsed: number
+  duration: number
+}
+let survivorMovementAnimation: SurvivorMovementAnimation | null = null
+
+const moveActiveSurvivorTo = (
+  targetGroup: THREE.Group,
+  characterTarget: THREE.Vector3,
+  ringTarget: THREE.Vector3,
+) => {
+  const characterWorldPosition = activeCharacter.getWorldPosition(new THREE.Vector3())
+  const ringWorldPosition = activeRing.getWorldPosition(new THREE.Vector3())
+  const characterStart = targetGroup.worldToLocal(characterWorldPosition)
+  const ringStart = targetGroup.worldToLocal(ringWorldPosition)
+
+  activeCharacter.parent?.remove(activeCharacter)
+  activeRing.parent?.remove(activeRing)
+  characterKeyLight.parent?.remove(characterKeyLight)
+  characterFillLight.parent?.remove(characterFillLight)
+  warmRimLight.parent?.remove(warmRimLight)
+  targetGroup.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+
+  activeCharacter.position.copy(characterStart)
+  activeRing.position.copy(ringStart)
+  survivorMovementAnimation = {
+    characterStart,
+    characterEnd: characterTarget.clone(),
+    ringStart,
+    ringEnd: ringTarget.clone(),
+    elapsed: 0,
+    duration: 0.28,
+  }
+}
+
+const updateSurvivorMovementAnimation = (delta: number) => {
+  if (!survivorMovementAnimation) return
+
+  const animation = survivorMovementAnimation
+  animation.elapsed = Math.min(animation.elapsed + delta, animation.duration)
+  const progress = animation.elapsed / animation.duration
+  const eased = progress * progress * (3 - 2 * progress)
+  const bounce = Math.sin(progress * Math.PI) * 0.12
+
+  activeCharacter.position.lerpVectors(animation.characterStart, animation.characterEnd, eased)
+  activeCharacter.position.y += bounce
+  activeRing.position.lerpVectors(animation.ringStart, animation.ringEnd, eased)
+
+  if (progress === 1) {
+    activeCharacter.position.copy(animation.characterEnd)
+    activeRing.position.copy(animation.ringEnd)
+    survivorMovementAnimation = null
+  }
+}
+
 const characterModels: Record<SurvivorKind, THREE.Group> = {
   stealth: activeCharacter,
   heavy: otherCharacters.find((item) => item.kind === 'heavy')!.character,
@@ -707,9 +767,11 @@ const searchCurrentRoom = () => {
 
 const returnToCorridor = () => {
   if (phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
-  currentTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  activeCharacter.position.set(0, 0.19, 0.16)
-  activeRing.position.set(0, 0.183, 0.16)
+  moveActiveSurvivorTo(
+    currentTile.group,
+    new THREE.Vector3(0, 0.19, 0.16),
+    new THREE.Vector3(0, 0.183, 0.16),
+  )
   currentRoomId = null
   survivorPositions[activeSurvivorKind].roomId = null
   spendAction()
@@ -733,10 +795,11 @@ const enterRoom = (room: RoomTile) => {
   currentRoomId = room.id
   survivorPositions[activeSurvivorKind] = { x: currentTile.x, z: currentTile.z, roomId: room.id }
   spendAction()
-  currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  room.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  activeCharacter.position.set(0, 0.19, 0)
-  activeRing.position.set(0, 0.183, 0)
+  moveActiveSurvivorTo(
+    room.group,
+    new THREE.Vector3(0, 0.19, 0),
+    new THREE.Vector3(0, 0.183, 0),
+  )
   selectedCardId = null
   placementPreview = null
 
@@ -1312,10 +1375,11 @@ renderer.domElement.addEventListener('click', (event) => {
     }
   }
 
-  currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  targetTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  activeCharacter.position.set(0, 0.19, 0.16)
-  activeRing.position.set(0, 0.183, 0.16)
+  moveActiveSurvivorTo(
+    targetTile.group,
+    new THREE.Vector3(0, 0.19, 0.16),
+    new THREE.Vector3(0, 0.183, 0.16),
+  )
   currentTile = targetTile
   survivorPositions[activeSurvivorKind] = { x: currentTile.x, z: currentTile.z, roomId: null }
   if (activeSurvivorKind === 'injured') injuredMovedThisTurn = true
@@ -1393,6 +1457,7 @@ const animate = () => {
   camera.zoom = currentZoom
   camera.updateProjectionMatrix()
   beacon.scale.y = 1 + Math.sin(elapsed * 2.2) * 0.07
+  updateSurvivorMovementAnimation(delta)
   if (placementActions && !placementActions.hidden && placementPreview) {
     camera.updateMatrixWorld()
     const projected = new THREE.Vector3(placementPreview.x * 1.18, 1.1, placementPreview.z * 1.18).project(camera)
