@@ -1549,3 +1549,19 @@ button, a { color: inherit; }
   outline: 2px solid #bd9878;
   outline-offset: 4px;
 }
+
+/* Contextual resource exchange, aligned with the sidebar inventory. */
+.trade-disclosure { display: grid; gap: 10px; min-width: 0; padding-top: 16px; border-top: 1px solid rgba(225, 231, 235, .14); }
+.trade-disclosure[hidden] { display: none; }
+.trade-disclosure .sidebar-section-heading { margin-bottom: 0; }
+.trade-disclosure .sidebar-section-heading h2 { font-size: 16px; }
+.trade-form { display: grid; gap: 12px; }
+.trade-recipient { display: grid; gap: 7px; color: #aeb8bf; font: 600 12px 'DM Sans', sans-serif; }
+.trade-recipient select { width: 100%; min-height: 40px; padding: 8px 11px; border: 1px solid rgba(225, 231, 235, .16); border-radius: 10px; background: #242c31; color: #f1f3f4; font: 500 13px 'DM Sans', sans-serif; }
+.trade-resources { display: grid; gap: 6px; }
+.trade-resource { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #c4cdd2; font: 500 12px 'DM Sans', sans-serif; }
+.trade-resource input { width: 76px; min-height: 34px; padding: 5px 8px; border: 1px solid rgba(225, 231, 235, .14); border-radius: 9px; background: rgba(255,255,255,.045); color: #fff; font: 600 13px 'DM Sans', sans-serif; text-align: right; }
+.trade-resource input:focus-visible, .trade-recipient select:focus-visible { outline: 2px solid #bd9878; outline-offset: 2px; }
+.trade-resource input:disabled { opacity: .4; }
+.trade-submit { min-height: 42px; padding: 10px 14px; border: 1px solid #d99570; border-radius: 12px; background: #a85f40; color: #fff8f4; font: 600 13px 'DM Sans', sans-serif; cursor: pointer; }
+.trade-submit:disabled { cursor: not-allowed; opacity: .4; }
