@@ -1433,3 +1433,13 @@ button, a { color: inherit; }
   .team-inventory { padding-top: 12px; }
   .global-resource-row { font-size: 9px; }
 }
+
+
+/* Room exploration is a single contextual action, not a sidebar section. */
+.room-exploration {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.room-exploration[hidden] { display: none; }
