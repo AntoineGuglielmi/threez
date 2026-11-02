@@ -167,6 +167,7 @@ const placeButton = document.querySelector<HTMLButtonElement>('#place-cc')
 const rotateButton = document.querySelector<HTMLButtonElement>('#rotate-cc')
 const cancelPlacementButton = document.querySelector<HTMLButtonElement>('#cancel-placement')
 const discardButton = document.querySelector<HTMLButtonElement>('#discard-cc')
+const discardSelectedButton = document.querySelector<HTMLButtonElement>('#discard-selected-cc')
 const replaceButton = document.querySelector<HTMLButtonElement>('#replace-cc')
 const endTurnButton = document.querySelector<HTMLButtonElement>('#end-turn')
 const turnLabel = document.querySelector<HTMLElement>('.turn-tag')
@@ -530,6 +531,35 @@ const confirmPlacement = () => {
   renderGameUi()
 }
 
+const discardSelectedCorridorAndDraw = () => {
+  if (phase !== 'actions' || actionsRemaining <= 0 || pendingDraw || activeSurvivorKind === 'injured' || selectedCardId === null) return
+
+  const selectedIndex = hand.findIndex((card) => card.id === selectedCardId)
+  if (selectedIndex < 0) return
+
+  if (corridorDeck.length === 0 && discardPile.length > 0) {
+    corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
+  }
+
+  const replacement = corridorDeck.pop()
+  if (!replacement) {
+    setStatus('Impossible de piocher : la pioche et la défausse sont vides.')
+    renderGameUi()
+    return
+  }
+
+  const [discarded] = hand.splice(selectedIndex, 1)
+  discardPile.push(discarded)
+  hand.splice(selectedIndex, 0, replacement)
+  spendAction()
+  selectedCardId = null
+  placementPreview = null
+  clearGhostTile()
+  setStatus(`Couloir défaussé et remplacé. 1 action dépensée, ${actionsRemaining} restante${actionsRemaining > 1 ? 's' : ''}.`)
+  saveGameState()
+  renderGameUi()
+}
+
 const drawCorridorCard = () => {
   if (phase !== 'draw' || activeSurvivorKind === 'injured' || hand.length >= 3) return
 
@@ -704,6 +734,7 @@ const renderGameUi = () => {
   updatePlacementHighlights()
   if (!handElement) return
   handElement.replaceChildren()
+  handElement.closest('.hand-disclosure')?.classList.toggle('has-selection', selectedCardId !== null)
   hand.forEach((card) => {
     const selected = selectedCardId === card.id
     const cardTurns = selected ? selectedCardTurns : 0
@@ -790,6 +821,10 @@ const renderGameUi = () => {
   }
 
   if (cancelPlacementButton) cancelPlacementButton.disabled = selectedCardId === null
+  if (discardSelectedButton) {
+    discardSelectedButton.hidden = selectedCardId === null
+    discardSelectedButton.disabled = phase !== 'actions' || actionsRemaining <= 0 || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
+  }
   if (discardButton) discardButton.disabled = !pendingDraw
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
   if (drawButton) {
@@ -842,6 +877,7 @@ drawButton?.addEventListener('keydown', (event) => {
   }
 })
 placeButton?.addEventListener('click', confirmPlacement)
+discardSelectedButton?.addEventListener('click', discardSelectedCorridorAndDraw)
 const rotateSelectedCorridor = () => {
   if (selectedCardId === null || phase !== 'actions') return
   if (placementPreview && placementPreview.options.length > 0) {
