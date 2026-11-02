@@ -68,7 +68,7 @@ const decodeModel = (model: unknown): string[] => {
   )
 }
 
-const modelFiles = import.meta.glob<Record<string, unknown>>('../../references/models/*.json', {
+const modelFiles = import.meta.glob<Record<string, CompactModel>>('../../references/models/*.json', {
   eager: true,
   import: 'default',
 })
