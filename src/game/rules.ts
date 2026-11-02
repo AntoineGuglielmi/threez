@@ -64,6 +64,7 @@ export const getCorridorPlacements = ({
         const candidateOpens = exits.includes(direction)
         const neighbourOpens = neighbour.exits.includes(opposite[direction])
         if (candidateOpens !== neighbourOpens ||
+          doors.includes(direction) ||
           neighbour.doors.includes(opposite[direction])) {
           hasConflict = true
           break
