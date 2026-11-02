@@ -31,11 +31,8 @@ export const renderRoomControls = ({
     : rooms.find((room) => room.id === currentRoomId) ?? null
 
   if (drawRoomButton) {
-    const disabled = phase !== 'actions' || activeSurvivorKind === 'injured' ||
-      currentRoomId !== null || !hasAvailableDoors ||
-      pendingRoomDraw !== null
-    drawRoomButton.setAttribute('aria-disabled', String(disabled))
-    drawRoomButton.classList.toggle('is-disabled', disabled)
+    drawRoomButton.removeAttribute('aria-disabled')
+    drawRoomButton.classList.remove('is-disabled')
   }
 
   if (!roomDoorOptionsElement || !roomSection) return
