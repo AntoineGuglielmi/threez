@@ -241,6 +241,9 @@ const getSurvivorLabel = (kind: SurvivorKind) => ({
   stealth: 'Furtif', heavy: 'Costaud', military: 'Militaire', scientist: 'Scientifique', injured: 'Blessé',
 })[kind]
 
+const tradeSectionElement = document.querySelector<HTMLElement>('#resource-trade')
+const tradeControlsElement = document.querySelector<HTMLDivElement>('#resource-trade-controls')
+let selectedTradeRecipient: SurvivorKind | null = null
 const globalResourceInventoryElement = document.querySelector<HTMLDivElement>('#global-resource-inventory')
 const survivorKinds: SurvivorKind[] = ['stealth', 'heavy', 'military', 'scientist', 'injured']
 const renderGlobalResourceInventory = () => {
@@ -816,6 +819,58 @@ const enterRoom = (room: RoomTile) => {
   renderGameUi()
 }
 
+const renderTradeSection = () => {
+  if (!tradeSectionElement || !tradeControlsElement) return
+  const activePosition = survivorPositions[activeSurvivorKind]
+  const coLocatedSurvivors = survivorKinds.filter((kind) => {
+    if (kind === activeSurvivorKind) return false
+    const position = survivorPositions[kind]
+    return position.x === activePosition.x && position.z === activePosition.z && position.roomId === activePosition.roomId
+  })
+  tradeSectionElement.hidden = activeSurvivorKind === 'injured' || coLocatedSurvivors.length === 0
+  if (tradeSectionElement.hidden) { selectedTradeRecipient = null; tradeControlsElement.replaceChildren(); return }
+  if (!selectedTradeRecipient || !coLocatedSurvivors.includes(selectedTradeRecipient)) selectedTradeRecipient = coLocatedSurvivors[0]
+  const canTrade = phase === 'actions' && actionsRemaining > 0 && !pendingDraw && !pendingRoomDraw && activeSurvivorKind !== 'injured'
+  const form = document.createElement('form')
+  form.className = 'trade-form'
+  const recipientLabel = document.createElement('label')
+  recipientLabel.className = 'trade-recipient'
+  recipientLabel.textContent = 'Donner à'
+  const recipientSelect = document.createElement('select')
+  recipientSelect.name = 'recipient'
+  recipientSelect.disabled = !canTrade
+  coLocatedSurvivors.forEach((kind) => { const option = document.createElement('option'); option.value = kind; option.textContent = getSurvivorLabel(kind); option.selected = kind === selectedTradeRecipient; recipientSelect.append(option) })
+  recipientSelect.addEventListener('change', () => { selectedTradeRecipient = recipientSelect.value as SurvivorKind; renderTradeSection() })
+  recipientLabel.append(recipientSelect)
+  const resourceList = document.createElement('div')
+  resourceList.className = 'trade-resources'
+  const resourceOrder: ResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition']
+  const amountInputs: Partial<Record<ResourceType, HTMLInputElement>> = {}
+  resourceOrder.forEach((resource) => {
+    const row = document.createElement('label'); row.className = 'trade-resource'
+    const name = document.createElement('span'); name.textContent = resourceLabels[resource]
+    const input = document.createElement('input'); input.type = 'number'; input.name = resource; input.min = '0'; input.max = String(resourcesBySurvivor[activeSurvivorKind][resource]); input.step = '1'; input.value = '0'; input.inputMode = 'numeric'
+    input.disabled = !canTrade || resourcesBySurvivor[activeSurvivorKind][resource] === 0
+    input.setAttribute('aria-label', 'Quantité de ' + resourceLabels[resource] + ' à donner')
+    amountInputs[resource] = input; row.append(name, input); resourceList.append(row)
+  })
+  const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'trade-submit'; submit.textContent = 'Donner · 1 action'; submit.disabled = !canTrade
+  form.addEventListener('submit', (event) => {
+    event.preventDefault()
+    const recipient = selectedTradeRecipient
+    if (!recipient || !coLocatedSurvivors.includes(recipient) || !canTrade) return
+    const transfer = createResourceInventory(); let totalTransferred = 0
+    resourceOrder.forEach((resource) => { const raw = Number(amountInputs[resource]?.value ?? 0); const amount = Number.isFinite(raw) ? Math.floor(raw) : 0; transfer[resource] = Math.max(0, Math.min(amount, resourcesBySurvivor[activeSurvivorKind][resource])); totalTransferred += transfer[resource] })
+    if (totalTransferred === 0) { setStatus('Choisissez au moins une ressource à donner.'); return }
+    resourceOrder.forEach((resource) => { const amount = transfer[resource]; resourcesBySurvivor[activeSurvivorKind][resource] -= amount; resourcesBySurvivor[recipient][resource] += amount })
+    spendAction()
+    const summary = resourceOrder.filter((resource) => transfer[resource] > 0).map((resource) => transfer[resource] + ' ' + resourceLabels[resource]).join(', ')
+    setStatus('Ressources données à ' + getSurvivorLabel(recipient) + ' : ' + summary + '. 1 action dépensée.')
+    saveGameState(); renderGameUi()
+  })
+  form.append(recipientLabel, resourceList, submit); tradeControlsElement.replaceChildren(form)
+}
+
 const renderGameUi = () => {
   survivorCards[activeSurvivorKind] = { deck: corridorDeck, discard: discardPile, hand }
   updatePlacementHighlights()
@@ -863,6 +918,7 @@ const renderGameUi = () => {
     if (element) element.textContent = String(personalResources[resource])
   }
   renderGlobalResourceInventory()
+  renderTradeSection()
 
   if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
 
