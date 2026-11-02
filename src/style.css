@@ -1428,7 +1428,7 @@ button, a { color: inherit; }
 }
 .global-resource-row {
   display: grid;
-  grid-template-columns: minmax(76px, 1.3fr) repeat(5, minmax(30px, .7fr)) minmax(34px, .8fr);
+  grid-template-columns: minmax(76px, 1.3fr) repeat(7, minmax(30px, .7fr)) minmax(34px, .8fr);
   align-items: center;
   gap: 4px;
   min-width: 0;
@@ -1565,3 +1565,18 @@ button, a { color: inherit; }
 .trade-resource input:disabled { opacity: .4; }
 .trade-submit { min-height: 42px; padding: 10px 14px; border: 1px solid #d99570; border-radius: 12px; background: #a85f40; color: #fff8f4; font: 600 13px 'DM Sans', sans-serif; cursor: pointer; }
 .trade-submit:disabled { cursor: not-allowed; opacity: .4; }
+
+/* Scientist-only crafting, using the same compact sidebar controls as trading. */
+.craft-disclosure { display: grid; gap: 10px; min-width: 0; padding-top: 16px; border-top: 1px solid rgba(225, 231, 235, .14); }
+.craft-disclosure[hidden] { display: none; }
+.craft-disclosure .sidebar-section-heading { margin-bottom: 0; }
+.craft-disclosure .sidebar-section-heading h2 { font-size: 16px; }
+.craft-recipes { display: grid; gap: 12px; }
+.craft-recipe { display: grid; gap: 8px; }
+.craft-recipe-details { display: grid; gap: 3px; }
+.craft-recipe-details strong { color: #e8ecee; font: 600 12px 'DM Sans', sans-serif; }
+.craft-recipe-details span { color: #aeb8bf; font: 500 11px 'DM Sans', sans-serif; }
+.craft-submit { min-height: 38px; padding: 8px 12px; border: 1px solid rgba(189, 152, 120, .42); border-radius: 10px; background: rgba(189, 152, 120, .1); color: #e6c4aa; font: 600 12px 'DM Sans', sans-serif; cursor: pointer; }
+.craft-submit:hover:not(:disabled) { border-color: #bd9878; background: rgba(189, 152, 120, .18); }
+.craft-submit:focus-visible { outline: 2px solid #bd9878; outline-offset: 2px; }
+.craft-submit:disabled { cursor: not-allowed; opacity: .4; }
