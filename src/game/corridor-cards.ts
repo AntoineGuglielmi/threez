@@ -8,8 +8,15 @@ export const createCorridorCardFactory = (initialId: number) => {
   const getWallDirections = (kind: CorridorKind): Direction[] =>
     directionOrder.filter((direction) => !corridorDefinitions[kind].exits.includes(direction))
 
+  const getModelDoorDirections = (kind: CorridorKind, requestedCount: number): Direction[] => {
+    if ((kind === 'left' || kind === 'right') && requestedCount === 1) {
+      return [kind === 'left' ? 'S' : 'W']
+    }
+    return getWallDirections(kind)
+  }
+
   const createDoorDirections = (kind: CorridorKind, requestedCount = Math.floor(Math.random() * 3)): Direction[] => {
-    const availableWalls = shuffle(getWallDirections(kind))
+    const availableWalls = shuffle(getModelDoorDirections(kind, requestedCount))
     return availableWalls.slice(0, Math.min(requestedCount, 2, availableWalls.length))
   }
 
@@ -24,14 +31,17 @@ export const createCorridorCardFactory = (initialId: number) => {
       .flatMap((kind) => Array.from({ length: 8 }, () => createCard(kind))),
   )
 
-  const normalizeSavedCard = (card: CorridorCard): CorridorCard => {
+  const normalizeSavedCard = (card: CorridorCard, turns = 0): CorridorCard => {
     const savedDoors = card.doors ?? []
-    const validWallDoors = savedDoors.filter((direction) => getWallDirections(card.kind).includes(direction))
+    const allowedDoors = getModelDoorDirections(card.kind, savedDoors.length)
+      .map((direction) => directionOrder[(directionOrder.indexOf(direction) + turns + 4) % 4])
+    const validWallDoors = savedDoors.filter((direction) => allowedDoors.includes(direction))
     return {
       ...card,
       doors: validWallDoors.length === savedDoors.length
         ? validWallDoors
-        : createDoorDirections(card.kind, savedDoors.length),
+        : createDoorDirections(card.kind, savedDoors.length)
+          .map((direction) => directionOrder[(directionOrder.indexOf(direction) + turns + 4) % 4]),
     }
   }
 

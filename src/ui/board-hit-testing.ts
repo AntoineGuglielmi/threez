@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { BoardTile, Direction, RoomTile } from '../game/types'
 
 export type BoardHit =
-  | { type: 'room-placement'; direction: Direction }
+  | { type: 'room-placement'; direction: Direction; x: number; z: number; originX: number; originZ: number }
   | { type: 'corridor-placement'; x: number; z: number }
   | { type: 'room'; room: RoomTile }
   | { type: 'tile'; tile: BoardTile }
@@ -54,7 +54,15 @@ export const resolveBoardHit = ({
     let marker: THREE.Object3D | null = hit.object
     while (marker && marker.parent !== roomPlacementHighlights) marker = marker.parent
     const direction = marker?.userData.roomPlacementDirection as Direction | undefined
-    return direction ? { type: 'room-placement', direction } : { type: 'empty' }
+    if (!marker || !direction) return { type: 'empty' }
+    return {
+      type: 'room-placement',
+      direction,
+      x: Number(marker.userData.roomPlacementX),
+      z: Number(marker.userData.roomPlacementZ),
+      originX: Number(marker.userData.roomPlacementOriginX),
+      originZ: Number(marker.userData.roomPlacementOriginZ),
+    }
   }
 
   if (mode === 'corridor-placement') {

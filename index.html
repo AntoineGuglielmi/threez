@@ -9,21 +9,17 @@
   </head>
   <body>
     <main class="game">
-      <header class="hud">
-        <a class="wordmark" href="/" aria-label="Threez, accueil"><span class="wordmark-mark">3</span> THREEZ</a>
-        <div class="chapter"><span class="status-dot"></span> PROLOGUE <span class="chapter-divider">/</span> HÔPITAL</div>
-        <div class="hud-right">PROTOTYPE <span class="hud-version">01</span></div>
-      </header>
       <section class="scene" aria-label="Plateau de jeu en 3D">
         <div id="scene-root"></div>
         <div id="placement-actions" class="placement-actions" hidden role="group" aria-label="Actions de placement">
           <button id="rotate-ghost" type="button" aria-label="Tourner le couloir" title="Tourner le couloir">↻</button>
           <button id="confirm-ghost" type="button" aria-label="Valider la pose" title="Valider la pose">✓</button>
+          <button id="rotate-room-placement" type="button" aria-label="Tourner la pièce" title="Tourner la pièce" hidden>↻ CP</button>
         </div>
         <div class="camera-controls" role="group" aria-label="Rotation du plateau">
-          <span>VUE</span>
           <button id="rotate-left" type="button" aria-label="Pivoter le plateau vers la gauche" title="Pivoter vers la gauche">↶</button>
           <button id="rotate-right" type="button" aria-label="Pivoter le plateau vers la droite" title="Pivoter vers la droite">↷</button>
+          <button id="toggle-edit-mode" type="button" aria-pressed="false">Éditer</button>
         </div>
         <aside id="game-ui" class="game-panel" aria-label="État de la partie">
           <section class="turn-summary" aria-label="Joueur actif et actions">
@@ -38,47 +34,27 @@
           <div class="actions-track" aria-hidden="true"><div id="actions-fill"></div></div>
           <p id="phase-label" class="phase-label">Phase 1 — Compléter la main à 3 couloirs</p>
 
-          <section class="decks-section" aria-label="Pioches">
-            <div class="deck-card">
-              <div class="deck-card-top"><span class="pile-icon" aria-hidden="true"><span class="pile-shape corridor-shape"></span></span><span class="deck-card-count"><strong id="cc-deck-count">37</strong><small>cartes</small></span></div>
-              <div class="deck-card-label">Couloirs</div>
-              <div class="deck-card-meta">Défausse <strong id="cc-discard-count">0</strong></div>
-              <button id="draw-cc" class="action-button primary deck-draw-button">Compléter ma main</button>
-            </div>
-            <div class="deck-card">
-              <div class="deck-card-top"><span class="pile-icon cp-icon" aria-hidden="true"><span class="pile-shape room-shape"></span></span><span class="deck-card-count"><strong id="cp-deck-count">24</strong><small>cartes</small></span></div>
-              <div class="deck-card-label">Pièces</div>
-              <div class="deck-card-meta">À découvrir</div>
-              <span class="deck-card-hint">Par une porte</span>
-              <button id="draw-cp" class="action-button primary deck-draw-button">Piocher une pièce</button>
-            </div>
+
+
+          <section class="room-exploration" aria-label="Fouille de la pièce" hidden>
+            <div id="cp-door-options" class="cp-door-options"></div>
           </section>
 
-          <section class="room-exploration" aria-label="Pièce à proximité">
-            <div class="section-heading"><h2>À proximité</h2><span>EXPLORATION</span></div>
-            <p id="room-state" class="room-state">Aucune pièce à proximité</p>
-            <div id="room-result" class="room-result" aria-live="polite"></div>
-            <div id="cp-door-options" class="cp-door-options">Aucune porte sur ce couloir</div>
-            <button id="unlock-room" class="action-button primary" hidden>Déverrouiller · 1 action</button>
-            <button id="return-room" class="action-button subtle" hidden>Retour au couloir · 1 action</button>
-          </section>
-
-          <details class="hand-disclosure">
-            <summary><span>Couloirs en main</span><strong id="cc-hand-count">3 cartes</strong></summary>
+          <section class="hand-disclosure" aria-label="Couloirs en main">
+            <div class="sidebar-section-heading"><h2>Couloirs en main</h2></div>
             <div id="cc-hand" class="cc-hand"></div>
-            <p id="game-status" class="game-status" role="status">Sélectionnez un couloir pour afficher les emplacements possibles sur le plateau.</p>
             <div class="game-actions">
-              <p class="hand-placement-hint">Sélectionnez un couloir, puis cliquez sur un emplacement lumineux du plateau.</p>
               <button id="place-cc" class="action-button primary" disabled hidden>Valider la pose</button>
               <button id="rotate-cc" class="action-button" disabled hidden>Tourner</button>
               <button id="cancel-placement" class="action-button subtle" disabled hidden>Annuler</button>
+              <button id="discard-selected-cc" class="action-button subtle" disabled hidden>Défausser et piocher · 1 action</button>
               <button id="discard-cc" class="action-button subtle" disabled>Défausser la pioche</button>
               <button id="replace-cc" class="action-button subtle" disabled>Remplacer un couloir en main</button>
             </div>
-          </details>
+          </section>
 
-          <details class="inventory-disclosure">
-            <summary><span>Ressources</span><strong>Inventaire</strong></summary>
+          <section class="inventory-disclosure" aria-label="Inventaire du survivant actif">
+            <div class="sidebar-section-heading"><h2>Ressources</h2><strong id="personal-resource-owner">Personnelles</strong></div>
             <div class="resource-grid">
               <span>Café <b id="resource-cafe">0</b></span>
               <span>Croissant <b id="resource-croissant">0</b></span>
@@ -86,13 +62,35 @@
               <span>Bonbon acidulé <b id="resource-bonbon">0</b></span>
               <span>Munition <b id="resource-munition">0</b></span>
             </div>
-          </details>
+          </section>
+          <section class="team-inventory" aria-label="Inventaire global de l'équipe">
+            <div class="sidebar-section-heading"><h2>Inventaire de l’équipe</h2><strong>Par survivant</strong></div>
+            <div id="global-resource-inventory" aria-live="polite"></div>
+          </section>
           <button id="end-turn" class="end-turn">Terminer le tour <span>↗</span></button>
           <button id="reset-game" class="reset-button" type="button">Réinitialiser la partie</button>
         </aside>
-        <div class="tile-label" aria-hidden="true"><span class="tile-label-dot"></span> DÉPART <b>CD</b></div>
+        <aside class="deck-piles" aria-label="Pioches">
+          <div id="draw-cc" class="deck-stack deck-stack-corridor" role="button" tabindex="0" aria-label="Piocher des cartes Couloir" aria-disabled="false">
+            <span class="deck-stack-card deck-stack-card-back" aria-hidden="true"></span>
+            <span class="deck-stack-card deck-stack-card-middle" aria-hidden="true"></span>
+            <span class="deck-stack-card deck-stack-card-loose" aria-hidden="true"></span>
+            <span class="deck-stack-card deck-stack-card-top">Couloir</span>
+          </div>
+          <div id="draw-cp" class="deck-stack deck-stack-room" role="button" tabindex="0" aria-label="Piocher des cartes Pièce" aria-disabled="false">
+            <span class="deck-stack-card deck-stack-card-back" aria-hidden="true"></span>
+            <span class="deck-stack-card deck-stack-card-middle" aria-hidden="true"></span>
+            <span class="deck-stack-card deck-stack-card-top">Pièce</span>
+          </div>
+        </aside>
+        <aside id="room-hover-card" class="room-hover-card" aria-live="polite" hidden></aside>
+        <div id="board-edit-actions" class="placement-actions board-edit-actions" hidden role="group" aria-label="Édition de la carte sélectionnée">
+          <span id="board-edit-label">Carte sélectionnée</span>
+          <button id="rotate-board-card" type="button" aria-label="Tourner la carte">↻</button>
+          <button id="close-board-edit" type="button" aria-label="Fermer l’édition">×</button>
+        </div>
       </section>
     </main>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module">if (location.pathname === "/pixelart") { await import("/src/pixelart.ts") } else { await import("/src/main.ts") }</script>
   </body>
 </html>

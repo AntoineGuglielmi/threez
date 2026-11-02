@@ -2,38 +2,50 @@ import * as THREE from 'three'
 import './style.css'
 import { createScene } from './scene'
 import { directionDelta, opposite, corridorDefinitions, rotateDirection } from './game/directions'
-import { readSavedGameState, STORAGE_KEY } from './game/persistence'
+import { readSavedGameState } from './game/persistence'
 import { shuffle } from './game/random'
 import { createCorridorCardFactory } from './game/corridor-cards'
+import { getCorridorPixelRotation } from './game/corridor-pixel-templates'
 import { createRoomCardFactory } from './game/room-cards'
-import { getAvailableRoomDoors, getCorridorPlacements, resourceLabels, rollRoomSearch } from './game/rules'
+import { getCorridorPlacements, getRoomResourceChances, resourceLabels, rollRoomSearch } from './game/rules'
 import { evaluateCorridorMove } from './game/movement'
 import { createCorridorHandCard } from './ui/corridor-hand-card'
 import { setupBoardViewport } from './ui/board-viewport'
 import { resolveBoardHit } from './ui/board-hit-testing'
 import { renderRoomControls } from './ui/room-controls'
 import { createCorridorTile, createRoomTile } from './scene/tile-meshes'
-import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomStatus, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
+import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
 
 let activeSurvivorKind: SurvivorKind = 'stealth'
 const sceneSetup = createScene(activeSurvivorKind)
 const { root, scene, camera, renderer, materials, board, start, activeRing, beacon, characterKeyLight, characterFillLight, warmRimLight, otherCharacters } = sceneSetup
 let activeCharacter = sceneSetup.activeCharacter
-const savedGameState = readSavedGameState()
+const savedGameState = await readSavedGameState()
 
 const corridorCards = createCorridorCardFactory(savedGameState?.nextCardId ?? 1)
-const { createDoorDirections, createCorridorDeck, normalizeSavedCard } = corridorCards
+const { createCorridorDeck, normalizeSavedCard } = corridorCards
 
 const roomCards = createRoomCardFactory()
 const generatedRoomDeck = roomCards.createDeck()
 const roomDeck: RoomCard[] = savedGameState?.roomDeck ?? generatedRoomDeck
 let pendingRoomDraw: RoomCard | null = savedGameState?.pendingRoomDraw ?? null
-const resources: Record<ResourceType, number> = {
-  cafe: savedGameState?.resources?.cafe ?? 0,
-  croissant: savedGameState?.resources?.croissant ?? 0,
-  citron: savedGameState?.resources?.citron ?? 0,
-  bonbon: savedGameState?.resources?.bonbon ?? 0,
-  munition: savedGameState?.resources?.munition ?? 0,
+const createResourceInventory = (source?: Partial<Record<ResourceType, number>>): Record<ResourceType, number> => ({
+  cafe: source?.cafe ?? 0,
+  croissant: source?.croissant ?? 0,
+  citron: source?.citron ?? 0,
+  bonbon: source?.bonbon ?? 0,
+  munition: source?.munition ?? 0,
+})
+const resourceOwnerOnLegacySave = savedGameState?.activeSurvivorKind ?? 'stealth'
+const resourcesBySurvivor: Record<SurvivorKind, Record<ResourceType, number>> = {
+  stealth: createResourceInventory(savedGameState?.resourcesBySurvivor?.stealth),
+  heavy: createResourceInventory(savedGameState?.resourcesBySurvivor?.heavy),
+  military: createResourceInventory(savedGameState?.resourcesBySurvivor?.military),
+  scientist: createResourceInventory(savedGameState?.resourcesBySurvivor?.scientist),
+  injured: createResourceInventory(savedGameState?.resourcesBySurvivor?.injured),
+}
+if (!savedGameState?.resourcesBySurvivor && savedGameState?.resources) {
+  resourcesBySurvivor[resourceOwnerOnLegacySave] = createResourceInventory(savedGameState.resources)
 }
 const rooms: RoomTile[] = []
 let currentRoomId: number | null = savedGameState?.currentRoomId ?? null
@@ -62,9 +74,11 @@ let corridorDeck = survivorCards[legacyOwner].deck
 let discardPile = survivorCards[legacyOwner].discard
 let hand = survivorCards[legacyOwner].hand
 let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSavedCard(savedGameState.pendingDraw) : null
+let lastDraw: { type: 'corridor'; card: CorridorCard; previousPhase: 'draw' | 'actions' } | { type: 'room'; card: RoomCard } | null = null
 let phase: 'draw' | 'actions' = savedGameState ? (savedGameState.phase ?? 'actions') : 'draw'
 let selectedCardId: number | null = null
 let selectedCardTurns = 0
+let pendingRoomTurns = 0
 let actionsRemaining = savedGameState?.actionsRemaining ?? 7
 let turnNumber = savedGameState?.turnNumber ?? 1
 if (savedGameState) corridorCards.setNextCardId(savedGameState.nextCardId)
@@ -113,6 +127,8 @@ if (savedGameState?.activeSurvivorKind && characterOrder.includes(savedGameState
   characterIndex = characterOrder.indexOf(activeSurvivorKind)
 }
 let placementPreview: { x: number; z: number; options: PlacementOption[]; optionIndex: number } | null = null
+let boardEditMode = false
+let selectedBoardCard: { type: 'tile'; tile: BoardTile } | { type: 'room'; room: RoomTile } | null = null
 const placementHighlights = new THREE.Group()
 placementHighlights.name = 'placement-highlights'
 board.add(placementHighlights)
@@ -126,18 +142,33 @@ let ghostTile: THREE.Group | null = null
 const placementActions = document.querySelector<HTMLDivElement>('#placement-actions')
 const rotateGhostButton = document.querySelector<HTMLButtonElement>('#rotate-ghost')
 const confirmGhostButton = document.querySelector<HTMLButtonElement>('#confirm-ghost')
+const rotateRoomPlacementButton = document.querySelector<HTMLButtonElement>('#rotate-room-placement')
+const rotateGhostButtonElement = document.querySelector<HTMLButtonElement>('#rotate-ghost')
+const editModeButton = document.querySelector<HTMLButtonElement>('#toggle-edit-mode')
+const boardEditActions = document.querySelector<HTMLDivElement>('#board-edit-actions')
+const boardEditLabel = document.querySelector<HTMLSpanElement>('#board-edit-label')
+const rotateBoardCardButton = document.querySelector<HTMLButtonElement>('#rotate-board-card')
+const closeBoardEditButton = document.querySelector<HTMLButtonElement>('#close-board-edit')
 
 const handElement = document.querySelector<HTMLDivElement>('#cc-hand')
 const deckCountElement = document.querySelector<HTMLElement>('#cc-deck-count')
 const discardCountElement = document.querySelector<HTMLElement>('#cc-discard-count')
 const actionsCountElement = document.querySelector<HTMLElement>('#actions-count')
 const actionsFillElement = document.querySelector<HTMLDivElement>('#actions-fill')
+const resourceElements: Record<ResourceType, HTMLElement | null> = {
+  cafe: document.querySelector<HTMLElement>('#resource-cafe'),
+  croissant: document.querySelector<HTMLElement>('#resource-croissant'),
+  citron: document.querySelector<HTMLElement>('#resource-citron'),
+  bonbon: document.querySelector<HTMLElement>('#resource-bonbon'),
+  munition: document.querySelector<HTMLElement>('#resource-munition'),
+}
 const statusElement = document.querySelector<HTMLParagraphElement>('#game-status')
-const drawButton = document.querySelector<HTMLButtonElement>('#draw-cc')
+const drawButton = document.querySelector<HTMLElement>('#draw-cc')
 const placeButton = document.querySelector<HTMLButtonElement>('#place-cc')
 const rotateButton = document.querySelector<HTMLButtonElement>('#rotate-cc')
 const cancelPlacementButton = document.querySelector<HTMLButtonElement>('#cancel-placement')
 const discardButton = document.querySelector<HTMLButtonElement>('#discard-cc')
+const discardSelectedButton = document.querySelector<HTMLButtonElement>('#discard-selected-cc')
 const replaceButton = document.querySelector<HTMLButtonElement>('#replace-cc')
 const endTurnButton = document.querySelector<HTMLButtonElement>('#end-turn')
 const turnLabel = document.querySelector<HTMLElement>('.turn-tag')
@@ -150,11 +181,50 @@ const getSurvivorLabel = (kind: SurvivorKind) => ({
   stealth: 'Furtif', heavy: 'Costaud', military: 'Militaire', scientist: 'Scientifique', injured: 'Blessé',
 })[kind]
 
-const getRoomStatusLabel = (status: RoomStatus) => ({
-  ordinary: 'Ordinaire',
-  locked: 'Verrouillée',
-  trapped: 'Piégée',
-})[status]
+const globalResourceInventoryElement = document.querySelector<HTMLDivElement>('#global-resource-inventory')
+const survivorKinds: SurvivorKind[] = ['stealth', 'heavy', 'military', 'scientist', 'injured']
+const renderGlobalResourceInventory = () => {
+  if (!globalResourceInventoryElement) return
+  const resourceOrder: ResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition']
+  const totals = createResourceInventory()
+  survivorKinds.forEach((kind) => {
+    resourceOrder.forEach((resource) => { totals[resource] += resourcesBySurvivor[kind][resource] })
+  })
+  const table = document.createElement('div')
+  table.className = 'global-resource-table'
+  const header = document.createElement('div')
+  header.className = 'global-resource-row global-resource-header'
+  const resourceHeading = document.createElement('span')
+  resourceHeading.textContent = 'Ressource'
+  header.append(resourceHeading)
+  survivorKinds.forEach((kind) => {
+    const heading = document.createElement('span')
+    heading.textContent = getSurvivorLabel(kind)
+    heading.title = getSurvivorLabel(kind)
+    header.append(heading)
+  })
+  const totalHeading = document.createElement('strong')
+  totalHeading.textContent = 'Total'
+  header.append(totalHeading)
+  table.append(header)
+  resourceOrder.forEach((resource) => {
+    const row = document.createElement('div')
+    row.className = 'global-resource-row'
+    const name = document.createElement('span')
+    name.textContent = resourceLabels[resource]
+    row.append(name)
+    survivorKinds.forEach((kind) => {
+      const value = document.createElement('span')
+      value.textContent = String(resourcesBySurvivor[kind][resource])
+      row.append(value)
+    })
+    const total = document.createElement('strong')
+    total.textContent = String(totals[resource])
+    row.append(total)
+    table.append(row)
+  })
+  globalResourceInventoryElement.replaceChildren(table)
+}
 
 const getDifficultyLabel = (difficulty: RoomDifficulty) => ({
   easy: 'Facile',
@@ -163,8 +233,8 @@ const getDifficultyLabel = (difficulty: RoomDifficulty) => ({
 })[difficulty]
 
 const rollRoomDice = (room: RoomTile) => {
-  const { results, found } = rollRoomSearch(room.difficulty)
-  found.forEach((resource) => { resources[resource] += 1 })
+  const { results, found } = rollRoomSearch(room.difficulty, undefined, activeSurvivorKind)
+  found.forEach((resource) => { resourcesBySurvivor[activeSurvivorKind][resource] += 1 })
   room.lastRoll = results
   room.searched = true
   setStatus(found.length
@@ -192,12 +262,12 @@ const setupCorridor = () => {
 if (savedGameState?.tiles.length) {
   for (const tile of savedGameState.tiles) {
     const isInitialCorridor = tile.x === 0 && (tile.z === 1 || tile.z === 2)
-    const savedDoors = isInitialCorridor ? [] : tile.doors ?? []
-    const validWallDoors = savedDoors.filter((direction) => !tile.exits.includes(direction))
-    const doors = validWallDoors.length === savedDoors.length
-      ? validWallDoors
-      : createDoorDirections(tile.kind, savedDoors.length)
-    const card: CorridorCard = { id: corridorCards.allocateCardId(), kind: tile.kind, doors }
+    const card = normalizeSavedCard({
+      id: corridorCards.allocateCardId(),
+      kind: tile.kind,
+      doors: isInitialCorridor ? [] : tile.doors ?? [],
+    }, getCorridorPixelRotation(tile.kind, tile.exits))
+    const doors = card.doors
     const usedDoors = [...(tile.usedDoors ?? [])]
     const group = createCorridorTile(board, materials, card, tile.x, tile.z, tile.exits, doors, usedDoors)
     boardTiles.push({ ...tile, exits: [...tile.exits], doors: [...doors], usedDoors, group })
@@ -290,6 +360,9 @@ const clearGhostTile = () => {
     ghostTile = null
   }
   if (placementActions) placementActions.hidden = true
+  if (rotateRoomPlacementButton) rotateRoomPlacementButton.hidden = true
+  if (rotateGhostButtonElement) rotateGhostButtonElement.hidden = false
+  if (confirmGhostButton) confirmGhostButton.hidden = false
 }
 
 const createGhostTile = () => {
@@ -319,6 +392,7 @@ const createGhostTile = () => {
   ghostTile = ghost
   ghostLayer.add(ghost)
   if (placementActions) placementActions.hidden = false
+  if (rotateRoomPlacementButton) rotateRoomPlacementButton.hidden = true
 }
 
 const updatePlacementHighlights = () => {
@@ -340,7 +414,7 @@ const updatePlacementHighlights = () => {
         const pad = new THREE.Mesh(
           new THREE.PlaneGeometry(0.94, 0.94),
           new THREE.MeshBasicMaterial({
-            color: isSelected ? '#75d9ff' : '#4b9cb5',
+            color: isSelected ? '#bd9878' : '#9a8067',
             transparent: true,
             opacity: isSelected ? 0.2 : 0.09,
             depthWrite: false,
@@ -352,7 +426,7 @@ const updatePlacementHighlights = () => {
         const ring = new THREE.Mesh(
           new THREE.RingGeometry(isSelected ? 0.39 : 0.34, isSelected ? 0.43 : 0.37, 4),
           new THREE.MeshBasicMaterial({
-            color: isSelected ? '#bcefff' : '#75d9ff',
+            color: isSelected ? '#ead8c7' : '#bd9878',
             transparent: true,
             opacity: isSelected ? 1 : 0.72,
             side: THREE.DoubleSide,
@@ -362,20 +436,21 @@ const updatePlacementHighlights = () => {
         ring.position.y = 0.006
         marker.add(ring)
 
-        for (const direction of candidate.options[0]?.exits ?? []) {
+        const selectedOption = candidate.options.find((option) => option.turns === selectedCardTurns) ?? candidate.options[0]
+        for (const direction of selectedOption?.exits ?? []) {
           const [dx, dz] = directionDelta[direction]
           const exitMarker = new THREE.Mesh(
             new THREE.BoxGeometry(dx === 0 ? 0.22 : 0.055, 0.018, dz === 0 ? 0.22 : 0.055),
-            new THREE.MeshBasicMaterial({ color: '#75d9ff' }),
+            new THREE.MeshBasicMaterial({ color: '#bd9878' }),
           )
           exitMarker.position.set(dx * 0.43, 0.02, dz * 0.43)
           marker.add(exitMarker)
         }
-        for (const direction of card.doors.map((item) => rotateDirection(item, selectedCardTurns)).filter((item) => !candidate.options[0]?.exits.includes(item))) {
+        for (const direction of card.doors.map((item) => rotateDirection(item, selectedOption?.turns ?? selectedCardTurns)).filter((item) => !selectedOption?.exits.includes(item))) {
           const [dx, dz] = directionDelta[direction]
           const doorMarker = new THREE.Mesh(
             new THREE.BoxGeometry(dx === 0 ? 0.22 : 0.055, 0.018, dz === 0 ? 0.22 : 0.055),
-            new THREE.MeshBasicMaterial({ color: '#f0b17a' }),
+            new THREE.MeshBasicMaterial({ color: '#c18b66' }),
           )
           doorMarker.position.set(dx * 0.43, 0.024, dz * 0.43)
           marker.add(doorMarker)
@@ -386,13 +461,20 @@ const updatePlacementHighlights = () => {
   }
 
   if (pendingRoomDraw && currentRoomId === null && activeSurvivorKind !== 'injured') {
-    for (const direction of getAvailableDoors()) {
-      const [dx, dz] = directionDelta[direction]
+    if (placementActions) placementActions.hidden = false
+    if (rotateRoomPlacementButton) rotateRoomPlacementButton.hidden = false
+    if (rotateGhostButtonElement) rotateGhostButtonElement.hidden = true
+    if (confirmGhostButton) confirmGhostButton.hidden = true
+    for (const candidate of getAvailableDoors()) {
       const marker = new THREE.Group()
       marker.name = 'room-placement-marker'
       marker.userData.isRoomPlacementMarker = true
-      marker.userData.roomPlacementDirection = direction
-      marker.position.set((currentTile.x + dx) * 1.18, 0.19, (currentTile.z + dz) * 1.18)
+      marker.userData.roomPlacementDirection = candidate.direction
+      marker.userData.roomPlacementX = candidate.x
+      marker.userData.roomPlacementZ = candidate.z
+      marker.userData.roomPlacementOriginX = candidate.originX
+      marker.userData.roomPlacementOriginZ = candidate.originZ
+      marker.position.set(candidate.x * 1.18, 0.19, candidate.z * 1.18)
       const pad = new THREE.Mesh(
         new THREE.PlaneGeometry(0.94, 0.94),
         new THREE.MeshBasicMaterial({ color: '#d99a75', transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide }),
@@ -401,7 +483,7 @@ const updatePlacementHighlights = () => {
       marker.add(pad)
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.34, 0.4, 4),
-        new THREE.MeshBasicMaterial({ color: '#f0b17a', side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({ color: '#c18b66', side: THREE.DoubleSide }),
       )
       ring.rotation.x = -Math.PI / 2
       ring.position.y = 0.006
@@ -411,8 +493,15 @@ const updatePlacementHighlights = () => {
   }
 
   createGhostTile()
+  if (pendingRoomDraw) {
+    if (placementActions) placementActions.hidden = false
+    if (rotateRoomPlacementButton) rotateRoomPlacementButton.hidden = false
+    if (rotateGhostButtonElement) rotateGhostButtonElement.hidden = true
+    if (confirmGhostButton) confirmGhostButton.hidden = true
+  }
 }
 const spendAction = () => {
+  lastDraw = null
   actionsRemaining = Math.max(0, actionsRemaining - 1)
   if (actionsRemaining === 0) setStatus('Plus d’actions. Terminez le tour pour continuer.')
 }
@@ -423,18 +512,20 @@ const confirmPlacement = () => {
   if (!card || !placementPreview) return
   const { x, z } = placementPreview
   const validCandidate = getPlacements(card, selectedCardTurns).find((candidate) => candidate.x === x && candidate.z === z)
-  if (!validCandidate || boardTiles.some((tile) => tile.x === x && tile.z === z)) {
+  const validOption = validCandidate?.options.find((option) => option.turns === selectedCardTurns)
+  if (!validCandidate || !validOption || boardTiles.some((tile) => tile.x === x && tile.z === z)) {
     setStatus('Cette orientation ne convient pas à cet emplacement. Tournez la carte ou choisissez un autre emplacement.')
     return
   }
 
   const doors = card.doors.map((direction) => rotateDirection(direction, selectedCardTurns))
-  const exits = validCandidate.options[0].exits
+  const exits = corridorDefinitions[card.kind].exits.map((direction) => rotateDirection(direction, selectedCardTurns))
   const group = createCorridorTile(board, materials, card, x, z, exits, doors)
   const placedTile: BoardTile = { x, z, kind: card.kind, exits, doors, usedDoors: [], group }
   boardTiles.push(placedTile)
 
   hand = hand.filter((item) => item.id !== card.id)
+  lastDraw = null
   selectedCardId = null
   placementPreview = null
   clearGhostTile()
@@ -443,54 +534,126 @@ const confirmPlacement = () => {
   renderGameUi()
 }
 
-const refillHand = () => {
-  if (phase !== 'draw' || activeSurvivorKind === 'injured') return
-  let drawn = 0
-  while (hand.length < 3) {
-    if (corridorDeck.length === 0 && discardPile.length > 0) {
-      corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
-    }
-    const card = corridorDeck.pop()
-    if (!card) break
-    hand.push(card)
-    drawn += 1
+const discardSelectedCorridorAndDraw = () => {
+  if (phase !== 'actions' || actionsRemaining <= 0 || pendingDraw || activeSurvivorKind === 'injured' || selectedCardId === null) return
+
+  const selectedIndex = hand.findIndex((card) => card.id === selectedCardId)
+  if (selectedIndex < 0) return
+
+  if (corridorDeck.length === 0 && discardPile.length > 0) {
+    corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
   }
-  phase = 'actions'
+
+  const replacement = corridorDeck.pop() ?? corridorCards.createCard()
+
+  const [discarded] = hand.splice(selectedIndex, 1)
+  discardPile.push(discarded)
+  hand.splice(selectedIndex, 0, replacement)
+  lastDraw = null
+  spendAction()
+  selectedCardId = null
+  placementPreview = null
+  clearGhostTile()
+  setStatus(`Couloir défaussé et remplacé. 1 action dépensée, ${actionsRemaining} restante${actionsRemaining > 1 ? 's' : ''}.`)
+  saveGameState()
+  renderGameUi()
+}
+
+const drawCorridorCard = () => {
+  const previousPhase = phase
+  if (corridorDeck.length === 0 && discardPile.length > 0) {
+    corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
+  }
+
+  const card = corridorDeck.pop() ?? corridorCards.createCard()
+  hand.push(card)
+  lastDraw = { type: 'corridor', card, previousPhase }
+  setStatus(hand.length >= 3
+    ? 'Main complète. Phase d’actions.'
+    : `Couloir pioché. Encore ${3 - hand.length} carte${3 - hand.length > 1 ? 's' : ''} à piocher.`)
+
+  if (hand.length >= 3) phase = 'actions'
   selectedCardId = null
   placementPreview = null
   pendingDraw = null
-  setStatus(drawn > 0
-    ? `Main complétée : ${drawn} carte${drawn > 1 ? 's' : ''} piochée${drawn > 1 ? 's' : ''}. Phase d’actions.`
-    : 'Phase d’actions : votre main contient déjà 3 couloirs, ou la pioche est épuisée.')
   saveGameState()
   renderGameUi()
 }
 
 
 const roomDoorOptionsElement = document.querySelector<HTMLDivElement>('#cp-door-options')
-const roomDeckCountElement = document.querySelector<HTMLElement>('#cp-deck-count')
-const drawRoomButton = document.querySelector<HTMLButtonElement>('#draw-cp')
-const roomStateElement = document.querySelector<HTMLElement>('#room-state')
-const roomResultElement = document.querySelector<HTMLDivElement>('#room-result')
-const unlockRoomButton = document.querySelector<HTMLButtonElement>('#unlock-room')
-const returnRoomButton = document.querySelector<HTMLButtonElement>('#return-room')
+const drawRoomButton = document.querySelector<HTMLElement>('#draw-cp')
 
-const getAvailableDoors = () => getAvailableRoomDoors(currentTile, boardTiles, rooms)
+type RoomPlacementCandidate = {
+  x: number
+  z: number
+  direction: Direction
+  originX: number
+  originZ: number
+  tile: BoardTile
+}
+
+const getAvailableDoors = (): RoomPlacementCandidate[] => currentTile.doors
+  .filter((direction) => !currentTile.usedDoors.includes(direction))
+  .map((direction) => {
+    const [dx, dz] = directionDelta[direction]
+    return {
+      x: currentTile.x + dx,
+      z: currentTile.z + dz,
+      direction,
+      originX: currentTile.x,
+      originZ: currentTile.z,
+      tile: currentTile,
+    }
+  })
+  .filter(({ x, z }) =>
+    !boardTiles.some((tile) => tile.x === x && tile.z === z) &&
+    !rooms.some((room) => room.x === x && room.z === z),
+  )
+
+const undoLastDraw = () => {
+  if (!lastDraw) return false
+
+  if (lastDraw.type === 'corridor') {
+    const index = hand.findIndex((card) => card.id === lastDraw!.card.id)
+    if (index < 0) return false
+    const [card] = hand.splice(index, 1)
+    corridorDeck.push(card)
+    phase = lastDraw.previousPhase
+    selectedCardId = null
+    placementPreview = null
+    clearGhostTile()
+    setStatus('Pioche annulée. La carte est replacée au-dessus de la pioche.')
+  } else {
+    if (pendingRoomDraw?.id !== lastDraw.card.id) return false
+    roomDeck.push(pendingRoomDraw)
+    pendingRoomDraw = null
+    pendingRoomTurns = 0
+    clearGhostTile()
+    setStatus('Pioche de pièce annulée. La carte est replacée au-dessus de la pioche.')
+  }
+
+  lastDraw = null
+  saveGameState()
+  renderGameUi()
+  return true
+}
+
+window.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || event.defaultPrevented) return
+  const target = event.target
+  if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return
+  if (undoLastDraw()) event.preventDefault()
+})
 
 const drawRoomCard = () => {
-  if (activeSurvivorKind === 'injured' || currentRoomId !== null || pendingRoomDraw) return
-  const availableDoors = getAvailableDoors()
-  if (availableDoors.length === 0) {
-    setStatus('Aucune porte libre pour placer une nouvelle pièce.')
-    return
-  }
-  const card = roomDeck.pop()
-  if (!card) {
-    setStatus('La pioche de pièces est vide.')
-    renderGameUi()
-    return
-  }
+  const previousPendingRoom = pendingRoomDraw
+  pendingRoomDraw = null
+  const card = roomDeck.pop() ?? roomCards.createRoomCard()
+  if (previousPendingRoom) roomDeck.unshift(previousPendingRoom)
+  lastDraw = { type: 'room', card }
   pendingRoomDraw = card
+  pendingRoomTurns = 0
   selectedCardId = null
   placementPreview = null
   setStatus('Pièce piochée. Choisissez un emplacement lumineux sur le plateau.')
@@ -498,47 +661,47 @@ const drawRoomCard = () => {
   renderGameUi()
 }
 
-const placeDrawnRoom = (direction: Direction) => {
+const placeDrawnRoom = (candidate: RoomPlacementCandidate) => {
   if (!pendingRoomDraw || currentRoomId !== null) return
-  if (!getAvailableDoors().includes(direction)) return
-  const [dx, dz] = directionDelta[direction]
-  const x = currentTile.x + dx
-  const z = currentTile.z + dz
+  const availableCandidate = getAvailableDoors().find(({ x, z, direction, originX, originZ }) =>
+    x === candidate.x && z === candidate.z && direction === candidate.direction &&
+    originX === candidate.originX && originZ === candidate.originZ,
+  )
+  if (!availableCandidate) return
+  const { x, z, direction, tile } = availableCandidate
   const card = pendingRoomDraw
-  const room: SavedRoom = { ...card, x, z, originX: currentTile.x, originZ: currentTile.z, direction }
+  const room: SavedRoom = { ...card, x, z, originX: tile.x, originZ: tile.z, direction: rotateDirection(direction, pendingRoomTurns) }
   const group = createRoomTile(board, materials, room, opposite[direction])
   rooms.push({ ...room, group })
-  currentTile.usedDoors.push(direction)
-  const doorMesh = currentTile.group.children.find((child) => child.userData.doorDirection === direction)
+  tile.usedDoors.push(direction)
+  const doorMesh = tile.group.children.find((child) => child.userData.doorDirection === direction)
   if (doorMesh) doorMesh.visible = false
   pendingRoomDraw = null
+  pendingRoomTurns = 0
+  lastDraw = null
   setStatus('Pièce posée. Cliquez dessus pour y entrer.')
   saveGameState()
   renderGameUi()
 }
 
-const unlockCurrentRoom = () => {
+const searchCurrentRoom = () => {
   if (phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
   const room = rooms.find((item) => item.id === currentRoomId)
-  if (!room || room.status !== 'locked' || room.unlocked) return
-  room.unlocked = true
-  spendAction()
-  setStatus('Porte déverrouillée. Vous pouvez maintenant la fouiller.')
-  saveGameState()
-  renderGameUi()
-}
-
-const searchCurrentRoomAgain = () => {
-  if (phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
-  const room = rooms.find((item) => item.id === currentRoomId)
-  if (!room || (room.status === 'locked' && !room.unlocked)) return
+  if (!room) return
   if (room.status === 'trapped' && activeSurvivorKind !== 'stealth') {
-    setStatus('Pièce piégée : seul le survivant furtif peut la fouiller.')
+    setStatus('Seul le Furtif peut fouiller une pièce piégée.')
     return
+  }
+  if (room.status === 'locked' && !room.unlocked) {
+    if (activeSurvivorKind !== 'heavy') {
+      setStatus('Le Costaud doit fouiller cette pièce en premier.')
+      return
+    }
+    room.unlocked = true
   }
 
   spendAction()
-  setStatus('Nouvelle fouille en cours…')
+  setStatus('Fouille de la pièce…')
   rollRoomDice(room)
 }
 
@@ -593,18 +756,19 @@ const enterRoom = (room: RoomTile) => {
 const renderGameUi = () => {
   survivorCards[activeSurvivorKind] = { deck: corridorDeck, discard: discardPile, hand }
   updatePlacementHighlights()
-  if (!handElement || !deckCountElement || !discardCountElement || !actionsCountElement || !actionsFillElement) return
+  if (!handElement) return
   handElement.replaceChildren()
-  hand.forEach((card, index) => {
+  handElement.closest('.hand-disclosure')?.classList.toggle('has-selection', selectedCardId !== null)
+  hand.forEach((card) => {
     const selected = selectedCardId === card.id
     const cardTurns = selected ? selectedCardTurns : 0
     const button = createCorridorHandCard({
       card,
-      index,
       selected,
       turns: cardTurns,
       disabled: phase !== 'actions' || Boolean(pendingDraw) || activeSurvivorKind === 'injured',
       onSelect: () => {
+        lastDraw = null
         if (selectedCardId === card.id) {
           selectedCardId = null
           placementPreview = null
@@ -624,10 +788,18 @@ const renderGameUi = () => {
     handElement.append(button)
   })
 
-  deckCountElement.textContent = String(corridorDeck.length)
-  discardCountElement.textContent = String(discardPile.length)
-  actionsCountElement.textContent = String(actionsRemaining)
-  actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
+  if (deckCountElement) deckCountElement.textContent = String(corridorDeck.length)
+  if (discardCountElement) discardCountElement.textContent = String(discardPile.length)
+  if (actionsCountElement) actionsCountElement.textContent = String(actionsRemaining)
+  if (actionsFillElement) actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
+  const personalResources = resourcesBySurvivor[activeSurvivorKind]
+  const personalOwnerElement = document.querySelector<HTMLElement>('#personal-resource-owner')
+  if (personalOwnerElement) personalOwnerElement.textContent = getSurvivorLabel(activeSurvivorKind)
+  for (const resource of Object.keys(personalResources) as ResourceType[]) {
+    const element = resourceElements[resource]
+    if (element) element.textContent = String(personalResources[resource])
+  }
+  renderGlobalResourceInventory()
 
   if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
 
@@ -674,11 +846,15 @@ const renderGameUi = () => {
   }
 
   if (cancelPlacementButton) cancelPlacementButton.disabled = selectedCardId === null
+  if (discardSelectedButton) {
+    discardSelectedButton.hidden = selectedCardId === null
+    discardSelectedButton.disabled = phase !== 'actions' || actionsRemaining <= 0 || Boolean(pendingDraw) || activeSurvivorKind === 'injured'
+  }
   if (discardButton) discardButton.disabled = !pendingDraw
   if (replaceButton) replaceButton.disabled = !pendingDraw || hand.length === 0
   if (drawButton) {
-    drawButton.disabled = phase !== 'draw' || hand.length >= 3 || activeSurvivorKind === 'injured'
-    drawButton.textContent = phase === 'draw' ? 'Compléter ma main' : 'Pioche terminée'
+    drawButton.removeAttribute('aria-disabled')
+    drawButton.classList.remove('is-disabled')
   }
   if (endTurnButton) endTurnButton.disabled = phase !== 'actions' || Boolean(pendingDraw) || Boolean(pendingRoomDraw)
 
@@ -690,56 +866,54 @@ const renderGameUi = () => {
   }
 
   renderRoomControls({
-    roomDeckCountElement,
     roomDoorOptionsElement,
-    roomStateElement,
     drawRoomButton,
-    roomResultElement,
-    unlockRoomButton,
-    returnRoomButton,
-    roomDeckLength: roomDeck.length,
     rooms,
     currentRoomId,
-    currentTile,
-    pendingRoomDraw,
     phase,
     activeSurvivorKind,
     actionsRemaining,
-    availableDoors: getAvailableDoors(),
-    resourceLabels,
-    getRoomStatusLabel,
-    getDifficultyLabel,
-    onSearchAgain: searchCurrentRoomAgain,
-    onEnterRoom: enterRoom,
+    onSearchRoom: searchCurrentRoom,
   })
 }
-
-unlockRoomButton?.addEventListener('click', unlockCurrentRoom)
-returnRoomButton?.addEventListener('click', returnToCorridor)
 drawRoomButton?.addEventListener('click', drawRoomCard)
+drawRoomButton?.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    drawRoomCard()
+  }
+})
 
-drawButton?.addEventListener('click', refillHand)
+drawButton?.addEventListener('click', drawCorridorCard)
+drawButton?.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    drawCorridorCard()
+  }
+})
 placeButton?.addEventListener('click', confirmPlacement)
+discardSelectedButton?.addEventListener('click', discardSelectedCorridorAndDraw)
 const rotateSelectedCorridor = () => {
   if (selectedCardId === null || phase !== 'actions') return
-  selectedCardTurns = (selectedCardTurns + 1) % 4
-  const previousPreview = placementPreview
-  const card = hand.find((item) => item.id === selectedCardId)
-  if (previousPreview && card) {
-    const samePosition = getPlacements(card, selectedCardTurns)
-      .find((candidate) => candidate.x === previousPreview.x && candidate.z === previousPreview.z)
-    placementPreview = samePosition
-      ? { ...samePosition, optionIndex: 0 }
-      : { ...previousPreview, options: [], optionIndex: 0 }
+  if (placementPreview && placementPreview.options.length > 0) {
+    const nextOptionIndex = (placementPreview.optionIndex + 1) % placementPreview.options.length
+    placementPreview.optionIndex = nextOptionIndex
+    selectedCardTurns = placementPreview.options[nextOptionIndex].turns
+  } else {
+    selectedCardTurns = (selectedCardTurns + 1) % 4
   }
   updatePlacementHighlights()
   renderGameUi()
-  setStatus(placementPreview?.options.length
-    ? 'Orientation modifiée. Vérifiez les passages et validez la pose.'
-    : placementPreview
-      ? 'Cette orientation ne convient pas à cet emplacement. Tournez encore ou choisissez un autre emplacement.'
-      : 'Orientation modifiée. Choisissez un emplacement compatible.')
+  setStatus(placementPreview
+    ? 'Orientation valide modifiée. Vérifiez les passages et validez la pose.'
+    : 'Orientation modifiée. Choisissez un emplacement compatible.')
 }
+rotateRoomPlacementButton?.addEventListener('click', () => {
+  if (!pendingRoomDraw) return
+  pendingRoomTurns = (pendingRoomTurns + 1) % 4
+  if (rotateRoomPlacementButton) rotateRoomPlacementButton.textContent = `↻ CP ${['N', 'E', 'S', 'W'][pendingRoomTurns]}`
+  setStatus(`Orientation de la pièce : ${['Nord', 'Est', 'Sud', 'Ouest'][pendingRoomTurns]}.`)
+})
 rotateButton?.addEventListener('click', rotateSelectedCorridor)
 rotateGhostButton?.addEventListener('click', rotateSelectedCorridor)
 confirmGhostButton?.addEventListener('click', confirmPlacement)
@@ -754,6 +928,7 @@ discardButton?.addEventListener('click', () => {
   if (!pendingDraw) return
   discardPile.push(pendingDraw)
   pendingDraw = null
+  lastDraw = null
   setStatus('Carte piochée défaussée.')
   saveGameState()
   renderGameUi()
@@ -769,6 +944,7 @@ replaceButton?.addEventListener('click', () => {
       if (!oldCard || !pendingDraw) return
       discardPile.push(oldCard)
       hand[index] = pendingDraw
+      lastDraw = null
       pendingDraw = null
       selectedCardId = hand[index].id
       setStatus(`Couloir remplacé. « ${corridorDefinitions[oldCard.kind].label} » défaussé.`)
@@ -786,6 +962,7 @@ endTurnButton?.addEventListener('click', () => {
     setStatus('Posez ou annulez la pièce piochée avant de terminer le tour.')
     return
   }
+  lastDraw = null
   characterIndex += 1
   if (characterIndex >= characterOrder.length) {
     characterIndex = 0
@@ -813,7 +990,7 @@ const resize = () => {
   if (width === 0 || height === 0) return
 
   const aspect = width / height
-  const viewHeight = aspect < 1 ? 22 : 19
+  const viewHeight = aspect < 1 ? 13 : 11
   camera.left = (-viewHeight * aspect) / 2
   camera.right = (viewHeight * aspect) / 2
   camera.top = viewHeight / 2
@@ -824,8 +1001,86 @@ const resize = () => {
 
 const raycaster = new THREE.Raycaster()
 const pointer = new THREE.Vector2()
+const roomHoverCard = document.querySelector<HTMLDivElement>('#room-hover-card')
+
+const hideRoomHoverCard = () => {
+  if (roomHoverCard) roomHoverCard.hidden = true
+}
+
+const showRoomHoverCard = (room: RoomTile, event: PointerEvent) => {
+  if (!roomHoverCard) return
+
+  const status = room.status === 'locked'
+    ? room.unlocked ? 'Déverrouillée' : 'Verrouillée'
+    : room.status === 'trapped' ? 'Piégée' : 'Non verrouillée'
+  const statusClass = room.status === 'locked' && !room.unlocked
+    ? 'is-locked'
+    : room.status === 'trapped' ? 'is-trapped' : 'is-safe'
+
+  const heading = document.createElement('strong')
+  heading.className = 'room-hover-title'
+  heading.textContent = `Pièce ${String(room.id).padStart(2, '0')}`
+
+  const statusLine = document.createElement('div')
+  statusLine.className = `room-hover-status ${statusClass}`
+  statusLine.textContent = status
+
+  const difficulty = document.createElement('p')
+  difficulty.className = 'room-hover-difficulty'
+  difficulty.textContent = `Difficulté ${getDifficultyLabel(room.difficulty).toLowerCase()}`
+
+  const lootHeading = document.createElement('span')
+  lootHeading.className = 'room-hover-section'
+  lootHeading.textContent = 'Chances de trouver'
+
+  const lootList = document.createElement('div')
+  lootList.className = 'room-hover-loot'
+  getRoomResourceChances(room.difficulty, activeSurvivorKind).forEach(({ resource, chancePercent }) => {
+    const row = document.createElement('div')
+    row.className = 'room-hover-loot-row'
+    const name = document.createElement('span')
+    name.textContent = resourceLabels[resource]
+    const chance = document.createElement('strong')
+    chance.textContent = `${chancePercent} %`
+    row.append(name, chance)
+    lootList.append(row)
+  })
+
+  roomHoverCard.replaceChildren(heading, statusLine, difficulty, lootHeading, lootList)
+  const bounds = roomHoverCard.parentElement?.getBoundingClientRect()
+  if (bounds) {
+    const left = event.clientX - bounds.left
+    const top = event.clientY - bounds.top
+    roomHoverCard.style.left = `${Math.max(8, Math.min(left + 18, bounds.width - 252))}px`
+    roomHoverCard.style.top = `${Math.max(8, Math.min(top + 18, bounds.height - 206))}px`
+  }
+  roomHoverCard.hidden = false
+}
 let zoom = THREE.MathUtils.clamp(savedGameState?.zoom ?? 1, 1, 3.2)
 let currentZoom = zoom
+renderer.domElement.addEventListener('pointermove', (event) => {
+  if (viewport.hasDragged()) {
+    hideRoomHoverCard()
+    return
+  }
+
+  const hit = resolveBoardHit({
+    event,
+    canvas: renderer.domElement,
+    camera,
+    raycaster,
+    pointer,
+    mode: 'normal',
+    roomPlacementHighlights,
+    placementHighlights,
+    rooms,
+    boardTiles,
+  })
+  if (hit.type === 'room') showRoomHoverCard(hit.room, event)
+  else hideRoomHoverCard()
+})
+renderer.domElement.addEventListener('pointerleave', hideRoomHoverCard)
+
 const cameraTarget = new THREE.Vector3(savedGameState?.cameraTarget.x ?? 0, 0, savedGameState?.cameraTarget.z ?? 0)
 const cameraDistance = Math.hypot(13, 13)
 const initialCameraAngle = Math.atan2(13, 13)
@@ -844,7 +1099,7 @@ syncCameraPosition()
 
 const saveGameState = () => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    const state = {
       tiles: boardTiles
         .filter((tile): tile is BoardTile & { kind: CorridorKind } => tile.kind !== 'start')
         .map(({ x, z, kind, exits, doors, usedDoors }) => ({ x, z, kind, exits, doors, usedDoors })),
@@ -852,7 +1107,8 @@ const saveGameState = () => {
         id, status, difficulty, searched, unlocked, x, z, originX, originZ, direction, lastRoll,
       })),
       currentRoomId,
-      resources,
+      resources: resourcesBySurvivor[activeSurvivorKind],
+      resourcesBySurvivor,
       roomDeck,
       pendingRoomDraw, 
       survivor: { x: currentTile.x, z: currentTile.z },
@@ -877,9 +1133,17 @@ const saveGameState = () => {
       turnNumber,
       nextCardId: corridorCards.getNextCardId(),
       nextRoomCardId: roomCards.getNextCardId(),
-    } satisfies SavedGameState))
+    } satisfies SavedGameState
+    const serialized = JSON.stringify(state)
+    void fetch('/__game-state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: serialized,
+    }).catch(() => {
+      setStatus('Impossible d’écrire la sauvegarde de partie commitée.')
+    })
   } catch {
-    setStatus('Impossible de sauvegarder la partie dans ce navigateur.')
+    setStatus('Impossible de préparer la sauvegarde de partie.')
   }
 }
 
@@ -895,13 +1159,15 @@ const viewport = setupBoardViewport({
 
 renderer.domElement.addEventListener('click', (event) => {
   if (viewport.hasDragged()) return
-  if (phase === 'draw' && activeSurvivorKind !== 'injured') {
+  if (phase === 'draw' && activeSurvivorKind !== 'injured' && !boardEditMode) {
     setStatus('Terminez d’abord la phase de pioche en complétant votre main à 3 couloirs.')
     return
   }
 
-  const mode = pendingRoomDraw
-    ? 'room-placement'
+  const mode = boardEditMode
+    ? 'normal'
+    : pendingRoomDraw
+      ? 'room-placement'
     : selectedCardId !== null && !pendingDraw
       ? 'corridor-placement'
       : 'normal'
@@ -918,9 +1184,39 @@ renderer.domElement.addEventListener('click', (event) => {
     boardTiles,
   })
 
+  if (boardEditMode) {
+    if (hit.type === 'tile' && hit.tile.kind !== 'start') {
+      selectedBoardCard = { type: 'tile', tile: hit.tile }
+      if (boardEditActions && boardEditLabel) {
+        boardEditLabel.textContent = 'Couloir sélectionné'
+        boardEditActions.style.left = `${event.clientX - renderer.domElement.getBoundingClientRect().left + 12}px`
+        boardEditActions.style.top = `${event.clientY - renderer.domElement.getBoundingClientRect().top + 12}px`
+        boardEditActions.hidden = false
+      }
+    } else if (hit.type === 'room') {
+      selectedBoardCard = { type: 'room', room: hit.room }
+      if (boardEditActions && boardEditLabel) {
+        boardEditLabel.textContent = 'Pièce sélectionnée'
+        boardEditActions.style.left = `${event.clientX - renderer.domElement.getBoundingClientRect().left + 12}px`
+        boardEditActions.style.top = `${event.clientY - renderer.domElement.getBoundingClientRect().top + 12}px`
+        boardEditActions.hidden = false
+      }
+    } else {
+      selectedBoardCard = null
+      if (boardEditActions) boardEditActions.hidden = true
+    }
+    return
+  }
+
   if (pendingRoomDraw) {
     if (hit.type === 'room-placement') {
-      placeDrawnRoom(hit.direction)
+      placeDrawnRoom({
+        x: hit.x,
+        z: hit.z,
+        direction: hit.direction,
+        originX: hit.originX,
+        originZ: hit.originZ,
+      })
     } else {
       setStatus('Cliquez sur un emplacement lumineux pour poser la pièce.')
     }
@@ -934,7 +1230,14 @@ renderer.domElement.addEventListener('click', (event) => {
         ? getPlacements(card).find((item) => item.x === hit.x && item.z === hit.z)
         : undefined
       if (candidate) {
-        placementPreview = { x: hit.x, z: hit.z, options: candidate.options, optionIndex: 0 }
+        const optionIndex = candidate.options.findIndex((option) => option.turns === selectedCardTurns)
+        placementPreview = {
+          x: hit.x,
+          z: hit.z,
+          options: candidate.options,
+          optionIndex: optionIndex >= 0 ? optionIndex : 0,
+        }
+        selectedCardTurns = candidate.options[placementPreview.optionIndex].turns
         updatePlacementHighlights()
         renderGameUi()
         setStatus('Couloir pré-positionné. Tournez-le si besoin, puis validez à côté de la carte.')
@@ -1023,14 +1326,46 @@ renderer.domElement.addEventListener('click', (event) => {
   renderGameUi()
 })
 
+
+editModeButton?.addEventListener('click', () => {
+  boardEditMode = !boardEditMode
+  selectedBoardCard = null
+  if (boardEditActions) boardEditActions.hidden = true
+  if (editModeButton) {
+    editModeButton.setAttribute('aria-pressed', String(boardEditMode))
+    editModeButton.textContent = boardEditMode ? 'Quitter édition' : 'Éditer'
+  }
+  selectedCardId = null
+  placementPreview = null
+  pendingRoomDraw = null
+  clearGhostTile()
+  renderGameUi()
+  setStatus(boardEditMode ? 'Mode édition : sélectionnez une carte du plateau.' : 'Mode édition désactivé.')
+})
+closeBoardEditButton?.addEventListener('click', () => {
+  selectedBoardCard = null
+  if (boardEditActions) boardEditActions.hidden = true
+})
+rotateBoardCardButton?.addEventListener('click', () => {
+  if (!selectedBoardCard) return
+  const turns = 1
+  if (selectedBoardCard.type === 'tile') {
+    const tile = selectedBoardCard.tile
+    tile.exits = tile.exits.map((direction) => rotateDirection(direction, turns))
+    tile.doors = tile.doors.map((direction) => rotateDirection(direction, turns))
+    tile.usedDoors = tile.usedDoors.map((direction) => rotateDirection(direction, turns))
+  } else {
+    const room = selectedBoardCard.room
+    room.direction = rotateDirection(room.direction, turns)
+  }
+  saveGameState()
+  setStatus('Orientation de la carte modifiée.')
+})
+
 document.querySelector<HTMLButtonElement>('#reset-game')?.addEventListener('click', () => {
   const confirmed = window.confirm('Réinitialiser la partie ? Le plateau actuel sera perdu.')
   if (!confirmed) return
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } finally {
-    window.location.reload()
-  }
+  window.location.reload()
 })
 
 document.querySelector<HTMLButtonElement>('#rotate-left')?.addEventListener('click', () => {
