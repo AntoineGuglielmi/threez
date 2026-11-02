@@ -996,7 +996,7 @@ syncCameraPosition()
 
 const saveGameState = () => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    const state = {
       tiles: boardTiles
         .filter((tile): tile is BoardTile & { kind: CorridorKind } => tile.kind !== 'start')
         .map(({ x, z, kind, exits, doors, usedDoors }) => ({ x, z, kind, exits, doors, usedDoors })),
@@ -1030,7 +1030,16 @@ const saveGameState = () => {
       turnNumber,
       nextCardId: corridorCards.getNextCardId(),
       nextRoomCardId: roomCards.getNextCardId(),
-    } satisfies SavedGameState))
+    } satisfies SavedGameState
+    const serialized = JSON.stringify(state)
+    localStorage.setItem(STORAGE_KEY, serialized)
+    void fetch('/__game-state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: serialized,
+    }).catch(() => {
+      setStatus('Sauvegarde locale effectuée, mais impossible d’écrire le fichier de partie.')
+    })
   } catch {
     setStatus('Impossible de sauvegarder la partie dans ce navigateur.')
   }
