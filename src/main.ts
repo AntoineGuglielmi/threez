@@ -488,6 +488,7 @@ const updatePlacementHighlights = () => {
   }
 
   createGhostTile()
+  if (pendingRoomDraw && placementActions) placementActions.hidden = false
 }
 const spendAction = () => {
   actionsRemaining = Math.max(0, actionsRemaining - 1)
@@ -1071,7 +1072,7 @@ const viewport = setupBoardViewport({
 
 renderer.domElement.addEventListener('click', (event) => {
   if (viewport.hasDragged()) return
-  if (phase === 'draw' && activeSurvivorKind !== 'injured') {
+  if (phase === 'draw' && activeSurvivorKind !== 'injured' && !boardEditMode) {
     setStatus('Terminez d’abord la phase de pioche en complétant votre main à 3 couloirs.')
     return
   }
