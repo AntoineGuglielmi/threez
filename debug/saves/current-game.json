@@ -399,10 +399,10 @@
   ],
   "characterIndex": 3,
   "injuredMovedThisTurn": false,
-  "zoom": 2.199999869537361,
+  "zoom": 2.124999877691276,
   "cameraTarget": {
-    "x": 0.9277057899866965,
-    "z": 3.18096333740231
+    "x": 0.9899012172894931,
+    "z": 2.6305921012544355
   },
   "cameraAngle": 0.7853981633974483,
   "deck": [
@@ -631,14 +631,14 @@
         "E",
         "W"
       ]
-    },
+    }
+  ],
+  "discard": [],
+  "hand": [
     {
-      "id": 81,
-      "kind": "straight",
-      "doors": [
-        "N",
-        "S"
-      ]
+      "id": 100,
+      "kind": "right",
+      "doors": []
     },
     {
       "id": 112,
@@ -648,13 +648,14 @@
       ]
     },
     {
-      "id": 100,
-      "kind": "right",
-      "doors": []
+      "id": 81,
+      "kind": "straight",
+      "doors": [
+        "N",
+        "S"
+      ]
     }
   ],
-  "discard": [],
-  "hand": [],
   "survivorCards": {
     "stealth": {
       "deck": [
@@ -1378,14 +1379,14 @@
             "E",
             "W"
           ]
-        },
+        }
+      ],
+      "discard": [],
+      "hand": [
         {
-          "id": 81,
-          "kind": "straight",
-          "doors": [
-            "N",
-            "S"
-          ]
+          "id": 100,
+          "kind": "right",
+          "doors": []
         },
         {
           "id": 112,
@@ -1395,13 +1396,14 @@
           ]
         },
         {
-          "id": 100,
-          "kind": "right",
-          "doors": []
+          "id": 81,
+          "kind": "straight",
+          "doors": [
+            "N",
+            "S"
+          ]
         }
-      ],
-      "discard": [],
-      "hand": []
+      ]
     },
     "scientist": {
       "deck": [
@@ -1936,7 +1938,7 @@
       "hand": []
     }
   },
-  "phase": "draw",
+  "phase": "actions",
   "pendingDraw": null,
   "actionsRemaining": 7,
   "turnNumber": 1,
