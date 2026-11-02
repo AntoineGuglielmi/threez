@@ -1385,3 +1385,51 @@ button, a { color: inherit; }
 
 /* The old floating start label no longer belongs to the full-screen board. */
 .tile-label { display: none !important; }
+
+/* Personal and team resource inventories */
+.team-inventory {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(225, 231, 235, .14);
+}
+.team-inventory .sidebar-section-heading { margin-bottom: 2px; }
+.team-inventory .sidebar-section-heading h2 { font-size: 16px; }
+.global-resource-table {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.global-resource-row {
+  display: grid;
+  grid-template-columns: minmax(76px, 1.3fr) repeat(5, minmax(30px, .7fr)) minmax(34px, .8fr);
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(225, 231, 235, .08);
+  color: #c4cdd2;
+  font: 500 10px/1.25 'DM Sans', sans-serif;
+  text-align: center;
+}
+.global-resource-row > :first-child { text-align: left; }
+.global-resource-row > :last-child { color: #fff; }
+.global-resource-header {
+  padding-top: 2px;
+  color: #9da9b0;
+  font-size: 9px;
+  font-weight: 700;
+}
+.global-resource-header > span:not(:first-child) {
+  overflow-wrap: anywhere;
+}
+.global-resource-header > strong { color: #efb18f; }
+.global-resource-row:not(.global-resource-header) > span:not(:first-child) { color: #e3e8eb; }
+.global-resource-row:not(.global-resource-header) > :last-child { font-weight: 700; }
+@media (max-width: 900px) {
+  .team-inventory { padding-top: 12px; }
+  .global-resource-row { font-size: 9px; }
+}
