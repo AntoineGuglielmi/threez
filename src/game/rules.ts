@@ -15,7 +15,8 @@ export const getCorridorPlacements = ({ card, boardTiles, rooms }: CorridorPlace
   // Every empty cell directly adjacent to the existing network is a possible
   // end-of-path placement. Connectivity is deliberately left to the player.
   for (const tile of boardTiles) {
-    for (const direction of directionOrder) {
+    if (tile.kind === 'start') continue
+    for (const direction of tile.exits) {
       const [dx, dz] = directionDelta[direction]
       const x = tile.x + dx
       const z = tile.z + dz
