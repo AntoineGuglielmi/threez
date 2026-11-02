@@ -9,21 +9,11 @@ type CorridorPlacementInput = {
   rooms: OccupiedRoom[]
 }
 
-export const getCorridorPlacements = ({
-  card,
-  turns,
-  boardTiles,
-  rooms,
-}: CorridorPlacementInput): PlacementCandidate[] => {
+export const getCorridorPlacements = ({ boardTiles, rooms }: CorridorPlacementInput): PlacementCandidate[] => {
   const candidates = new Map<string, PlacementCandidate>()
-  const definition = corridorDefinitions[card.kind]
-  const rotationOrder = [turns, ...[0, 1, 2, 3].filter((rotation) => rotation !== turns)]
 
-  // Build the candidate set from every empty cell touching the corridor network.
-  // Starting only from a tile's exits can miss a valid cell when several tiles
-  // meet around it or when the first tile considered is not the one that
-  // ultimately provides the valid connection.
-  const candidatePositions = new Map<string, { x: number; z: number }>()
+  // Every empty cell directly adjacent to the existing network is a possible
+  // end-of-path placement. Connectivity is deliberately left to the player.
   for (const tile of boardTiles) {
     for (const direction of directionOrder) {
       const [dx, dz] = directionDelta[direction]
@@ -31,64 +21,25 @@ export const getCorridorPlacements = ({
       const z = tile.z + dz
       if (boardTiles.some((placed) => placed.x === x && placed.z === z) ||
         rooms.some((room) => room.x === x && room.z === z)) continue
-      candidatePositions.set(`${x},${z}`, { x, z })
+
+      const key = `${x},${z}`
+      if (candidates.has(key)) continue
+      const options = [0, 1, 2, 3].map((rotation) => ({
+        exits: corridorDefinitionsForPlacement(rotation),
+        turns: rotation,
+      }))
+      candidates.set(key, { x, z, options })
     }
-  }
-
-  for (const { x, z } of candidatePositions.values()) {
-    const options: PlacementCandidate['options'] = []
-
-    for (const rotation of rotationOrder) {
-      const exits = definition.exits.map((direction) => rotateDirection(direction, rotation))
-      const doors = card.doors.map((direction) => rotateDirection(direction, rotation))
-      let hasConnection = false
-      let hasConflict = false
-
-      for (const direction of directionOrder) {
-        const [dx, dz] = directionDelta[direction]
-        const neighbourX = x + dx
-        const neighbourZ = z + dz
-        const neighbour = boardTiles.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
-        const room = rooms.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
-
-        if (room) {
-          const roomDoorDirection = opposite[room.direction]
-          if (exits.includes(direction) || !doors.includes(direction) || roomDoorDirection !== direction) {
-            hasConflict = true
-            break
-          }
-          continue
-        }
-
-        if (!neighbour) continue
-
-        const candidateOpens = exits.includes(direction)
-        const neighbourOpens = neighbour.exits.includes(opposite[direction])
-        const candidateHasDoor = doors.includes(direction)
-        const neighbourHasDoor = neighbour.doors.includes(opposite[direction])
-
-        // Adjacent corridors must connect exit-to-exit. A door or a wall
-        // cannot face another corridor, and two adjacent corridors cannot
-        // sit next to each other without a passage between them.
-        if (!candidateOpens || !neighbourOpens || candidateHasDoor || neighbourHasDoor) {
-          hasConflict = true
-          break
-        }
-
-        hasConnection = true
-      }
-
-      if (!hasConflict && hasConnection &&
-        !options.some((option) => option.turns === rotation)) {
-        options.push({ exits, turns: rotation })
-      }
-    }
-
-    if (options.length > 0) candidates.set(`${x},${z}`, { x, z, options })
   }
 
   return [...candidates.values()]
 }
+
+const corridorDefinitionsForPlacement = (rotation: number): Direction[] =>
+  rotateDirections(['N', 'S'], rotation)
+
+const rotateDirections = (directions: Direction[], turns: number): Direction[] =>
+  directions.map((direction) => rotateDirection(direction, turns))
 
 export const getAvailableRoomDoors = (
   tile: Pick<BoardTile, 'x' | 'z' | 'doors' | 'usedDoors'>,
