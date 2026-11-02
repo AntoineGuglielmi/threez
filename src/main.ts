@@ -255,12 +255,12 @@ const setupCorridor = () => {
 if (savedGameState?.tiles.length) {
   for (const tile of savedGameState.tiles) {
     const isInitialCorridor = tile.x === 0 && (tile.z === 1 || tile.z === 2)
-    const savedDoors = isInitialCorridor ? [] : tile.doors ?? []
-    const validWallDoors = savedDoors.filter((direction) => !tile.exits.includes(direction))
-    const doors = validWallDoors.length === savedDoors.length
-      ? validWallDoors
-      : createDoorDirections(tile.kind, savedDoors.length)
-    const card: CorridorCard = { id: corridorCards.allocateCardId(), kind: tile.kind, doors }
+    const card = normalizeSavedCard({
+      id: corridorCards.allocateCardId(),
+      kind: tile.kind,
+      doors: isInitialCorridor ? [] : tile.doors ?? [],
+    })
+    const doors = card.doors
     const usedDoors = [...(tile.usedDoors ?? [])]
     const group = createCorridorTile(board, materials, card, tile.x, tile.z, tile.exits, doors, usedDoors)
     boardTiles.push({ ...tile, exits: [...tile.exits], doors: [...doors], usedDoors, group })
