@@ -647,8 +647,10 @@ window.addEventListener('keydown', (event) => {
 })
 
 const drawRoomCard = () => {
-  if (pendingRoomDraw) roomDeck.unshift(pendingRoomDraw)
+  const previousPendingRoom = pendingRoomDraw
+  pendingRoomDraw = null
   const card = roomDeck.pop() ?? roomCards.createRoomCard()
+  if (previousPendingRoom) roomDeck.unshift(previousPendingRoom)
   lastDraw = { type: 'room', card }
   pendingRoomDraw = card
   pendingRoomTurns = 0
