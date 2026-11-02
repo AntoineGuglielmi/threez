@@ -14,7 +14,7 @@ import { setupBoardViewport } from './ui/board-viewport'
 import { resolveBoardHit } from './ui/board-hit-testing'
 import { renderRoomControls } from './ui/room-controls'
 import { createCorridorTile, createRoomTile } from './scene/tile-meshes'
-import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomStatus, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
+import type { BoardTile, CorridorCard, CorridorKind, Direction, PlacementCandidate, PlacementOption, ResourceType, RoomCard, RoomDifficulty, RoomTile, SavedGameState, SavedRoom, SurvivorCards, SurvivorKind } from './game/types'
 
 let activeSurvivorKind: SurvivorKind = 'stealth'
 const sceneSetup = createScene(activeSurvivorKind)
