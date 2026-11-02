@@ -26,11 +26,14 @@ export const getCorridorPixelTemplateId = (kind: CorridorKind, doors: number): C
 }
 
 export const getCorridorPixelRotation = (kind: CorridorKind, exits: Direction[]): number => {
-  // Turn templates are drawn with openings to the west and south, not in the
-  // logical north-west orientation used by the corridor definitions.
+  // Pixel templates use their own base orientation: turns open west/south,
+  // while the T template opens south/east/west. Rotate those openings to the
+  // logical exits so its brown door bar rotates onto the matching wall.
   const templateExits: Direction[] = kind === 'left' || kind === 'right'
     ? ['W', 'S']
-    : corridorDefinitions[kind].exits
+    : kind === 'tee'
+      ? ['S', 'E', 'W']
+      : corridorDefinitions[kind].exits
 
   return [0, 1, 2, 3].find((turns) => {
     const rotated = templateExits.map((direction) => rotateDirection(direction, turns))
