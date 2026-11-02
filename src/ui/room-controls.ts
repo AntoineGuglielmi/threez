@@ -1,4 +1,4 @@
-import type { Direction, RoomCard, RoomTile, SurvivorKind } from '../game/types'
+import type { RoomCard, RoomTile, SurvivorKind } from '../game/types'
 
 type RoomControlsOptions = {
   roomDoorOptionsElement: HTMLDivElement | null
