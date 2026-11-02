@@ -1,5 +1,5 @@
 import { directionDelta, directionOrder, opposite, corridorDefinitions, rotateDirection } from './directions'
-import type { BoardTile, CorridorCard, Direction, PlacementCandidate, RoomDifficulty, ResourceType, RoomTile } from './types'
+import type { BoardTile, CorridorCard, Direction, PlacementCandidate, RoomDifficulty, ResourceType, RoomTile, SurvivorKind } from './types'
 
 type OccupiedRoom = Pick<RoomTile, 'x' | 'z'>
 type CorridorPlacementInput = {
@@ -106,9 +106,9 @@ export const resourceLabels: Record<ResourceType, string> = {
   munition: 'Munition',
 }
 
-export const getRoomResourceChances = (difficulty: RoomDifficulty) =>
+export const getRoomResourceChances = (difficulty: RoomDifficulty, survivorKind: SurvivorKind = 'military') =>
   (Object.keys(resourceLabels) as ResourceType[]).map((resource) => {
-    const threshold = resourceThresholds[difficulty][resource]
+    const threshold = Math.max(2, resourceThresholds[difficulty][resource] - (survivorKind === 'stealth' ? 1 : 0))
     return {
       resource,
       threshold,
@@ -125,10 +125,11 @@ const resourceThresholds: Record<RoomDifficulty, Record<ResourceType, number>> =
 export const rollRoomSearch = (
   difficulty: RoomDifficulty,
   rollDie: () => number = () => Math.floor(Math.random() * 6) + 1,
+  survivorKind: SurvivorKind = 'military',
 ) => {
   const results = (Object.keys(resourceLabels) as ResourceType[]).map((resource) => {
     const value = rollDie()
-    const threshold = resourceThresholds[difficulty][resource]
+    const threshold = Math.max(2, resourceThresholds[difficulty][resource] - (survivorKind === 'stealth' ? 1 : 0))
     return { resource, value, threshold, found: value >= threshold }
   })
 
