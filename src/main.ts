@@ -5,6 +5,7 @@ import { directionDelta, opposite, corridorDefinitions, rotateDirection } from '
 import { readSavedGameState, STORAGE_KEY } from './game/persistence'
 import { shuffle } from './game/random'
 import { createCorridorCardFactory } from './game/corridor-cards'
+import { getCorridorPixelRotation } from './game/corridor-pixel-templates'
 import { createRoomCardFactory } from './game/room-cards'
 import { getAvailableRoomDoors, getCorridorPlacements, getRoomResourceChances, resourceLabels, rollRoomSearch } from './game/rules'
 import { evaluateCorridorMove } from './game/movement'
@@ -259,7 +260,7 @@ if (savedGameState?.tiles.length) {
       id: corridorCards.allocateCardId(),
       kind: tile.kind,
       doors: isInitialCorridor ? [] : tile.doors ?? [],
-    })
+    }, getCorridorPixelRotation(tile.kind, tile.exits))
     const doors = card.doors
     const usedDoors = [...(tile.usedDoors ?? [])]
     const group = createCorridorTile(board, materials, card, tile.x, tile.z, tile.exits, doors, usedDoors)
