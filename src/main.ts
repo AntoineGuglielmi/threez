@@ -695,6 +695,8 @@ const renderGameUi = () => {
   if (actionsCountElement) actionsCountElement.textContent = String(actionsRemaining)
   if (actionsFillElement) actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
   const personalResources = resourcesBySurvivor[activeSurvivorKind]
+  const personalOwnerElement = document.querySelector<HTMLElement>('#personal-resource-owner')
+  if (personalOwnerElement) personalOwnerElement.textContent = getSurvivorLabel(activeSurvivorKind)
   for (const resource of Object.keys(personalResources) as ResourceType[]) {
     const element = resourceElements[resource]
     if (element) element.textContent = String(personalResources[resource])
