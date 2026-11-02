@@ -488,7 +488,12 @@ const updatePlacementHighlights = () => {
   }
 
   createGhostTile()
-  if (pendingRoomDraw && placementActions) placementActions.hidden = false
+  if (pendingRoomDraw) {
+    if (placementActions) placementActions.hidden = false
+    if (rotateRoomPlacementButton) rotateRoomPlacementButton.hidden = false
+    if (rotateGhostButtonElement) rotateGhostButtonElement.hidden = true
+    if (confirmGhostButton) confirmGhostButton.hidden = true
+  }
 }
 const spendAction = () => {
   actionsRemaining = Math.max(0, actionsRemaining - 1)
