@@ -250,6 +250,26 @@ button, a { color: inherit; }
 .reset-button:hover { background: rgba(189, 121, 88, 0.18); }
 .reset-button:focus-visible { outline: 2px solid #bd7958; outline-offset: 2px; }
 
+.pixelart-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(208, 213, 224, 0.16);
+  color: #aeb5bd;
+  font: 500 9px var(--mono);
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  transition: border-color .18s ease, color .18s ease, background .18s ease;
+}
+.pixelart-link:hover {
+  border-color: rgba(189, 152, 120, .45);
+  background: rgba(189, 152, 120, .08);
+  color: #ead8c7;
+}
+.pixelart-link:focus-visible { outline: 2px solid #bd9878; outline-offset: 2px; }
+
 @media (max-width: 720px) {
   .game { grid-template-rows: 58px minmax(0, 1fr) 42px; padding: 0 16px; }
   .hud { gap: 12px; }
