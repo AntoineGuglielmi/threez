@@ -74,7 +74,7 @@ let corridorDeck = survivorCards[legacyOwner].deck
 let discardPile = survivorCards[legacyOwner].discard
 let hand = survivorCards[legacyOwner].hand
 let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSavedCard(savedGameState.pendingDraw) : null
-let lastDraw: { type: 'corridor'; card: CorridorCard } | { type: 'room'; card: RoomCard } | null = null
+let lastDraw: { type: 'corridor'; card: CorridorCard; previousPhase: 'draw' | 'actions' } | { type: 'room'; card: RoomCard } | null = null
 let phase: 'draw' | 'actions' = savedGameState ? (savedGameState.phase ?? 'actions') : 'draw'
 let selectedCardId: number | null = null
 let selectedCardTurns = 0
@@ -560,13 +560,14 @@ const discardSelectedCorridorAndDraw = () => {
 }
 
 const drawCorridorCard = () => {
+  const previousPhase = phase
   if (corridorDeck.length === 0 && discardPile.length > 0) {
     corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
   }
 
   const card = corridorDeck.pop() ?? corridorCards.createCard()
   hand.push(card)
-  lastDraw = { type: 'corridor', card }
+  lastDraw = { type: 'corridor', card, previousPhase }
   setStatus(hand.length >= 3
     ? 'Main complète. Phase d’actions.'
     : `Couloir pioché. Encore ${3 - hand.length} carte${3 - hand.length > 1 ? 's' : ''} à piocher.`)
@@ -618,7 +619,7 @@ const undoLastDraw = () => {
     if (index < 0) return false
     const [card] = hand.splice(index, 1)
     corridorDeck.push(card)
-    phase = 'draw'
+    phase = lastDraw.previousPhase
     selectedCardId = null
     placementPreview = null
     clearGhostTile()
@@ -646,7 +647,7 @@ window.addEventListener('keydown', (event) => {
 })
 
 const drawRoomCard = () => {
-  if (pendingRoomDraw) roomDeck.push(pendingRoomDraw)
+  if (pendingRoomDraw) roomDeck.unshift(pendingRoomDraw)
   const card = roomDeck.pop() ?? roomCards.createRoomCard()
   lastDraw = { type: 'room', card }
   pendingRoomDraw = card
@@ -867,11 +868,9 @@ const renderGameUi = () => {
     drawRoomButton,
     rooms,
     currentRoomId,
-    pendingRoomDraw,
     phase,
     activeSurvivorKind,
     actionsRemaining,
-    hasAvailableDoors: getAvailableDoors().length > 0,
     onSearchRoom: searchCurrentRoom,
   })
 }
