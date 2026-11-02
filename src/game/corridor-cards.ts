@@ -31,14 +31,17 @@ export const createCorridorCardFactory = (initialId: number) => {
       .flatMap((kind) => Array.from({ length: 8 }, () => createCard(kind))),
   )
 
-  const normalizeSavedCard = (card: CorridorCard): CorridorCard => {
+  const normalizeSavedCard = (card: CorridorCard, turns = 0): CorridorCard => {
     const savedDoors = card.doors ?? []
-    const validWallDoors = savedDoors.filter((direction) => getModelDoorDirections(card.kind, savedDoors.length).includes(direction))
+    const allowedDoors = getModelDoorDirections(card.kind, savedDoors.length)
+      .map((direction) => directionOrder[(directionOrder.indexOf(direction) + turns + 4) % 4])
+    const validWallDoors = savedDoors.filter((direction) => allowedDoors.includes(direction))
     return {
       ...card,
       doors: validWallDoors.length === savedDoors.length
         ? validWallDoors
-        : createDoorDirections(card.kind, savedDoors.length),
+        : createDoorDirections(card.kind, savedDoors.length)
+          .map((direction) => directionOrder[(directionOrder.indexOf(direction) + turns + 4) % 4]),
     }
   }
 
