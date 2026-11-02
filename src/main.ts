@@ -1426,10 +1426,18 @@ rotateBoardCardButton?.addEventListener('click', () => {
   setStatus('Orientation de la carte modifiée.')
 })
 
-document.querySelector<HTMLButtonElement>('#reset-game')?.addEventListener('click', () => {
-  const confirmed = window.confirm('Réinitialiser la partie ? Le plateau actuel sera perdu.')
+document.querySelector<HTMLButtonElement>('#reset-game')?.addEventListener('click', async () => {
+  const confirmed = window.confirm('Réinitialiser la partie ? Le plateau actuel et toute la progression seront perdus.')
   if (!confirmed) return
-  window.location.reload()
+
+  try {
+    const response = await fetch('/__game-state', { method: 'DELETE' })
+    if (!response.ok) throw new Error('Unable to reset saved game')
+
+    window.location.reload()
+  } catch {
+    setStatus('Impossible de réinitialiser la partie. Réessayez.')
+  }
 })
 
 document.querySelector<HTMLButtonElement>('#rotate-left')?.addEventListener('click', () => {
