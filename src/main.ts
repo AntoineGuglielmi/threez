@@ -1303,11 +1303,9 @@ rotateBoardCardButton?.addEventListener('click', () => {
     tile.exits = tile.exits.map((direction) => rotateDirection(direction, turns))
     tile.doors = tile.doors.map((direction) => rotateDirection(direction, turns))
     tile.usedDoors = tile.usedDoors.map((direction) => rotateDirection(direction, turns))
-    tile.group.rotation.y += Math.PI / 2
   } else {
     const room = selectedBoardCard.room
     room.direction = rotateDirection(room.direction, turns)
-    room.group.rotation.y += Math.PI / 2
   }
   saveGameState()
   setStatus('Orientation de la carte modifiée.')
