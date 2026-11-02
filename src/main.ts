@@ -463,13 +463,16 @@ const updatePlacementHighlights = () => {
     if (rotateRoomPlacementButton) rotateRoomPlacementButton.hidden = false
     if (rotateGhostButtonElement) rotateGhostButtonElement.hidden = true
     if (confirmGhostButton) confirmGhostButton.hidden = true
-    for (const direction of getAvailableDoors()) {
-      const [dx, dz] = directionDelta[direction]
+    for (const candidate of getAvailableDoors()) {
       const marker = new THREE.Group()
       marker.name = 'room-placement-marker'
       marker.userData.isRoomPlacementMarker = true
-      marker.userData.roomPlacementDirection = direction
-      marker.position.set((currentTile.x + dx) * 1.18, 0.19, (currentTile.z + dz) * 1.18)
+      marker.userData.roomPlacementDirection = candidate.direction
+      marker.userData.roomPlacementX = candidate.x
+      marker.userData.roomPlacementZ = candidate.z
+      marker.userData.roomPlacementOriginX = candidate.originX
+      marker.userData.roomPlacementOriginZ = candidate.originZ
+      marker.position.set(candidate.x * 1.18, 0.19, candidate.z * 1.18)
       const pad = new THREE.Mesh(
         new THREE.PlaneGeometry(0.94, 0.94),
         new THREE.MeshBasicMaterial({ color: '#d99a75', transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide }),
@@ -557,13 +560,39 @@ const drawCorridorCard = () => {
 const roomDoorOptionsElement = document.querySelector<HTMLDivElement>('#cp-door-options')
 const drawRoomButton = document.querySelector<HTMLElement>('#draw-cp')
 
-const getUnusedDoors = () => currentTile.doors.filter((direction) => !currentTile.usedDoors.includes(direction))
-const getAvailableDoors = () => getUnusedDoors()
+type RoomPlacementCandidate = {
+  x: number
+  z: number
+  direction: Direction
+  originX: number
+  originZ: number
+  tile: BoardTile
+}
+
+const getAvailableDoors = (): RoomPlacementCandidate[] => boardTiles
+  .filter((tile) => tile.kind !== 'start')
+  .flatMap((tile) => tile.doors
+    .filter((direction) => !tile.usedDoors.includes(direction))
+    .map((direction) => {
+      const [dx, dz] = directionDelta[direction]
+      return {
+        x: tile.x + dx,
+        z: tile.z + dz,
+        direction,
+        originX: tile.x,
+        originZ: tile.z,
+        tile,
+      }
+    }))
+  .filter(({ x, z }) =>
+    !boardTiles.some((tile) => tile.x === x && tile.z === z) &&
+    !rooms.some((room) => room.x === x && room.z === z),
+  )
 
 const drawRoomCard = () => {
   if (activeSurvivorKind === 'injured' || currentRoomId !== null || pendingRoomDraw) return
-  if (getUnusedDoors().length === 0) {
-    setStatus('Aucune porte non exploitée sur ce couloir.')
+  if (getAvailableDoors().length === 0) {
+    setStatus('Aucune porte libre sur les couloirs déjà posés.')
     return
   }
   const card = roomDeck.pop()
@@ -581,18 +610,20 @@ const drawRoomCard = () => {
   renderGameUi()
 }
 
-const placeDrawnRoom = (direction: Direction) => {
+const placeDrawnRoom = (candidate: RoomPlacementCandidate) => {
   if (!pendingRoomDraw || currentRoomId !== null) return
-  if (!getAvailableDoors().includes(direction)) return
-  const [dx, dz] = directionDelta[direction]
-  const x = currentTile.x + dx
-  const z = currentTile.z + dz
+  const availableCandidate = getAvailableDoors().find(({ x, z, direction, originX, originZ }) =>
+    x === candidate.x && z === candidate.z && direction === candidate.direction &&
+    originX === candidate.originX && originZ === candidate.originZ,
+  )
+  if (!availableCandidate) return
+  const { x, z, direction, tile } = availableCandidate
   const card = pendingRoomDraw
-  const room: SavedRoom = { ...card, x, z, originX: currentTile.x, originZ: currentTile.z, direction: rotateDirection(direction, pendingRoomTurns) }
+  const room: SavedRoom = { ...card, x, z, originX: tile.x, originZ: tile.z, direction: rotateDirection(direction, pendingRoomTurns) }
   const group = createRoomTile(board, materials, room, opposite[direction])
   rooms.push({ ...room, group })
-  currentTile.usedDoors.push(direction)
-  const doorMesh = currentTile.group.children.find((child) => child.userData.doorDirection === direction)
+  tile.usedDoors.push(direction)
+  const doorMesh = tile.group.children.find((child) => child.userData.doorDirection === direction)
   if (doorMesh) doorMesh.visible = false
   pendingRoomDraw = null
   pendingRoomTurns = 0
@@ -1128,7 +1159,13 @@ renderer.domElement.addEventListener('click', (event) => {
 
   if (pendingRoomDraw) {
     if (hit.type === 'room-placement') {
-      placeDrawnRoom(hit.direction)
+      placeDrawnRoom({
+        x: hit.x,
+        z: hit.z,
+        direction: hit.direction,
+        originX: hit.originX,
+        originZ: hit.originZ,
+      })
     } else {
       setStatus('Cliquez sur un emplacement lumineux pour poser la pièce.')
     }
