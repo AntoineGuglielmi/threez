@@ -64,6 +64,48 @@
       "usedDoors": [
         "E"
       ]
+    },
+    {
+      "x": -1,
+      "z": 3,
+      "kind": "straight",
+      "exits": [
+        "E",
+        "W"
+      ],
+      "doors": [
+        "S",
+        "N"
+      ],
+      "usedDoors": [
+        "N",
+        "S"
+      ]
+    },
+    {
+      "x": 1,
+      "z": 5,
+      "kind": "right",
+      "exits": [
+        "W",
+        "N"
+      ],
+      "doors": [],
+      "usedDoors": []
+    },
+    {
+      "x": 0,
+      "z": 5,
+      "kind": "tee",
+      "exits": [
+        "E",
+        "S",
+        "N"
+      ],
+      "doors": [
+        "E"
+      ],
+      "usedDoors": []
     }
   ],
   "rooms": [
@@ -154,6 +196,62 @@
           "found": false
         }
       ]
+    },
+    {
+      "id": 1,
+      "status": "trapped",
+      "difficulty": "easy",
+      "searched": false,
+      "unlocked": true,
+      "x": -1,
+      "z": 2,
+      "originX": -1,
+      "originZ": 3,
+      "direction": "N"
+    },
+    {
+      "id": 4,
+      "status": "ordinary",
+      "difficulty": "easy",
+      "searched": true,
+      "unlocked": true,
+      "x": -1,
+      "z": 4,
+      "originX": -1,
+      "originZ": 3,
+      "direction": "S",
+      "lastRoll": [
+        {
+          "resource": "cafe",
+          "value": 5,
+          "threshold": 4,
+          "found": true
+        },
+        {
+          "resource": "croissant",
+          "value": 1,
+          "threshold": 3,
+          "found": false
+        },
+        {
+          "resource": "citron",
+          "value": 2,
+          "threshold": 4,
+          "found": false
+        },
+        {
+          "resource": "bonbon",
+          "value": 2,
+          "threshold": 3,
+          "found": false
+        },
+        {
+          "resource": "munition",
+          "value": 6,
+          "threshold": 4,
+          "found": true
+        }
+      ]
     }
   ],
   "currentRoomId": null,
@@ -161,7 +259,7 @@
     "cafe": 0,
     "croissant": 0,
     "citron": 0,
-    "bonbon": 0,
+    "bonbon": 1,
     "munition": 0
   },
   "resourcesBySurvivor": {
@@ -180,11 +278,11 @@
       "munition": 0
     },
     "military": {
-      "cafe": 0,
+      "cafe": 1,
       "croissant": 0,
       "citron": 0,
       "bonbon": 0,
-      "munition": 0
+      "munition": 1
     },
     "scientist": {
       "cafe": 0,
@@ -341,32 +439,18 @@
       "difficulty": "easy",
       "searched": false,
       "unlocked": true
-    },
-    {
-      "id": 4,
-      "status": "ordinary",
-      "difficulty": "easy",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 1,
-      "status": "trapped",
-      "difficulty": "easy",
-      "searched": false,
-      "unlocked": true
     }
   ],
   "pendingRoomDraw": null,
   "survivor": {
     "x": 0,
-    "z": 0
+    "z": 5
   },
   "survivors": {
     "stealth": {
-      "x": 1,
-      "z": 3,
-      "roomId": 10
+      "x": 0,
+      "z": 5,
+      "roomId": null
     },
     "heavy": {
       "x": 1,
@@ -374,8 +458,8 @@
       "roomId": 7
     },
     "military": {
-      "x": 0,
-      "z": 0,
+      "x": -1,
+      "z": 3,
       "roomId": null
     },
     "scientist": {
@@ -385,11 +469,11 @@
     },
     "injured": {
       "x": 0,
-      "z": 0,
+      "z": 1,
       "roomId": null
     }
   },
-  "activeSurvivorKind": "military",
+  "activeSurvivorKind": "stealth",
   "characterOrder": [
     "stealth",
     "heavy",
@@ -397,22 +481,50 @@
     "military",
     "injured"
   ],
-  "characterIndex": 3,
+  "characterIndex": 0,
   "injuredMovedThisTurn": false,
   "zoom": 2.124999877691276,
   "cameraTarget": {
-    "x": 0.9899012172894931,
-    "z": 2.6305921012544355
+    "x": 1.0025348038927018,
+    "z": 2.6095358379856677
   },
   "cameraAngle": 0.7853981633974483,
   "deck": [
     {
-      "id": 103,
+      "id": 18,
       "kind": "right",
+      "doors": [
+        "W",
+        "S"
+      ]
+    },
+    {
+      "id": 38,
+      "kind": "cross",
       "doors": []
     },
     {
-      "id": 94,
+      "id": 28,
+      "kind": "tee",
+      "doors": [
+        "N"
+      ]
+    },
+    {
+      "id": 14,
+      "kind": "left",
+      "doors": []
+    },
+    {
+      "id": 16,
+      "kind": "left",
+      "doors": [
+        "E",
+        "S"
+      ]
+    },
+    {
+      "id": 13,
       "kind": "left",
       "doors": [
         "W",
@@ -420,108 +532,136 @@
       ]
     },
     {
-      "id": 117,
-      "kind": "cross",
-      "doors": []
+      "id": 10,
+      "kind": "left",
+      "doors": [
+        "N"
+      ]
     },
     {
-      "id": 88,
+      "id": 8,
       "kind": "straight",
-      "doors": []
+      "doors": [
+        "N",
+        "S"
+      ]
     },
     {
-      "id": 99,
+      "id": 17,
       "kind": "right",
       "doors": []
     },
     {
-      "id": 116,
+      "id": 37,
       "kind": "cross",
       "doors": []
     },
     {
-      "id": 111,
+      "id": 34,
+      "kind": "cross",
+      "doors": []
+    },
+    {
+      "id": 24,
+      "kind": "right",
+      "doors": []
+    },
+    {
+      "id": 4,
+      "kind": "straight",
+      "doors": [
+        "W",
+        "E"
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "straight",
+      "doors": [
+        "S"
+      ]
+    },
+    {
+      "id": 31,
       "kind": "tee",
       "doors": [
         "N"
       ]
     },
     {
-      "id": 96,
-      "kind": "left",
-      "doors": [
-        "N",
-        "E"
-      ]
+      "id": 3,
+      "kind": "straight",
+      "doors": []
     },
     {
-      "id": 118,
+      "id": 26,
+      "kind": "tee",
+      "doors": []
+    },
+    {
+      "id": 33,
       "kind": "cross",
       "doors": []
     },
     {
-      "id": 89,
+      "id": 15,
       "kind": "left",
       "doors": [
+        "N",
         "W"
       ]
     },
     {
-      "id": 90,
-      "kind": "left",
+      "id": 21,
+      "kind": "right",
       "doors": [
-        "N"
+        "E",
+        "S"
       ]
     },
     {
-      "id": 85,
-      "kind": "straight",
-      "doors": []
-    },
-    {
-      "id": 119,
-      "kind": "cross",
-      "doors": []
-    },
-    {
-      "id": 86,
-      "kind": "straight",
-      "doors": []
-    },
-    {
-      "id": 92,
-      "kind": "left",
-      "doors": [
-        "W",
-        "N"
-      ]
-    },
-    {
-      "id": 93,
-      "kind": "left",
-      "doors": [
-        "E"
-      ]
-    },
-    {
-      "id": 120,
-      "kind": "cross",
-      "doors": []
-    },
-    {
-      "id": 95,
-      "kind": "left",
-      "doors": []
-    },
-    {
-      "id": 109,
+      "id": 29,
       "kind": "tee",
       "doors": [
-        "N"
+        "S"
       ]
     },
     {
-      "id": 87,
+      "id": 39,
+      "kind": "cross",
+      "doors": []
+    },
+    {
+      "id": 9,
+      "kind": "left",
+      "doors": []
+    },
+    {
+      "id": 1,
+      "kind": "straight",
+      "doors": [
+        "S"
+      ]
+    },
+    {
+      "id": 27,
+      "kind": "tee",
+      "doors": [
+        "S"
+      ]
+    },
+    {
+      "id": 25,
+      "kind": "tee",
+      "doors": []
+    },
+    {
+      "id": 11,
+      "kind": "left",
+      "doors": []
+    },
+    {
+      "id": 7,
       "kind": "straight",
       "doors": [
         "S",
@@ -529,131 +669,48 @@
       ]
     },
     {
-      "id": 98,
-      "kind": "right",
-      "doors": []
-    },
-    {
-      "id": 82,
-      "kind": "straight",
-      "doors": [
-        "N",
-        "S"
-      ]
-    },
-    {
-      "id": 104,
-      "kind": "right",
-      "doors": [
-        "N",
-        "E"
-      ]
-    },
-    {
-      "id": 108,
-      "kind": "tee",
-      "doors": []
-    },
-    {
-      "id": 101,
-      "kind": "right",
-      "doors": []
-    },
-    {
-      "id": 102,
-      "kind": "right",
-      "doors": []
-    },
-    {
-      "id": 115,
-      "kind": "cross",
-      "doors": []
-    },
-    {
-      "id": 113,
-      "kind": "cross",
-      "doors": []
-    },
-    {
-      "id": 106,
+      "id": 32,
       "kind": "tee",
       "doors": [
         "S"
       ]
     },
     {
-      "id": 105,
-      "kind": "tee",
-      "doors": [
-        "W"
-      ]
+      "id": 35,
+      "kind": "cross",
+      "doors": []
     },
     {
-      "id": 110,
-      "kind": "tee",
+      "id": 12,
+      "kind": "left",
       "doors": [
+        "W",
         "N"
       ]
     },
     {
-      "id": 97,
+      "id": 19,
       "kind": "right",
       "doors": [
+        "E",
         "S"
       ]
     },
     {
-      "id": 83,
-      "kind": "straight",
-      "doors": []
-    },
-    {
-      "id": 107,
-      "kind": "tee",
+      "id": 20,
+      "kind": "right",
       "doors": [
-        "W"
-      ]
-    },
-    {
-      "id": 91,
-      "kind": "left",
-      "doors": []
-    },
-    {
-      "id": 114,
-      "kind": "cross",
-      "doors": []
-    },
-    {
-      "id": 84,
-      "kind": "straight",
-      "doors": [
-        "E",
-        "W"
+        "W",
+        "S"
       ]
     }
   ],
   "discard": [],
   "hand": [
     {
-      "id": 100,
-      "kind": "right",
+      "id": 36,
+      "kind": "cross",
       "doors": []
-    },
-    {
-      "id": 112,
-      "kind": "tee",
-      "doors": [
-        "N"
-      ]
-    },
-    {
-      "id": 81,
-      "kind": "straight",
-      "doors": [
-        "N",
-        "S"
-      ]
     }
   ],
   "survivorCards": {
@@ -872,25 +929,13 @@
             "W",
             "S"
           ]
-        },
-        {
-          "id": 36,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 30,
-          "kind": "tee",
-          "doors": [
-            "N"
-          ]
         }
       ],
       "discard": [],
       "hand": [
         {
-          "id": 22,
-          "kind": "right",
+          "id": 36,
+          "kind": "cross",
           "doors": []
         }
       ]
@@ -1392,15 +1437,7 @@
           "id": 112,
           "kind": "tee",
           "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 81,
-          "kind": "straight",
-          "doors": [
-            "N",
-            "S"
+            "W"
           ]
         }
       ]
@@ -1940,8 +1977,8 @@
   },
   "phase": "actions",
   "pendingDraw": null,
-  "actionsRemaining": 7,
-  "turnNumber": 1,
-  "nextCardId": 211,
+  "actionsRemaining": 3,
+  "turnNumber": 2,
+  "nextCardId": 216,
   "nextRoomCardId": 25
 }
