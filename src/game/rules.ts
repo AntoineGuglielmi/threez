@@ -1,7 +1,7 @@
 import { directionDelta, directionOrder, opposite, corridorDefinitions, rotateDirection } from './directions'
 import type { BoardTile, CorridorCard, Direction, PlacementCandidate, RoomDifficulty, ResourceType, RoomTile, SurvivorKind } from './types'
 
-type OccupiedRoom = Pick<RoomTile, 'x' | 'z'>
+type OccupiedRoom = Pick<RoomTile, 'x' | 'z' | 'direction'>
 type CorridorPlacementInput = {
   card: CorridorCard
   turns: number
@@ -52,7 +52,8 @@ export const getCorridorPlacements = ({
         const room = rooms.find((placed) => placed.x === neighbourX && placed.z === neighbourZ)
 
         if (room) {
-          if (exits.includes(direction) || doors.includes(direction)) {
+          const roomDoorDirection = opposite[room.direction]
+          if (exits.includes(direction) || !doors.includes(direction) || roomDoorDirection !== direction) {
             hasConflict = true
             break
           }
@@ -92,7 +93,7 @@ export const getCorridorPlacements = ({
 export const getAvailableRoomDoors = (
   tile: Pick<BoardTile, 'x' | 'z' | 'doors' | 'usedDoors'>,
   boardTiles: Pick<BoardTile, 'x' | 'z' | 'exits'>[],
-  rooms: OccupiedRoom[],
+  rooms: Pick<RoomTile, 'x' | 'z'>[],
 ): Direction[] => tile.doors.filter((direction) => {
   if (tile.usedDoors.includes(direction)) return false
   const [dx, dz] = directionDelta[direction]
