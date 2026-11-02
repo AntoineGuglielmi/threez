@@ -55,8 +55,8 @@
             </div>
           </section>
 
-          <section class="inventory-disclosure" aria-label="Ressources">
-            <div class="sidebar-section-heading"><h2>Ressources</h2><strong>Inventaire</strong></div>
+          <section class="inventory-disclosure" aria-label="Inventaire du survivant actif">
+            <div class="sidebar-section-heading"><h2>Ressources</h2><strong id="personal-resource-owner">Personnelles</strong></div>
             <div class="resource-grid">
               <span>Café <b id="resource-cafe">0</b></span>
               <span>Croissant <b id="resource-croissant">0</b></span>
@@ -64,6 +64,10 @@
               <span>Bonbon acidulé <b id="resource-bonbon">0</b></span>
               <span>Munition <b id="resource-munition">0</b></span>
             </div>
+          </section>
+          <section class="team-inventory" aria-label="Inventaire global de l'équipe">
+            <div class="sidebar-section-heading"><h2>Inventaire de l’équipe</h2><strong>Par survivant</strong></div>
+            <div id="global-resource-inventory" aria-live="polite"></div>
           </section>
           <button id="end-turn" class="end-turn">Terminer le tour <span>↗</span></button>
           <button id="reset-game" class="reset-button" type="button">Réinitialiser la partie</button>
