@@ -875,7 +875,6 @@ const renderGameUi = () => {
   renderRoomControls({
     roomDoorOptionsElement,
     drawRoomButton,
-    roomDeckLength: roomDeck.length,
     rooms,
     currentRoomId,
     pendingRoomDraw,
