@@ -501,6 +501,7 @@ const updatePlacementHighlights = () => {
   }
 }
 const spendAction = () => {
+  lastDraw = null
   actionsRemaining = Math.max(0, actionsRemaining - 1)
   if (actionsRemaining === 0) setStatus('Plus d’actions. Terminez le tour pour continuer.')
 }
@@ -770,6 +771,7 @@ const renderGameUi = () => {
       turns: cardTurns,
       disabled: phase !== 'actions' || Boolean(pendingDraw) || activeSurvivorKind === 'injured',
       onSelect: () => {
+        lastDraw = null
         if (selectedCardId === card.id) {
           selectedCardId = null
           placementPreview = null
