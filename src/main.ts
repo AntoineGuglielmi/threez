@@ -74,6 +74,7 @@ let corridorDeck = survivorCards[legacyOwner].deck
 let discardPile = survivorCards[legacyOwner].discard
 let hand = survivorCards[legacyOwner].hand
 let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSavedCard(savedGameState.pendingDraw) : null
+let lastDraw: { type: 'corridor'; card: CorridorCard } | { type: 'room'; card: RoomCard } | null = null
 let phase: 'draw' | 'actions' = savedGameState ? (savedGameState.phase ?? 'actions') : 'draw'
 let selectedCardId: number | null = null
 let selectedCardTurns = 0
@@ -523,6 +524,7 @@ const confirmPlacement = () => {
   boardTiles.push(placedTile)
 
   hand = hand.filter((item) => item.id !== card.id)
+  lastDraw = null
   selectedCardId = null
   placementPreview = null
   clearGhostTile()
@@ -551,6 +553,7 @@ const discardSelectedCorridorAndDraw = () => {
   const [discarded] = hand.splice(selectedIndex, 1)
   discardPile.push(discarded)
   hand.splice(selectedIndex, 0, replacement)
+  lastDraw = null
   spendAction()
   selectedCardId = null
   placementPreview = null
@@ -567,16 +570,12 @@ const drawCorridorCard = () => {
     corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
   }
 
-  const card = corridorDeck.pop()
-  if (!card) {
-    phase = 'actions'
-    setStatus('La pioche est épuisée. Vous pouvez passer aux actions.')
-  } else {
-    hand.push(card)
-    setStatus(hand.length >= 3
-      ? 'Main complète. Phase d’actions.'
-      : `Couloir pioché. Encore ${3 - hand.length} carte${3 - hand.length > 1 ? 's' : ''} à piocher.`)
-  }
+  const card = corridorDeck.pop() ?? corridorCards.createCard()
+  hand.push(card)
+  lastDraw = { type: 'corridor', card }
+  setStatus(hand.length >= 3
+    ? 'Main complète. Phase d’actions.'
+    : `Couloir pioché. Encore ${3 - hand.length} carte${3 - hand.length > 1 ? 's' : ''} à piocher.`)
 
   if (hand.length >= 3) phase = 'actions'
   selectedCardId = null
@@ -617,18 +616,49 @@ const getAvailableDoors = (): RoomPlacementCandidate[] => currentTile.doors
     !rooms.some((room) => room.x === x && room.z === z),
   )
 
+const undoLastDraw = () => {
+  if (!lastDraw) return false
+
+  if (lastDraw.type === 'corridor') {
+    const index = hand.findIndex((card) => card.id === lastDraw!.card.id)
+    if (index < 0) return false
+    const [card] = hand.splice(index, 1)
+    corridorDeck.push(card)
+    phase = 'draw'
+    selectedCardId = null
+    placementPreview = null
+    clearGhostTile()
+    setStatus('Pioche annulée. La carte est replacée au-dessus de la pioche.')
+  } else {
+    if (pendingRoomDraw?.id !== lastDraw.card.id) return false
+    roomDeck.push(pendingRoomDraw)
+    pendingRoomDraw = null
+    pendingRoomTurns = 0
+    clearGhostTile()
+    setStatus('Pioche de pièce annulée. La carte est replacée au-dessus de la pioche.')
+  }
+
+  lastDraw = null
+  saveGameState()
+  renderGameUi()
+  return true
+}
+
+window.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || event.defaultPrevented) return
+  const target = event.target
+  if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return
+  if (undoLastDraw()) event.preventDefault()
+})
+
 const drawRoomCard = () => {
   if (activeSurvivorKind === 'injured' || currentRoomId !== null || pendingRoomDraw) return
   if (getAvailableDoors().length === 0) {
     setStatus('Aucune porte libre sur les couloirs déjà posés.')
     return
   }
-  const card = roomDeck.pop()
-  if (!card) {
-    setStatus('La pioche de pièces est vide.')
-    renderGameUi()
-    return
-  }
+  const card = roomDeck.pop() ?? roomCards.createRoomCard()
+  lastDraw = { type: 'room', card }
   pendingRoomDraw = card
   pendingRoomTurns = 0
   selectedCardId = null
@@ -655,6 +685,7 @@ const placeDrawnRoom = (candidate: RoomPlacementCandidate) => {
   if (doorMesh) doorMesh.visible = false
   pendingRoomDraw = null
   pendingRoomTurns = 0
+  lastDraw = null
   setStatus('Pièce posée. Cliquez dessus pour y entrer.')
   saveGameState()
   renderGameUi()
@@ -913,6 +944,7 @@ discardButton?.addEventListener('click', () => {
   if (!pendingDraw) return
   discardPile.push(pendingDraw)
   pendingDraw = null
+  lastDraw = null
   setStatus('Carte piochée défaussée.')
   saveGameState()
   renderGameUi()
@@ -928,6 +960,7 @@ replaceButton?.addEventListener('click', () => {
       if (!oldCard || !pendingDraw) return
       discardPile.push(oldCard)
       hand[index] = pendingDraw
+      lastDraw = null
       pendingDraw = null
       selectedCardId = hand[index].id
       setStatus(`Couloir remplacé. « ${corridorDefinitions[oldCard.kind].label} » défaussé.`)
@@ -945,6 +978,7 @@ endTurnButton?.addEventListener('click', () => {
     setStatus('Posez ou annulez la pièce piochée avant de terminer le tour.')
     return
   }
+  lastDraw = null
   characterIndex += 1
   if (characterIndex >= characterOrder.length) {
     characterIndex = 0
