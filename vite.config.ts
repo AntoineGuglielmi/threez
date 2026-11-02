@@ -39,6 +39,19 @@ const corridorModelsPlugin = () => ({
         }
         return
       }
+      if (url.pathname === '/__game-state' && request.method === 'GET') {
+        try {
+          const savedState = await readFile(gameSavePath, 'utf8')
+          JSON.parse(savedState)
+          response.setHeader('Content-Type', 'application/json')
+          response.setHeader('Cache-Control', 'no-store')
+          response.end(savedState)
+        } catch {
+          response.statusCode = 404
+          response.end('Committed game save not found or invalid')
+        }
+        return
+      }
       if (url.pathname === '/__game-state' && request.method === 'PUT') {
         try {
           let body = ''
