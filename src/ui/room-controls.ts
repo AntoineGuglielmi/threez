@@ -9,7 +9,7 @@ type RoomControlsOptions = {
   phase: 'draw' | 'actions'
   activeSurvivorKind: SurvivorKind
   actionsRemaining: number
-  unusedDoors: Direction[]
+  hasAvailableDoors: boolean
   rooms: RoomTile[]
   onSearchRoom: () => void
 }
@@ -23,7 +23,7 @@ export const renderRoomControls = ({
   phase,
   activeSurvivorKind,
   actionsRemaining,
-  unusedDoors,
+  hasAvailableDoors,
   rooms,
   onSearchRoom,
 }: RoomControlsOptions) => {
@@ -34,7 +34,7 @@ export const renderRoomControls = ({
 
   if (drawRoomButton) {
     const disabled = phase !== 'actions' || activeSurvivorKind === 'injured' ||
-      currentRoomId !== null || unusedDoors.length === 0 ||
+      currentRoomId !== null || !hasAvailableDoors ||
       roomDeckLength === 0 || pendingRoomDraw !== null
     drawRoomButton.setAttribute('aria-disabled', String(disabled))
     drawRoomButton.classList.toggle('is-disabled', disabled)
