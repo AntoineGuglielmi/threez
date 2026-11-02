@@ -818,7 +818,7 @@ const renderGameUi = () => {
     phase,
     activeSurvivorKind,
     actionsRemaining,
-    unusedDoors: getUnusedDoors(),
+    hasAvailableDoors: getAvailableDoors().length > 0,
     onSearchRoom: searchCurrentRoom,
   })
 }
