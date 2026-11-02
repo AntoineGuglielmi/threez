@@ -7,7 +7,7 @@ import { shuffle } from './game/random'
 import { createCorridorCardFactory } from './game/corridor-cards'
 import { getCorridorPixelRotation } from './game/corridor-pixel-templates'
 import { createRoomCardFactory } from './game/room-cards'
-import { getAvailableRoomDoors, getCorridorPlacements, getRoomResourceChances, resourceLabels, rollRoomSearch } from './game/rules'
+import { getCorridorPlacements, getRoomResourceChances, resourceLabels, rollRoomSearch } from './game/rules'
 import { evaluateCorridorMove } from './game/movement'
 import { createCorridorHandCard } from './ui/corridor-hand-card'
 import { setupBoardViewport } from './ui/board-viewport'
@@ -77,6 +77,7 @@ let pendingDraw: CorridorCard | null = savedGameState?.pendingDraw ? normalizeSa
 let phase: 'draw' | 'actions' = savedGameState ? (savedGameState.phase ?? 'actions') : 'draw'
 let selectedCardId: number | null = null
 let selectedCardTurns = 0
+let pendingRoomTurns = 0
 let actionsRemaining = savedGameState?.actionsRemaining ?? 7
 let turnNumber = savedGameState?.turnNumber ?? 1
 if (savedGameState) corridorCards.setNextCardId(savedGameState.nextCardId)
@@ -140,6 +141,8 @@ let ghostTile: THREE.Group | null = null
 const placementActions = document.querySelector<HTMLDivElement>('#placement-actions')
 const rotateGhostButton = document.querySelector<HTMLButtonElement>('#rotate-ghost')
 const confirmGhostButton = document.querySelector<HTMLButtonElement>('#confirm-ghost')
+const rotateRoomPlacementButton = document.querySelector<HTMLButtonElement>('#rotate-room-placement')
+const rotateGhostButtonElement = document.querySelector<HTMLButtonElement>('#rotate-ghost')
 const editModeButton = document.querySelector<HTMLButtonElement>('#toggle-edit-mode')
 const boardEditActions = document.querySelector<HTMLDivElement>('#board-edit-actions')
 const boardEditLabel = document.querySelector<HTMLSpanElement>('#board-edit-label')
@@ -355,6 +358,9 @@ const clearGhostTile = () => {
     ghostTile = null
   }
   if (placementActions) placementActions.hidden = true
+  if (rotateRoomPlacementButton) rotateRoomPlacementButton.hidden = true
+  if (rotateGhostButtonElement) rotateGhostButtonElement.hidden = false
+  if (confirmGhostButton) confirmGhostButton.hidden = false
 }
 
 const createGhostTile = () => {
@@ -384,6 +390,7 @@ const createGhostTile = () => {
   ghostTile = ghost
   ghostLayer.add(ghost)
   if (placementActions) placementActions.hidden = false
+  if (rotateRoomPlacementButton) rotateRoomPlacementButton.hidden = true
 }
 
 const updatePlacementHighlights = () => {
@@ -452,6 +459,10 @@ const updatePlacementHighlights = () => {
   }
 
   if (pendingRoomDraw && currentRoomId === null && activeSurvivorKind !== 'injured') {
+    if (placementActions) placementActions.hidden = false
+    if (rotateRoomPlacementButton) rotateRoomPlacementButton.hidden = false
+    if (rotateGhostButtonElement) rotateGhostButtonElement.hidden = true
+    if (confirmGhostButton) confirmGhostButton.hidden = true
     for (const direction of getAvailableDoors()) {
       const [dx, dz] = directionDelta[direction]
       const marker = new THREE.Group()
@@ -541,7 +552,7 @@ const roomDoorOptionsElement = document.querySelector<HTMLDivElement>('#cp-door-
 const drawRoomButton = document.querySelector<HTMLElement>('#draw-cp')
 
 const getUnusedDoors = () => currentTile.doors.filter((direction) => !currentTile.usedDoors.includes(direction))
-const getAvailableDoors = () => getAvailableRoomDoors(currentTile, boardTiles, rooms)
+const getAvailableDoors = () => getUnusedDoors()
 
 const drawRoomCard = () => {
   if (activeSurvivorKind === 'injured' || currentRoomId !== null || pendingRoomDraw) return
@@ -556,6 +567,7 @@ const drawRoomCard = () => {
     return
   }
   pendingRoomDraw = card
+  pendingRoomTurns = 0
   selectedCardId = null
   placementPreview = null
   setStatus('Pièce piochée. Choisissez un emplacement lumineux sur le plateau.')
@@ -570,13 +582,14 @@ const placeDrawnRoom = (direction: Direction) => {
   const x = currentTile.x + dx
   const z = currentTile.z + dz
   const card = pendingRoomDraw
-  const room: SavedRoom = { ...card, x, z, originX: currentTile.x, originZ: currentTile.z, direction }
+  const room: SavedRoom = { ...card, x, z, originX: currentTile.x, originZ: currentTile.z, direction: rotateDirection(direction, pendingRoomTurns) }
   const group = createRoomTile(board, materials, room, opposite[direction])
   rooms.push({ ...room, group })
   currentTile.usedDoors.push(direction)
   const doorMesh = currentTile.group.children.find((child) => child.userData.doorDirection === direction)
   if (doorMesh) doorMesh.visible = false
   pendingRoomDraw = null
+  pendingRoomTurns = 0
   setStatus('Pièce posée. Cliquez dessus pour y entrer.')
   saveGameState()
   renderGameUi()
@@ -809,6 +822,12 @@ const rotateSelectedCorridor = () => {
     ? 'Orientation valide modifiée. Vérifiez les passages et validez la pose.'
     : 'Orientation modifiée. Choisissez un emplacement compatible.')
 }
+rotateRoomPlacementButton?.addEventListener('click', () => {
+  if (!pendingRoomDraw) return
+  pendingRoomTurns = (pendingRoomTurns + 1) % 4
+  if (rotateRoomPlacementButton) rotateRoomPlacementButton.textContent = `↻ CP ${['N', 'E', 'S', 'W'][pendingRoomTurns]}`
+  setStatus(`Orientation de la pièce : ${['Nord', 'Est', 'Sud', 'Ouest'][pendingRoomTurns]}.`)
+})
 rotateButton?.addEventListener('click', rotateSelectedCorridor)
 rotateGhostButton?.addEventListener('click', rotateSelectedCorridor)
 confirmGhostButton?.addEventListener('click', confirmPlacement)
