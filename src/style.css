@@ -1523,3 +1523,29 @@ button, a { color: inherit; }
     max-width: 76px;
   }
 }
+
+
+/* Secondary navigation in the game sidebar */
+.game-panel .pixelart-link {
+  align-self: flex-start;
+  margin: -8px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #9ba6ad;
+  font: 500 12px 'DM Sans', sans-serif;
+  letter-spacing: 0;
+  text-decoration: none;
+}
+.game-panel .pixelart-link:hover {
+  background: transparent;
+  color: #d69a7a;
+}
+.game-panel .pixelart-link span {
+  color: #bd9878;
+  font-size: 13px;
+}
+.game-panel .pixelart-link:focus-visible {
+  outline: 2px solid #bd9878;
+  outline-offset: 4px;
+}
