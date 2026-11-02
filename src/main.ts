@@ -28,12 +28,23 @@ const roomCards = createRoomCardFactory()
 const generatedRoomDeck = roomCards.createDeck()
 const roomDeck: RoomCard[] = savedGameState?.roomDeck ?? generatedRoomDeck
 let pendingRoomDraw: RoomCard | null = savedGameState?.pendingRoomDraw ?? null
-const resources: Record<ResourceType, number> = {
-  cafe: savedGameState?.resources?.cafe ?? 0,
-  croissant: savedGameState?.resources?.croissant ?? 0,
-  citron: savedGameState?.resources?.citron ?? 0,
-  bonbon: savedGameState?.resources?.bonbon ?? 0,
-  munition: savedGameState?.resources?.munition ?? 0,
+const createResourceInventory = (source?: Partial<Record<ResourceType, number>>): Record<ResourceType, number> => ({
+  cafe: source?.cafe ?? 0,
+  croissant: source?.croissant ?? 0,
+  citron: source?.citron ?? 0,
+  bonbon: source?.bonbon ?? 0,
+  munition: source?.munition ?? 0,
+})
+const resourceOwnerOnLegacySave = savedGameState?.activeSurvivorKind ?? 'stealth'
+const resourcesBySurvivor: Record<SurvivorKind, Record<ResourceType, number>> = {
+  stealth: createResourceInventory(savedGameState?.resourcesBySurvivor?.stealth),
+  heavy: createResourceInventory(savedGameState?.resourcesBySurvivor?.heavy),
+  military: createResourceInventory(savedGameState?.resourcesBySurvivor?.military),
+  scientist: createResourceInventory(savedGameState?.resourcesBySurvivor?.scientist),
+  injured: createResourceInventory(savedGameState?.resourcesBySurvivor?.injured),
+}
+if (!savedGameState?.resourcesBySurvivor && savedGameState?.resources) {
+  resourcesBySurvivor[resourceOwnerOnLegacySave] = createResourceInventory(savedGameState.resources)
 }
 const rooms: RoomTile[] = []
 let currentRoomId: number | null = savedGameState?.currentRoomId ?? null
@@ -157,6 +168,51 @@ const getSurvivorLabel = (kind: SurvivorKind) => ({
   stealth: 'Furtif', heavy: 'Costaud', military: 'Militaire', scientist: 'Scientifique', injured: 'Blessé',
 })[kind]
 
+const globalResourceInventoryElement = document.querySelector<HTMLDivElement>('#global-resource-inventory')
+const survivorKinds: SurvivorKind[] = ['stealth', 'heavy', 'military', 'scientist', 'injured']
+const renderGlobalResourceInventory = () => {
+  if (!globalResourceInventoryElement) return
+  const resourceOrder: ResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition']
+  const totals = createResourceInventory()
+  survivorKinds.forEach((kind) => {
+    resourceOrder.forEach((resource) => { totals[resource] += resourcesBySurvivor[kind][resource] })
+  })
+  const table = document.createElement('div')
+  table.className = 'global-resource-table'
+  const header = document.createElement('div')
+  header.className = 'global-resource-row global-resource-header'
+  const resourceHeading = document.createElement('span')
+  resourceHeading.textContent = 'Ressource'
+  header.append(resourceHeading)
+  survivorKinds.forEach((kind) => {
+    const heading = document.createElement('span')
+    heading.textContent = getSurvivorLabel(kind)
+    heading.title = getSurvivorLabel(kind)
+    header.append(heading)
+  })
+  const totalHeading = document.createElement('strong')
+  totalHeading.textContent = 'Total'
+  header.append(totalHeading)
+  table.append(header)
+  resourceOrder.forEach((resource) => {
+    const row = document.createElement('div')
+    row.className = 'global-resource-row'
+    const name = document.createElement('span')
+    name.textContent = resourceLabels[resource]
+    row.append(name)
+    survivorKinds.forEach((kind) => {
+      const value = document.createElement('span')
+      value.textContent = String(resourcesBySurvivor[kind][resource])
+      row.append(value)
+    })
+    const total = document.createElement('strong')
+    total.textContent = String(totals[resource])
+    row.append(total)
+    table.append(row)
+  })
+  globalResourceInventoryElement.replaceChildren(table)
+}
+
 const getRoomStatusLabel = (status: RoomStatus) => ({
   ordinary: 'Ordinaire',
   locked: 'Verrouillée',
@@ -171,7 +227,7 @@ const getDifficultyLabel = (difficulty: RoomDifficulty) => ({
 
 const rollRoomDice = (room: RoomTile) => {
   const { results, found } = rollRoomSearch(room.difficulty)
-  found.forEach((resource) => { resources[resource] += 1 })
+  found.forEach((resource) => { resourcesBySurvivor[activeSurvivorKind][resource] += 1 })
   room.lastRoll = results
   room.searched = true
   setStatus(found.length
@@ -638,10 +694,12 @@ const renderGameUi = () => {
   if (discardCountElement) discardCountElement.textContent = String(discardPile.length)
   if (actionsCountElement) actionsCountElement.textContent = String(actionsRemaining)
   if (actionsFillElement) actionsFillElement.style.width = `${(actionsRemaining / 7) * 100}%`
-  for (const resource of Object.keys(resources) as ResourceType[]) {
+  const personalResources = resourcesBySurvivor[activeSurvivorKind]
+  for (const resource of Object.keys(personalResources) as ResourceType[]) {
     const element = resourceElements[resource]
-    if (element) element.textContent = String(resources[resource])
+    if (element) element.textContent = String(personalResources[resource])
   }
+  renderGlobalResourceInventory()
 
   if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
 
@@ -964,7 +1022,8 @@ const saveGameState = () => {
         id, status, difficulty, searched, unlocked, x, z, originX, originZ, direction, lastRoll,
       })),
       currentRoomId,
-      resources,
+      resources: resourcesBySurvivor[activeSurvivorKind],
+      resourcesBySurvivor,
       roomDeck,
       pendingRoomDraw, 
       survivor: { x: currentTile.x, z: currentTile.z },
