@@ -543,12 +543,7 @@ const discardSelectedCorridorAndDraw = () => {
     corridorDeck.push(...shuffle(discardPile.splice(0, discardPile.length)))
   }
 
-  const replacement = corridorDeck.pop()
-  if (!replacement) {
-    setStatus('Impossible de piocher : la pioche et la défausse sont vides.')
-    renderGameUi()
-    return
-  }
+  const replacement = corridorDeck.pop() ?? corridorCards.createCard()
 
   const [discarded] = hand.splice(selectedIndex, 1)
   discardPile.push(discarded)
