@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite'
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { CORRIDOR_PIXEL_CONFIG } from './src/game/corridor-pixel-config'
 
 const modelIds = ['straight-0','straight-1','straight-2','turn-0','turn-1','turn-2','turn-3','tee-0','tee-1','cross-0','room-0'] as const
 const modelsDirectory = path.resolve(process.cwd(), 'references/models')
+const gameSavePath = path.resolve(process.cwd(), 'debug/saves/current-game.json')
 
 type CompactModel = { size: number; fill: string } | { size: number; palette: string[]; rows: string[] }
 
@@ -35,6 +36,26 @@ const corridorModelsPlugin = () => ({
         } catch {
           response.statusCode = 500
           response.end('Unable to read corridor model JSON files')
+        }
+        return
+      }
+      if (url.pathname === '/__game-state' && request.method === 'PUT') {
+        try {
+          let body = ''
+          for await (const chunk of request) body += chunk
+          const parsed = JSON.parse(body) as { tiles?: unknown; survivor?: unknown; deck?: unknown }
+          if (!Array.isArray(parsed.tiles) || typeof parsed.survivor !== 'object' || parsed.survivor === null || !Array.isArray(parsed.deck)) {
+            response.statusCode = 400
+            response.end('Invalid game state')
+            return
+          }
+          await mkdir(path.dirname(gameSavePath), { recursive: true })
+          await writeFile(gameSavePath, JSON.stringify(parsed, null, 2) + '\n', 'utf8')
+          response.setHeader('Content-Type', 'application/json')
+          response.end(JSON.stringify({ saved: true, path: 'debug/saves/current-game.json' }))
+        } catch {
+          response.statusCode = 400
+          response.end('Invalid game state JSON')
         }
         return
       }
