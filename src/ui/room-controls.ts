@@ -4,12 +4,10 @@ type RoomControlsOptions = {
   roomDoorOptionsElement: HTMLDivElement | null
   drawRoomButton: HTMLElement | null
   currentRoomId: number | null
-  pendingRoomDraw: RoomCard | null
-  phase: 'draw' | 'actions'
+   phase: 'draw' | 'actions'
   activeSurvivorKind: SurvivorKind
   actionsRemaining: number
-  hasAvailableDoors: boolean
-  rooms: RoomTile[]
+   rooms: RoomTile[]
   onSearchRoom: () => void
 }
 
@@ -17,12 +15,10 @@ export const renderRoomControls = ({
   roomDoorOptionsElement,
   drawRoomButton,
   currentRoomId,
-  pendingRoomDraw,
-  phase,
+   phase,
   activeSurvivorKind,
   actionsRemaining,
-  hasAvailableDoors,
-  rooms,
+   rooms,
   onSearchRoom,
 }: RoomControlsOptions) => {
   const roomSection = roomDoorOptionsElement?.closest<HTMLElement>('.room-exploration')
