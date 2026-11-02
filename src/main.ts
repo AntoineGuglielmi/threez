@@ -23,7 +23,7 @@ let activeCharacter = sceneSetup.activeCharacter
 const savedGameState = readSavedGameState()
 
 const corridorCards = createCorridorCardFactory(savedGameState?.nextCardId ?? 1)
-const { createDoorDirections, createCorridorDeck, normalizeSavedCard } = corridorCards
+const { createCorridorDeck, normalizeSavedCard } = corridorCards
 
 const roomCards = createRoomCardFactory()
 const generatedRoomDeck = roomCards.createDeck()
@@ -213,12 +213,6 @@ const renderGlobalResourceInventory = () => {
   })
   globalResourceInventoryElement.replaceChildren(table)
 }
-
-const getRoomStatusLabel = (status: RoomStatus) => ({
-  ordinary: 'Ordinaire',
-  locked: 'Verrouillée',
-  trapped: 'Piégée',
-})[status]
 
 const getDifficultyLabel = (difficulty: RoomDifficulty) => ({
   easy: 'Facile',
@@ -537,7 +531,6 @@ const drawCorridorCard = () => {
 
 
 const roomDoorOptionsElement = document.querySelector<HTMLDivElement>('#cp-door-options')
-const roomDeckCountElement = document.querySelector<HTMLElement>('#cp-deck-count')
 const drawRoomButton = document.querySelector<HTMLElement>('#draw-cp')
 
 const getUnusedDoors = () => currentTile.doors.filter((direction) => !currentTile.usedDoors.includes(direction))
@@ -656,7 +649,7 @@ const renderGameUi = () => {
   updatePlacementHighlights()
   if (!handElement) return
   handElement.replaceChildren()
-  hand.forEach((card, index) => {
+  hand.forEach((card) => {
     const selected = selectedCardId === card.id
     const cardTurns = selected ? selectedCardTurns : 0
     const button = createCorridorHandCard({
@@ -768,7 +761,6 @@ const renderGameUi = () => {
     phase,
     activeSurvivorKind,
     actionsRemaining,
-    availableDoors: getAvailableDoors(),
     unusedDoors: getUnusedDoors(),
     onSearchRoom: searchCurrentRoom,
   })
