@@ -25,204 +25,26 @@
     {
       "x": 0,
       "z": 3,
-      "kind": "right",
-      "exits": [
-        "W",
-        "N"
-      ],
-      "doors": [
-        "N",
-        "W"
-      ],
-      "usedDoors": [
-        "E",
-        "S"
-      ]
-    },
-    {
-      "x": -1,
-      "z": 3,
-      "kind": "left",
-      "exits": [
-        "S",
-        "E"
-      ],
-      "doors": [
-        "E",
-        "N"
-      ],
-      "usedDoors": [
-        "N",
-        "W"
-      ]
-    },
-    {
-      "x": -1,
-      "z": 4,
       "kind": "straight",
       "exits": [
         "N",
         "S"
       ],
       "doors": [
-        "N"
+        "W",
+        "E"
       ],
       "usedDoors": []
     }
   ],
-  "rooms": [
-    {
-      "id": 18,
-      "status": "ordinary",
-      "difficulty": "hard",
-      "searched": true,
-      "unlocked": true,
-      "x": 1,
-      "z": 3,
-      "originX": 0,
-      "originZ": 3,
-      "direction": "E",
-      "lastRoll": [
-        {
-          "resource": "cafe",
-          "value": 2,
-          "threshold": 5,
-          "found": false
-        },
-        {
-          "resource": "croissant",
-          "value": 2,
-          "threshold": 4,
-          "found": false
-        },
-        {
-          "resource": "citron",
-          "value": 1,
-          "threshold": 5,
-          "found": false
-        },
-        {
-          "resource": "bonbon",
-          "value": 1,
-          "threshold": 4,
-          "found": false
-        },
-        {
-          "resource": "munition",
-          "value": 6,
-          "threshold": 5,
-          "found": true
-        }
-      ]
-    },
-    {
-      "id": 21,
-      "status": "ordinary",
-      "difficulty": "easy",
-      "searched": true,
-      "unlocked": true,
-      "x": 0,
-      "z": 4,
-      "originX": 0,
-      "originZ": 3,
-      "direction": "S",
-      "lastRoll": [
-        {
-          "resource": "cafe",
-          "value": 1,
-          "threshold": 4,
-          "found": false
-        },
-        {
-          "resource": "croissant",
-          "value": 1,
-          "threshold": 3,
-          "found": false
-        },
-        {
-          "resource": "citron",
-          "value": 5,
-          "threshold": 4,
-          "found": true
-        },
-        {
-          "resource": "bonbon",
-          "value": 1,
-          "threshold": 3,
-          "found": false
-        },
-        {
-          "resource": "munition",
-          "value": 4,
-          "threshold": 4,
-          "found": true
-        }
-      ]
-    },
-    {
-      "id": 12,
-      "status": "trapped",
-      "difficulty": "hard",
-      "searched": false,
-      "unlocked": true,
-      "x": -1,
-      "z": 2,
-      "originX": -1,
-      "originZ": 3,
-      "direction": "N"
-    },
-    {
-      "id": 8,
-      "status": "locked",
-      "difficulty": "easy",
-      "searched": true,
-      "unlocked": true,
-      "x": -2,
-      "z": 3,
-      "originX": -1,
-      "originZ": 3,
-      "direction": "W",
-      "lastRoll": [
-        {
-          "resource": "cafe",
-          "value": 6,
-          "threshold": 4,
-          "found": true
-        },
-        {
-          "resource": "croissant",
-          "value": 5,
-          "threshold": 3,
-          "found": true
-        },
-        {
-          "resource": "citron",
-          "value": 2,
-          "threshold": 4,
-          "found": false
-        },
-        {
-          "resource": "bonbon",
-          "value": 4,
-          "threshold": 3,
-          "found": true
-        },
-        {
-          "resource": "munition",
-          "value": 1,
-          "threshold": 4,
-          "found": false
-        }
-      ]
-    }
-  ],
+  "rooms": [],
   "currentRoomId": null,
   "resources": {
     "cafe": 0,
     "croissant": 0,
     "citron": 0,
     "bonbon": 0,
-    "munition": 1
+    "munition": 0
   },
   "resourcesBySurvivor": {
     "stealth": {
@@ -230,28 +52,28 @@
       "croissant": 0,
       "citron": 0,
       "bonbon": 0,
-      "munition": 1
+      "munition": 0
     },
     "heavy": {
-      "cafe": 1,
-      "croissant": 1,
+      "cafe": 0,
+      "croissant": 0,
       "citron": 0,
-      "bonbon": 2,
+      "bonbon": 0,
       "munition": 0
     },
     "military": {
-      "cafe": 1,
-      "croissant": 1,
-      "citron": 1,
+      "cafe": 0,
+      "croissant": 0,
+      "citron": 0,
       "bonbon": 0,
-      "munition": 1
+      "munition": 0
     },
     "scientist": {
       "cafe": 0,
       "croissant": 0,
-      "citron": 1,
+      "citron": 0,
       "bonbon": 0,
-      "munition": 1
+      "munition": 0
     },
     "injured": {
       "cafe": 0,
@@ -263,46 +85,151 @@
   },
   "roomDeck": [
     {
-      "id": 17,
+      "id": 7,
+      "status": "locked",
+      "difficulty": "hard",
+      "searched": false,
+      "unlocked": false
+    },
+    {
+      "id": 16,
+      "status": "locked",
+      "difficulty": "hard",
+      "searched": false,
+      "unlocked": false
+    },
+    {
+      "id": 20,
       "status": "ordinary",
       "difficulty": "medium",
       "searched": false,
       "unlocked": true
     },
     {
+      "id": 10,
+      "status": "locked",
+      "difficulty": "hard",
+      "searched": false,
+      "unlocked": false
+    },
+    {
       "id": 23,
+      "status": "ordinary",
+      "difficulty": "medium",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 14,
+      "status": "trapped",
+      "difficulty": "easy",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 17,
+      "status": "trapped",
+      "difficulty": "easy",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 19,
+      "status": "ordinary",
+      "difficulty": "easy",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 18,
       "status": "ordinary",
       "difficulty": "hard",
       "searched": false,
       "unlocked": true
     },
     {
-      "id": 2,
-      "status": "ordinary",
-      "difficulty": "easy",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 3,
-      "status": "ordinary",
-      "difficulty": "easy",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 16,
+      "id": 4,
       "status": "trapped",
       "difficulty": "medium",
       "searched": false,
       "unlocked": true
     },
     {
-      "id": 15,
-      "status": "locked",
+      "id": 21,
+      "status": "ordinary",
       "difficulty": "hard",
       "searched": false,
-      "unlocked": false
+      "unlocked": true
+    },
+    {
+      "id": 15,
+      "status": "ordinary",
+      "difficulty": "hard",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 8,
+      "status": "ordinary",
+      "difficulty": "easy",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 2,
+      "status": "ordinary",
+      "difficulty": "medium",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 9,
+      "status": "ordinary",
+      "difficulty": "hard",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 3,
+      "status": "trapped",
+      "difficulty": "easy",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 13,
+      "status": "ordinary",
+      "difficulty": "easy",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 12,
+      "status": "ordinary",
+      "difficulty": "easy",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 6,
+      "status": "ordinary",
+      "difficulty": "medium",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 24,
+      "status": "ordinary",
+      "difficulty": "hard",
+      "searched": false,
+      "unlocked": true
+    },
+    {
+      "id": 22,
+      "status": "ordinary",
+      "difficulty": "medium",
+      "searched": false,
+      "unlocked": true
     },
     {
       "id": 1,
@@ -312,146 +239,142 @@
       "unlocked": true
     },
     {
-      "id": 6,
-      "status": "locked",
-      "difficulty": "medium",
-      "searched": false,
-      "unlocked": false
-    },
-    {
-      "id": 24,
-      "status": "ordinary",
-      "difficulty": "easy",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 9,
-      "status": "ordinary",
-      "difficulty": "hard",
-      "searched": false,
-      "unlocked": true
-    },
-    {
       "id": 11,
       "status": "ordinary",
-      "difficulty": "easy",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 20,
-      "status": "ordinary",
-      "difficulty": "easy",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 14,
-      "status": "ordinary",
-      "difficulty": "hard",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 4,
-      "status": "trapped",
       "difficulty": "medium",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 22,
-      "status": "ordinary",
-      "difficulty": "hard",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 19,
-      "status": "trapped",
-      "difficulty": "medium",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 13,
-      "status": "trapped",
-      "difficulty": "hard",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 7,
-      "status": "ordinary",
-      "difficulty": "medium",
-      "searched": false,
-      "unlocked": true
-    },
-    {
-      "id": 10,
-      "status": "ordinary",
-      "difficulty": "easy",
       "searched": false,
       "unlocked": true
     },
     {
       "id": 5,
-      "status": "locked",
+      "status": "trapped",
       "difficulty": "easy",
       "searched": false,
-      "unlocked": false
+      "unlocked": true
     }
   ],
   "pendingRoomDraw": null,
   "survivor": {
-    "x": -1,
-    "z": 4
+    "x": 0,
+    "z": 2
   },
   "survivors": {
     "stealth": {
-      "x": -1,
-      "z": 4,
+      "x": 0,
+      "z": 2,
       "roomId": null
     },
     "heavy": {
-      "x": -1,
-      "z": 3,
-      "roomId": 8
+      "x": 0,
+      "z": 0,
+      "roomId": null
     },
     "military": {
       "x": 0,
-      "z": 3,
-      "roomId": 21
+      "z": 0,
+      "roomId": null
     },
     "scientist": {
-      "x": -1,
-      "z": 3,
+      "x": 0,
+      "z": 0,
       "roomId": null
     },
     "injured": {
       "x": 0,
-      "z": 1,
+      "z": 0,
       "roomId": null
     }
   },
   "activeSurvivorKind": "stealth",
   "characterOrder": [
     "stealth",
-    "military",
     "scientist",
     "heavy",
+    "military",
     "injured"
   ],
   "characterIndex": 0,
   "injuredMovedThisTurn": false,
-  "zoom": 2.049999935913084,
+  "zoom": 1.9999999389648417,
   "cameraTarget": {
-    "x": -0.1836922567957622,
-    "z": 1.7591757579942933
+    "x": 0.004476579076672226,
+    "z": -0.004476579076672225
   },
   "cameraAngle": 0.7853981633974483,
   "deck": [
+    {
+      "id": 12,
+      "kind": "left",
+      "doors": [
+        "E",
+        "S"
+      ]
+    },
+    {
+      "id": 9,
+      "kind": "left",
+      "doors": []
+    },
+    {
+      "id": 24,
+      "kind": "right",
+      "doors": []
+    },
+    {
+      "id": 32,
+      "kind": "tee",
+      "doors": [
+        "S"
+      ]
+    },
+    {
+      "id": 33,
+      "kind": "cross",
+      "doors": []
+    },
+    {
+      "id": 27,
+      "kind": "tee",
+      "doors": []
+    },
+    {
+      "id": 21,
+      "kind": "right",
+      "doors": [
+        "W",
+        "S"
+      ]
+    },
+    {
+      "id": 30,
+      "kind": "tee",
+      "doors": [
+        "S"
+      ]
+    },
+    {
+      "id": 10,
+      "kind": "left",
+      "doors": [
+        "S",
+        "E"
+      ]
+    },
+    {
+      "id": 16,
+      "kind": "left",
+      "doors": [
+        "S",
+        "E"
+      ]
+    },
+    {
+      "id": 25,
+      "kind": "tee",
+      "doors": [
+        "S"
+      ]
+    },
     {
       "id": 28,
       "kind": "tee",
@@ -460,23 +383,39 @@
       ]
     },
     {
-      "id": 40,
+      "id": 38,
       "kind": "cross",
       "doors": []
     },
     {
-      "id": 9,
-      "kind": "left",
+      "id": 17,
+      "kind": "right",
       "doors": [
-        "N"
+        "W"
       ]
     },
     {
-      "id": 12,
-      "kind": "left",
+      "id": 34,
+      "kind": "cross",
+      "doors": []
+    },
+    {
+      "id": 2,
+      "kind": "straight",
       "doors": [
+        "W",
         "E"
       ]
+    },
+    {
+      "id": 31,
+      "kind": "tee",
+      "doors": []
+    },
+    {
+      "id": 20,
+      "kind": "right",
+      "doors": []
     },
     {
       "id": 29,
@@ -484,68 +423,46 @@
       "doors": []
     },
     {
-      "id": 33,
-      "kind": "cross",
-      "doors": []
+      "id": 11,
+      "kind": "left",
+      "doors": [
+        "E",
+        "S"
+      ]
     },
     {
-      "id": 6,
-      "kind": "straight",
+      "id": 19,
+      "kind": "right",
       "doors": [
+        "S",
         "W"
       ]
     },
     {
-      "id": 4,
-      "kind": "straight",
+      "id": 14,
+      "kind": "left",
+      "doors": [
+        "E",
+        "S"
+      ]
+    },
+    {
+      "id": 13,
+      "kind": "left",
       "doors": [
         "S"
       ]
     },
     {
-      "id": 25,
-      "kind": "tee",
-      "doors": []
-    },
-    {
-      "id": 38,
-      "kind": "cross",
-      "doors": []
-    },
-    {
-      "id": 10,
-      "kind": "left",
-      "doors": [
-        "W",
-        "N"
-      ]
-    },
-    {
-      "id": 24,
-      "kind": "right",
-      "doors": []
-    },
-    {
-      "id": 7,
+      "id": 5,
       "kind": "straight",
       "doors": [
-        "E",
-        "W"
+        "E"
       ]
     },
     {
-      "id": 16,
-      "kind": "left",
-      "doors": []
-    },
-    {
-      "id": 30,
-      "kind": "tee",
-      "doors": []
-    },
-    {
-      "id": 13,
-      "kind": "left",
+      "id": 22,
+      "kind": "right",
       "doors": []
     },
     {
@@ -554,79 +471,29 @@
       "doors": []
     },
     {
-      "id": 27,
+      "id": 26,
       "kind": "tee",
-      "doors": [
-        "W"
-      ]
-    },
-    {
-      "id": 35,
-      "kind": "cross",
-      "doors": []
-    },
-    {
-      "id": 22,
-      "kind": "right",
       "doors": [
         "S"
       ]
     },
     {
-      "id": 3,
+      "id": 1,
       "kind": "straight",
-      "doors": [
-        "E",
-        "W"
-      ]
-    },
-    {
-      "id": 2,
-      "kind": "straight",
-      "doors": [
-        "S",
-        "N"
-      ]
-    },
-    {
-      "id": 32,
-      "kind": "tee",
-      "doors": []
-    },
-    {
-      "id": 11,
-      "kind": "left",
       "doors": [
         "E"
       ]
     },
     {
-      "id": 17,
-      "kind": "right",
+      "id": 6,
+      "kind": "straight",
       "doors": []
     },
     {
-      "id": 39,
-      "kind": "cross",
-      "doors": []
-    },
-    {
-      "id": 19,
+      "id": 18,
       "kind": "right",
       "doors": [
-        "E",
-        "N"
-      ]
-    },
-    {
-      "id": 15,
-      "kind": "left",
-      "doors": []
-    },
-    {
-      "id": 31,
-      "kind": "tee",
-      "doors": [
+        "W",
         "S"
       ]
     },
@@ -636,27 +503,28 @@
       "doors": []
     },
     {
-      "id": 1,
+      "id": 35,
+      "kind": "cross",
+      "doors": []
+    },
+    {
+      "id": 7,
       "kind": "straight",
       "doors": [
-        "E",
-        "W"
+        "W",
+        "E"
       ]
     },
     {
-      "id": 20,
+      "id": 23,
       "kind": "right",
       "doors": [
+        "W",
         "S"
       ]
     },
     {
-      "id": 26,
-      "kind": "tee",
-      "doors": []
-    },
-    {
-      "id": 34,
+      "id": 40,
       "kind": "cross",
       "doors": []
     }
@@ -664,28 +532,92 @@
   "discard": [],
   "hand": [
     {
-      "id": 21,
-      "kind": "right",
-      "doors": [
-        "W"
-      ]
-    },
-    {
-      "id": 14,
+      "id": 15,
       "kind": "left",
-      "doors": [
-        "W"
-      ]
+      "doors": []
     },
     {
-      "id": 23,
-      "kind": "right",
+      "id": 39,
+      "kind": "cross",
       "doors": []
     }
   ],
   "survivorCards": {
     "stealth": {
       "deck": [
+        {
+          "id": 12,
+          "kind": "left",
+          "doors": [
+            "E",
+            "S"
+          ]
+        },
+        {
+          "id": 9,
+          "kind": "left",
+          "doors": []
+        },
+        {
+          "id": 24,
+          "kind": "right",
+          "doors": []
+        },
+        {
+          "id": 32,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 33,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 27,
+          "kind": "tee",
+          "doors": []
+        },
+        {
+          "id": 21,
+          "kind": "right",
+          "doors": [
+            "W",
+            "S"
+          ]
+        },
+        {
+          "id": 30,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 10,
+          "kind": "left",
+          "doors": [
+            "S",
+            "E"
+          ]
+        },
+        {
+          "id": 16,
+          "kind": "left",
+          "doors": [
+            "S",
+            "E"
+          ]
+        },
+        {
+          "id": 25,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
         {
           "id": 28,
           "kind": "tee",
@@ -694,23 +626,39 @@
           ]
         },
         {
-          "id": 40,
+          "id": 38,
           "kind": "cross",
           "doors": []
         },
         {
-          "id": 9,
-          "kind": "left",
+          "id": 17,
+          "kind": "right",
           "doors": [
-            "N"
+            "W"
           ]
         },
         {
-          "id": 12,
-          "kind": "left",
+          "id": 34,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 2,
+          "kind": "straight",
           "doors": [
+            "W",
             "E"
           ]
+        },
+        {
+          "id": 31,
+          "kind": "tee",
+          "doors": []
+        },
+        {
+          "id": 20,
+          "kind": "right",
+          "doors": []
         },
         {
           "id": 29,
@@ -718,68 +666,46 @@
           "doors": []
         },
         {
-          "id": 33,
-          "kind": "cross",
-          "doors": []
+          "id": 11,
+          "kind": "left",
+          "doors": [
+            "E",
+            "S"
+          ]
         },
         {
-          "id": 6,
-          "kind": "straight",
+          "id": 19,
+          "kind": "right",
           "doors": [
+            "S",
             "W"
           ]
         },
         {
-          "id": 4,
-          "kind": "straight",
+          "id": 14,
+          "kind": "left",
+          "doors": [
+            "E",
+            "S"
+          ]
+        },
+        {
+          "id": 13,
+          "kind": "left",
           "doors": [
             "S"
           ]
         },
         {
-          "id": 25,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 38,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 10,
-          "kind": "left",
-          "doors": [
-            "W",
-            "N"
-          ]
-        },
-        {
-          "id": 24,
-          "kind": "right",
-          "doors": []
-        },
-        {
-          "id": 7,
+          "id": 5,
           "kind": "straight",
           "doors": [
-            "E",
-            "W"
+            "E"
           ]
         },
         {
-          "id": 16,
-          "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 30,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 13,
-          "kind": "left",
+          "id": 22,
+          "kind": "right",
           "doors": []
         },
         {
@@ -788,79 +714,29 @@
           "doors": []
         },
         {
-          "id": 27,
+          "id": 26,
           "kind": "tee",
-          "doors": [
-            "W"
-          ]
-        },
-        {
-          "id": 35,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 22,
-          "kind": "right",
           "doors": [
             "S"
           ]
         },
         {
-          "id": 3,
+          "id": 1,
           "kind": "straight",
-          "doors": [
-            "E",
-            "W"
-          ]
-        },
-        {
-          "id": 2,
-          "kind": "straight",
-          "doors": [
-            "S",
-            "N"
-          ]
-        },
-        {
-          "id": 32,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 11,
-          "kind": "left",
           "doors": [
             "E"
           ]
         },
         {
-          "id": 17,
-          "kind": "right",
+          "id": 6,
+          "kind": "straight",
           "doors": []
         },
         {
-          "id": 39,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 19,
+          "id": 18,
           "kind": "right",
           "doors": [
-            "E",
-            "N"
-          ]
-        },
-        {
-          "id": 15,
-          "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 31,
-          "kind": "tee",
-          "doors": [
+            "W",
             "S"
           ]
         },
@@ -870,27 +746,28 @@
           "doors": []
         },
         {
-          "id": 1,
+          "id": 35,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 7,
           "kind": "straight",
           "doors": [
-            "E",
-            "W"
+            "W",
+            "E"
           ]
         },
         {
-          "id": 20,
+          "id": 23,
           "kind": "right",
           "doors": [
+            "W",
             "S"
           ]
         },
         {
-          "id": 26,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 34,
+          "id": 40,
           "kind": "cross",
           "doors": []
         }
@@ -898,28 +775,27 @@
       "discard": [],
       "hand": [
         {
-          "id": 21,
-          "kind": "right",
-          "doors": [
-            "W"
-          ]
-        },
-        {
-          "id": 14,
+          "id": 15,
           "kind": "left",
-          "doors": [
-            "W"
-          ]
+          "doors": []
         },
         {
-          "id": 23,
-          "kind": "right",
+          "id": 39,
+          "kind": "cross",
           "doors": []
         }
       ]
     },
     "heavy": {
       "deck": [
+        {
+          "id": 46,
+          "kind": "straight",
+          "doors": [
+            "W",
+            "E"
+          ]
+        },
         {
           "id": 67,
           "kind": "tee",
@@ -928,114 +804,64 @@
           ]
         },
         {
-          "id": 65,
-          "kind": "tee",
-          "doors": [
-            "W"
-          ]
-        },
-        {
-          "id": 50,
-          "kind": "left",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 55,
-          "kind": "left",
-          "doors": [
-            "N",
-            "E"
-          ]
-        },
-        {
-          "id": 48,
-          "kind": "straight",
-          "doors": []
-        },
-        {
-          "id": 74,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 72,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 51,
-          "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 62,
-          "kind": "right",
-          "doors": []
-        },
-        {
-          "id": 60,
-          "kind": "right",
-          "doors": [
-            "W",
-            "N"
-          ]
-        },
-        {
           "id": 64,
           "kind": "right",
           "doors": []
         },
         {
-          "id": 43,
-          "kind": "straight",
+          "id": 55,
+          "kind": "left",
           "doors": [
-            "N",
             "S"
           ]
         },
         {
-          "id": 46,
-          "kind": "straight",
+          "id": 65,
+          "kind": "tee",
           "doors": [
-            "E",
-            "W"
+            "S"
           ]
-        },
-        {
-          "id": 49,
-          "kind": "left",
-          "doors": []
         },
         {
           "id": 45,
           "kind": "straight",
           "doors": [
-            "W",
             "E"
           ]
         },
         {
-          "id": 70,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 80,
+          "id": 76,
           "kind": "cross",
           "doors": []
         },
         {
-          "id": 75,
-          "kind": "cross",
+          "id": 71,
+          "kind": "tee",
           "doors": []
         },
         {
-          "id": 66,
-          "kind": "tee",
+          "id": 53,
+          "kind": "left",
           "doors": [
-            "N"
+            "S",
+            "E"
+          ]
+        },
+        {
+          "id": 78,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 50,
+          "kind": "left",
+          "doors": []
+        },
+        {
+          "id": 48,
+          "kind": "straight",
+          "doors": [
+            "E"
           ]
         },
         {
@@ -1047,116 +873,52 @@
           "id": 59,
           "kind": "right",
           "doors": [
-            "W"
+            "W",
+            "S"
           ]
         },
         {
-          "id": 41,
+          "id": 42,
           "kind": "straight",
+          "doors": []
+        },
+        {
+          "id": 72,
+          "kind": "tee",
+          "doors": []
+        },
+        {
+          "id": 73,
+          "kind": "cross",
           "doors": []
         },
         {
           "id": 69,
           "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 44,
-          "kind": "straight",
           "doors": [
-            "N"
+            "S"
           ]
         },
         {
-          "id": 57,
-          "kind": "right",
-          "doors": []
+          "id": 49,
+          "kind": "left",
+          "doors": [
+            "S",
+            "E"
+          ]
         },
         {
-          "id": 78,
+          "id": 80,
           "kind": "cross",
           "doors": []
         },
         {
-          "id": 71,
-          "kind": "tee",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 53,
-          "kind": "left",
-          "doors": [
-            "N",
-            "E"
-          ]
-        },
-        {
-          "id": 52,
-          "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 61,
-          "kind": "right",
-          "doors": [
-            "N",
-            "W"
-          ]
-        },
-        {
-          "id": 58,
-          "kind": "right",
-          "doors": [
-            "N",
-            "E"
-          ]
-        },
-        {
-          "id": 56,
-          "kind": "left",
-          "doors": [
-            "E"
-          ]
-        },
-        {
-          "id": 54,
-          "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 42,
-          "kind": "straight",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 47,
-          "kind": "straight",
-          "doors": [
-            "W",
-            "E"
-          ]
-        },
-        {
-          "id": 68,
-          "kind": "tee",
-          "doors": [
-            "E"
-          ]
-        },
-        {
-          "id": 77,
+          "id": 74,
           "kind": "cross",
           "doors": []
-        }
-      ],
-      "discard": [],
-      "hand": [
+        },
         {
-          "id": 76,
+          "id": 75,
           "kind": "cross",
           "doors": []
         },
@@ -1166,126 +928,145 @@
           "doors": []
         },
         {
-          "id": 73,
-          "kind": "cross",
-          "doors": []
-        }
-      ]
-    },
-    "military": {
-      "deck": [
-        {
-          "id": 119,
-          "kind": "cross",
+          "id": 56,
+          "kind": "left",
           "doors": []
         },
         {
-          "id": 114,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 107,
+          "id": 68,
           "kind": "tee",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 99,
-          "kind": "right",
           "doors": [
             "S"
           ]
         },
         {
-          "id": 110,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 98,
+          "id": 61,
           "kind": "right",
-          "doors": []
+          "doors": [
+            "S",
+            "W"
+          ]
         },
         {
-          "id": 115,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 90,
+          "id": 52,
           "kind": "left",
-          "doors": []
+          "doors": [
+            "S"
+          ]
         },
         {
-          "id": 117,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 112,
+          "id": 70,
           "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 58,
+          "kind": "right",
           "doors": [
             "W"
           ]
         },
         {
-          "id": 88,
+          "id": 44,
           "kind": "straight",
           "doors": [
+            "W",
             "E"
           ]
         },
         {
-          "id": 81,
-          "kind": "straight",
+          "id": 54,
+          "kind": "left",
           "doors": [
-            "S",
-            "N"
+            "E",
+            "S"
           ]
         },
         {
-          "id": 101,
+          "id": 51,
+          "kind": "left",
+          "doors": [
+            "S",
+            "E"
+          ]
+        },
+        {
+          "id": 43,
+          "kind": "straight",
+          "doors": [
+            "W"
+          ]
+        },
+        {
+          "id": 41,
+          "kind": "straight",
+          "doors": [
+            "E",
+            "W"
+          ]
+        },
+        {
+          "id": 60,
+          "kind": "right",
+          "doors": [
+            "S",
+            "W"
+          ]
+        },
+        {
+          "id": 57,
+          "kind": "right",
+          "doors": [
+            "W",
+            "S"
+          ]
+        },
+        {
+          "id": 47,
+          "kind": "straight",
+          "doors": [
+            "E",
+            "W"
+          ]
+        },
+        {
+          "id": 62,
           "kind": "right",
           "doors": []
         },
         {
-          "id": 86,
-          "kind": "straight",
-          "doors": [
-            "S",
-            "N"
-          ]
-        },
-        {
-          "id": 118,
+          "id": 77,
           "kind": "cross",
           "doors": []
         },
         {
-          "id": 93,
-          "kind": "left",
+          "id": 66,
+          "kind": "tee",
           "doors": []
+        }
+      ],
+      "discard": [],
+      "hand": []
+    },
+    "military": {
+      "deck": [
+        {
+          "id": 113,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 109,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
         },
         {
           "id": 91,
           "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 105,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 116,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 106,
-          "kind": "tee",
           "doors": []
         },
         {
@@ -1297,19 +1078,83 @@
           ]
         },
         {
-          "id": 109,
+          "id": 106,
           "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 82,
+          "kind": "straight",
+          "doors": [
+            "E"
+          ]
+        },
+        {
+          "id": 110,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 116,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 105,
+          "kind": "tee",
+          "doors": []
+        },
+        {
+          "id": 101,
+          "kind": "right",
+          "doors": [
+            "W",
+            "S"
+          ]
+        },
+        {
+          "id": 117,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 112,
+          "kind": "tee",
+          "doors": []
+        },
+        {
+          "id": 86,
+          "kind": "straight",
+          "doors": []
+        },
+        {
+          "id": 95,
+          "kind": "left",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 92,
+          "kind": "left",
+          "doors": [
+            "S",
+            "E"
+          ]
+        },
+        {
+          "id": 99,
+          "kind": "right",
           "doors": [
             "W"
           ]
         },
         {
-          "id": 95,
-          "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 120,
+          "id": 115,
           "kind": "cross",
           "doors": []
         },
@@ -1322,53 +1167,34 @@
           ]
         },
         {
-          "id": 84,
-          "kind": "straight",
-          "doors": [
-            "N",
-            "S"
-          ]
+          "id": 114,
+          "kind": "cross",
+          "doors": []
         },
         {
-          "id": 92,
-          "kind": "left",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 85,
-          "kind": "straight",
-          "doors": [
-            "S"
-          ]
-        },
-        {
-          "id": 83,
-          "kind": "straight",
-          "doors": [
-            "E",
-            "W"
-          ]
-        },
-        {
-          "id": 89,
-          "kind": "left",
-          "doors": [
-            "W",
-            "S"
-          ]
+          "id": 120,
+          "kind": "cross",
+          "doors": []
         },
         {
           "id": 104,
           "kind": "right",
-          "doors": []
+          "doors": [
+            "W"
+          ]
         },
         {
-          "id": 87,
+          "id": 88,
           "kind": "straight",
           "doors": [
-            "S"
+            "W"
+          ]
+        },
+        {
+          "id": 98,
+          "kind": "right",
+          "doors": [
+            "W"
           ]
         },
         {
@@ -1380,22 +1206,40 @@
           ]
         },
         {
-          "id": 111,
-          "kind": "tee",
+          "id": 84,
+          "kind": "straight",
+          "doors": []
+        },
+        {
+          "id": 83,
+          "kind": "straight",
           "doors": [
             "W"
           ]
         },
         {
+          "id": 87,
+          "kind": "straight",
+          "doors": []
+        },
+        {
           "id": 103,
           "kind": "right",
           "doors": [
-            "E"
+            "W",
+            "S"
           ]
         },
         {
-          "id": 100,
-          "kind": "right",
+          "id": 111,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 107,
+          "kind": "tee",
           "doors": [
             "S"
           ]
@@ -1403,53 +1247,38 @@
         {
           "id": 108,
           "kind": "tee",
-          "doors": []
-        }
-      ],
-      "discard": [],
-      "hand": [
-        {
-          "id": 113,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 82,
-          "kind": "straight",
-          "doors": []
-        }
-      ]
-    },
-    "scientist": {
-      "deck": [
-        {
-          "id": 148,
-          "kind": "tee",
           "doors": [
             "S"
           ]
         },
         {
-          "id": 150,
-          "kind": "tee",
+          "id": 81,
+          "kind": "straight",
           "doors": [
+            "E",
             "W"
           ]
         },
         {
-          "id": 146,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 128,
-          "kind": "straight",
+          "id": 93,
+          "kind": "left",
           "doors": [
+            "E",
             "S"
           ]
         },
         {
-          "id": 133,
+          "id": 96,
+          "kind": "left",
+          "doors": []
+        },
+        {
+          "id": 100,
+          "kind": "right",
+          "doors": []
+        },
+        {
+          "id": 89,
           "kind": "left",
           "doors": [
             "S",
@@ -1457,169 +1286,48 @@
           ]
         },
         {
-          "id": 155,
+          "id": 119,
           "kind": "cross",
           "doors": []
         },
         {
-          "id": 131,
-          "kind": "left",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 144,
-          "kind": "right",
-          "doors": [
-            "S"
-          ]
-        },
-        {
-          "id": 156,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 139,
-          "kind": "right",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 122,
+          "id": 85,
           "kind": "straight",
           "doors": [
+            "W",
             "E"
           ]
         },
         {
-          "id": 140,
-          "kind": "right",
+          "id": 90,
+          "kind": "left",
+          "doors": [
+            "E",
+            "S"
+          ]
+        },
+        {
+          "id": 118,
+          "kind": "cross",
+          "doors": []
+        }
+      ],
+      "discard": [],
+      "hand": []
+    },
+    "scientist": {
+      "deck": [
+        {
+          "id": 148,
+          "kind": "tee",
           "doors": []
         },
         {
           "id": 134,
           "kind": "left",
           "doors": [
+            "E",
             "S"
-          ]
-        },
-        {
-          "id": 142,
-          "kind": "right",
-          "doors": [
-            "N",
-            "W"
-          ]
-        },
-        {
-          "id": 121,
-          "kind": "straight",
-          "doors": []
-        },
-        {
-          "id": 132,
-          "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 159,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 151,
-          "kind": "tee",
-          "doors": [
-            "W"
-          ]
-        },
-        {
-          "id": 154,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 124,
-          "kind": "straight",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 152,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 158,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 136,
-          "kind": "left",
-          "doors": [
-            "W",
-            "N"
-          ]
-        },
-        {
-          "id": 135,
-          "kind": "left",
-          "doors": [
-            "E"
-          ]
-        },
-        {
-          "id": 141,
-          "kind": "right",
-          "doors": [
-            "W"
-          ]
-        },
-        {
-          "id": 130,
-          "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 147,
-          "kind": "tee",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 153,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 137,
-          "kind": "right",
-          "doors": []
-        },
-        {
-          "id": 138,
-          "kind": "right",
-          "doors": [
-            "N",
-            "W"
-          ]
-        },
-        {
-          "id": 125,
-          "kind": "straight",
-          "doors": []
-        },
-        {
-          "id": 145,
-          "kind": "tee",
-          "doors": [
-            "E"
           ]
         },
         {
@@ -1628,31 +1336,49 @@
           "doors": []
         },
         {
-          "id": 126,
-          "kind": "straight",
+          "id": 146,
+          "kind": "tee",
           "doors": [
-            "S",
-            "N"
+            "S"
           ]
         },
         {
-          "id": 129,
+          "id": 158,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 155,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 127,
+          "kind": "straight",
+          "doors": [
+            "E"
+          ]
+        },
+        {
+          "id": 133,
           "kind": "left",
-          "doors": []
+          "doors": [
+            "E",
+            "S"
+          ]
         },
         {
-          "id": 157,
+          "id": 154,
           "kind": "cross",
           "doors": []
         },
         {
-          "id": 160,
-          "kind": "cross",
-          "doors": []
-        }
-      ],
-      "discard": [],
-      "hand": [
+          "id": 136,
+          "kind": "left",
+          "doors": [
+            "S"
+          ]
+        },
         {
           "id": 149,
           "kind": "tee",
@@ -1661,16 +1387,236 @@
           ]
         },
         {
+          "id": 135,
+          "kind": "left",
+          "doors": [
+            "E",
+            "S"
+          ]
+        },
+        {
+          "id": 151,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 153,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 125,
+          "kind": "straight",
+          "doors": [
+            "E",
+            "W"
+          ]
+        },
+        {
+          "id": 144,
+          "kind": "right",
+          "doors": [
+            "W",
+            "S"
+          ]
+        },
+        {
+          "id": 138,
+          "kind": "right",
+          "doors": [
+            "W"
+          ]
+        },
+        {
+          "id": 152,
+          "kind": "tee",
+          "doors": []
+        },
+        {
+          "id": 129,
+          "kind": "left",
+          "doors": [
+            "S",
+            "E"
+          ]
+        },
+        {
+          "id": 131,
+          "kind": "left",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 157,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 147,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 159,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 124,
+          "kind": "straight",
+          "doors": [
+            "W",
+            "E"
+          ]
+        },
+        {
+          "id": 142,
+          "kind": "right",
+          "doors": [
+            "W",
+            "S"
+          ]
+        },
+        {
           "id": 123,
+          "kind": "straight",
+          "doors": []
+        },
+        {
+          "id": 156,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 121,
+          "kind": "straight",
+          "doors": []
+        },
+        {
+          "id": 139,
+          "kind": "right",
+          "doors": [
+            "W"
+          ]
+        },
+        {
+          "id": 160,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 150,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 128,
           "kind": "straight",
           "doors": [
             "E"
           ]
+        },
+        {
+          "id": 122,
+          "kind": "straight",
+          "doors": []
+        },
+        {
+          "id": 126,
+          "kind": "straight",
+          "doors": [
+            "W"
+          ]
+        },
+        {
+          "id": 145,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 130,
+          "kind": "left",
+          "doors": []
+        },
+        {
+          "id": 137,
+          "kind": "right",
+          "doors": [
+            "S",
+            "W"
+          ]
+        },
+        {
+          "id": 141,
+          "kind": "right",
+          "doors": [
+            "S",
+            "W"
+          ]
+        },
+        {
+          "id": 140,
+          "kind": "right",
+          "doors": [
+            "S",
+            "W"
+          ]
+        },
+        {
+          "id": 132,
+          "kind": "left",
+          "doors": [
+            "S",
+            "E"
+          ]
         }
-      ]
+      ],
+      "discard": [],
+      "hand": []
     },
     "injured": {
       "deck": [
+        {
+          "id": 191,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 183,
+          "kind": "right",
+          "doors": []
+        },
+        {
+          "id": 177,
+          "kind": "right",
+          "doors": [
+            "W",
+            "S"
+          ]
+        },
+        {
+          "id": 197,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 175,
+          "kind": "left",
+          "doors": [
+            "S"
+          ]
+        },
         {
           "id": 190,
           "kind": "tee",
@@ -1679,24 +1625,73 @@
           ]
         },
         {
-          "id": 166,
-          "kind": "straight",
+          "id": 185,
+          "kind": "tee",
           "doors": [
-            "N"
+            "S"
           ]
         },
         {
-          "id": 180,
-          "kind": "right",
+          "id": 170,
+          "kind": "left",
+          "doors": []
+        },
+        {
+          "id": 162,
+          "kind": "straight",
+          "doors": [
+            "E"
+          ]
+        },
+        {
+          "id": 169,
+          "kind": "left",
           "doors": [
             "E",
-            "N"
+            "S"
           ]
         },
         {
           "id": 181,
           "kind": "right",
+          "doors": [
+            "W"
+          ]
+        },
+        {
+          "id": 186,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 193,
+          "kind": "cross",
           "doors": []
+        },
+        {
+          "id": 173,
+          "kind": "left",
+          "doors": [
+            "S",
+            "E"
+          ]
+        },
+        {
+          "id": 168,
+          "kind": "straight",
+          "doors": [
+            "E"
+          ]
+        },
+        {
+          "id": 167,
+          "kind": "straight",
+          "doors": [
+            "W",
+            "E"
+          ]
         },
         {
           "id": 189,
@@ -1706,115 +1701,28 @@
           ]
         },
         {
-          "id": 200,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 186,
-          "kind": "tee",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 191,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 162,
-          "kind": "straight",
-          "doors": [
-            "E",
-            "W"
-          ]
-        },
-        {
-          "id": 164,
-          "kind": "straight",
-          "doors": []
-        },
-        {
-          "id": 192,
-          "kind": "tee",
-          "doors": []
-        },
-        {
-          "id": 167,
-          "kind": "straight",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 183,
-          "kind": "right",
-          "doors": []
-        },
-        {
           "id": 176,
           "kind": "left",
           "doors": [
-            "S",
-            "W"
+            "E",
+            "S"
           ]
         },
         {
-          "id": 187,
-          "kind": "tee",
+          "id": 179,
+          "kind": "right",
           "doors": []
         },
         {
-          "id": 193,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 178,
+          "id": 180,
           "kind": "right",
           "doors": [
-            "S",
             "W"
           ]
         },
         {
           "id": 199,
           "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 195,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 182,
-          "kind": "right",
-          "doors": [
-            "S"
-          ]
-        },
-        {
-          "id": 174,
-          "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 179,
-          "kind": "right",
-          "doors": [
-            "N"
-          ]
-        },
-        {
-          "id": 194,
-          "kind": "cross",
-          "doors": []
-        },
-        {
-          "id": 184,
-          "kind": "right",
           "doors": []
         },
         {
@@ -1826,80 +1734,27 @@
           ]
         },
         {
-          "id": 171,
-          "kind": "left",
-          "doors": [
-            "W"
-          ]
-        },
-        {
-          "id": 161,
-          "kind": "straight",
-          "doors": []
-        },
-        {
           "id": 165,
           "kind": "straight",
-          "doors": [
-            "S",
-            "N"
-          ]
-        },
-        {
-          "id": 173,
-          "kind": "left",
           "doors": []
         },
         {
-          "id": 163,
-          "kind": "straight",
-          "doors": []
-        },
-        {
-          "id": 168,
-          "kind": "straight",
-          "doors": [
-            "E"
-          ]
-        },
-        {
-          "id": 169,
-          "kind": "left",
-          "doors": []
-        },
-        {
-          "id": 175,
-          "kind": "left",
-          "doors": [
-            "S"
-          ]
-        },
-        {
-          "id": 177,
+          "id": 182,
           "kind": "right",
           "doors": []
         },
         {
-          "id": 170,
-          "kind": "left",
+          "id": 164,
+          "kind": "straight",
           "doors": [
-            "N",
+            "E",
             "W"
           ]
         },
         {
-          "id": 185,
-          "kind": "tee",
-          "doors": [
-            "E"
-          ]
-        },
-        {
-          "id": 188,
-          "kind": "tee",
-          "doors": [
-            "S"
-          ]
+          "id": 171,
+          "kind": "left",
+          "doors": []
         },
         {
           "id": 196,
@@ -1907,12 +1762,76 @@
           "doors": []
         },
         {
+          "id": 195,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 166,
+          "kind": "straight",
+          "doors": []
+        },
+        {
+          "id": 174,
+          "kind": "left",
+          "doors": []
+        },
+        {
+          "id": 188,
+          "kind": "tee",
+          "doors": []
+        },
+        {
+          "id": 161,
+          "kind": "straight",
+          "doors": []
+        },
+        {
+          "id": 163,
+          "kind": "straight",
+          "doors": [
+            "E",
+            "W"
+          ]
+        },
+        {
+          "id": 192,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 187,
+          "kind": "tee",
+          "doors": [
+            "S"
+          ]
+        },
+        {
+          "id": 178,
+          "kind": "right",
+          "doors": [
+            "W"
+          ]
+        },
+        {
           "id": 198,
           "kind": "cross",
           "doors": []
         },
         {
-          "id": 197,
+          "id": 184,
+          "kind": "right",
+          "doors": []
+        },
+        {
+          "id": 200,
+          "kind": "cross",
+          "doors": []
+        },
+        {
+          "id": 194,
           "kind": "cross",
           "doors": []
         }
@@ -1923,8 +1842,8 @@
   },
   "phase": "actions",
   "pendingDraw": null,
-  "actionsRemaining": 4,
-  "turnNumber": 2,
-  "nextCardId": 209,
+  "actionsRemaining": 3,
+  "turnNumber": 1,
+  "nextCardId": 201,
   "nextRoomCardId": 25
 }
