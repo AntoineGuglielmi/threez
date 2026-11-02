@@ -839,7 +839,7 @@ const renderCraftSection = () => {
     label: string
     ingredients: Array<{ resource: 'cafe' | 'citron' | 'bonbon'; amount: number }>
   }> = [
-    { resource: 'vie', label: 'Point de vie', ingredients: [{ resource: 'cafe', amount: 1 }, { resource: 'citron', amount: 1 }] },
+    { resource: 'vie', label: 'Point de vie', ingredients: [{ resource: 'cafe', amount: 1 }, { resource: 'croissant', amount: 2 }] },
     { resource: 'bombe', label: 'Bombe', ingredients: [{ resource: 'citron', amount: 1 }, { resource: 'bonbon', amount: 2 }] },
   ]
 
