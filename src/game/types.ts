@@ -21,6 +21,7 @@ export type SavedGameState = {
   rooms?: SavedRoom[]
   currentRoomId?: number | null
   resources?: Record<ResourceType, number>
+  resourcesBySurvivor?: Partial<Record<SurvivorKind, Record<ResourceType, number>>>
   roomDeck?: RoomCard[]
   pendingRoomDraw?: RoomCard | null
   nextRoomCardId?: number
