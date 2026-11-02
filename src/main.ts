@@ -227,7 +227,7 @@ const getDifficultyLabel = (difficulty: RoomDifficulty) => ({
 })[difficulty]
 
 const rollRoomDice = (room: RoomTile) => {
-  const { results, found } = rollRoomSearch(room.difficulty)
+  const { results, found } = rollRoomSearch(room.difficulty, undefined, activeSurvivorKind)
   found.forEach((resource) => { resourcesBySurvivor[activeSurvivorKind][resource] += 1 })
   room.lastRoll = results
   room.searched = true
@@ -538,10 +538,6 @@ const drawCorridorCard = () => {
 const roomDoorOptionsElement = document.querySelector<HTMLDivElement>('#cp-door-options')
 const roomDeckCountElement = document.querySelector<HTMLElement>('#cp-deck-count')
 const drawRoomButton = document.querySelector<HTMLElement>('#draw-cp')
-const roomStateElement = document.querySelector<HTMLElement>('#room-state')
-const roomResultElement = document.querySelector<HTMLDivElement>('#room-result')
-const unlockRoomButton = document.querySelector<HTMLButtonElement>('#unlock-room')
-const returnRoomButton = document.querySelector<HTMLButtonElement>('#return-room')
 
 const getAvailableDoors = () => getAvailableRoomDoors(currentTile, boardTiles, rooms)
 
@@ -585,28 +581,24 @@ const placeDrawnRoom = (direction: Direction) => {
   renderGameUi()
 }
 
-const unlockCurrentRoom = () => {
+const searchCurrentRoom = () => {
   if (phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
   const room = rooms.find((item) => item.id === currentRoomId)
-  if (!room || room.status !== 'locked' || room.unlocked) return
-  room.unlocked = true
-  spendAction()
-  setStatus('Porte déverrouillée. Vous pouvez maintenant la fouiller.')
-  saveGameState()
-  renderGameUi()
-}
-
-const searchCurrentRoomAgain = () => {
-  if (phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
-  const room = rooms.find((item) => item.id === currentRoomId)
-  if (!room || (room.status === 'locked' && !room.unlocked)) return
+  if (!room) return
   if (room.status === 'trapped' && activeSurvivorKind !== 'stealth') {
-    setStatus('Pièce piégée : seul le survivant furtif peut la fouiller.')
+    setStatus('Seul le Furtif peut fouiller une pièce piégée.')
     return
+  }
+  if (room.status === 'locked' && !room.unlocked) {
+    if (activeSurvivorKind !== 'heavy') {
+      setStatus('Le Costaud doit fouiller cette pièce en premier.')
+      return
+    }
+    room.unlocked = true
   }
 
   spendAction()
-  setStatus('Nouvelle fouille en cours…')
+  setStatus('Fouille de la pièce…')
   rollRoomDice(room)
 }
 
@@ -766,32 +758,19 @@ const renderGameUi = () => {
   }
 
   renderRoomControls({
-    roomDeckCountElement,
     roomDoorOptionsElement,
-    roomStateElement,
     drawRoomButton,
-    roomResultElement,
-    unlockRoomButton,
-    returnRoomButton,
     roomDeckLength: roomDeck.length,
     rooms,
     currentRoomId,
-    currentTile,
     pendingRoomDraw,
     phase,
     activeSurvivorKind,
     actionsRemaining,
     availableDoors: getAvailableDoors(),
-    resourceLabels,
-    getRoomStatusLabel,
-    getDifficultyLabel,
-    onSearchAgain: searchCurrentRoomAgain,
-    onEnterRoom: enterRoom,
+    onSearchRoom: searchCurrentRoom,
   })
 }
-
-unlockRoomButton?.addEventListener('click', unlockCurrentRoom)
-returnRoomButton?.addEventListener('click', returnToCorridor)
 drawRoomButton?.addEventListener('click', (event) => {
   const stack = event.currentTarget
   if (!(stack instanceof HTMLElement) || stack.getAttribute('aria-disabled') === 'true') return
@@ -953,7 +932,7 @@ const showRoomHoverCard = (room: RoomTile, event: PointerEvent) => {
 
   const lootList = document.createElement('div')
   lootList.className = 'room-hover-loot'
-  getRoomResourceChances(room.difficulty).forEach(({ resource, chancePercent }) => {
+  getRoomResourceChances(room.difficulty, activeSurvivorKind).forEach(({ resource, chancePercent }) => {
     const row = document.createElement('div')
     row.className = 'room-hover-loot-row'
     const name = document.createElement('span')
