@@ -1206,6 +1206,9 @@ button, a { color: inherit; }
 .hand-disclosure .game-actions {
   display: none;
 }
+.hand-disclosure.has-selection .game-actions {
+  display: grid;
+}
 @media (max-width: 900px) {
   .cc-card { flex-basis: 88px; width: 88px; }
 }
