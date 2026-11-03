@@ -1,5 +1,5 @@
 import { directionDelta, directionOrder, opposite, corridorDefinitions, rotateDirection } from './directions'
-import type { BoardTile, CorridorCard, Direction, PlacementCandidate, RoomDifficulty, ResourceType, RoomTile, SurvivorKind } from './types'
+import type { BoardTile, CorridorCard, Direction, PlacementCandidate, RoomDifficulty, RoomResourceType, ResourceType, RoomTile, SurvivorKind } from './types'
 
 type OccupiedRoom = Pick<RoomTile, 'x' | 'z' | 'direction'>
 type CorridorPlacementInput = {
@@ -66,10 +66,14 @@ export const resourceLabels: Record<ResourceType, string> = {
   citron: 'Citron',
   bonbon: 'Bonbon acidulé',
   munition: 'Munition',
+  vie: 'Point de vie',
+  bombe: 'Bombe',
 }
 
+export const roomResourceTypes: RoomResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition']
+
 export const getRoomResourceChances = (difficulty: RoomDifficulty, survivorKind: SurvivorKind = 'military') =>
-  (Object.keys(resourceLabels) as ResourceType[]).map((resource) => {
+  roomResourceTypes.map((resource) => {
     const threshold = Math.max(2, resourceThresholds[difficulty][resource] - (survivorKind === 'stealth' ? 1 : 0))
     return {
       resource,
@@ -78,7 +82,7 @@ export const getRoomResourceChances = (difficulty: RoomDifficulty, survivorKind:
     }
   })
 
-const resourceThresholds: Record<RoomDifficulty, Record<ResourceType, number>> = {
+const resourceThresholds: Record<RoomDifficulty, Record<RoomResourceType, number>> = {
   easy: { cafe: 4, croissant: 3, citron: 4, bonbon: 3, munition: 4 },
   medium: { cafe: 5, croissant: 4, citron: 5, bonbon: 4, munition: 5 },
   hard: { cafe: 6, croissant: 5, citron: 6, bonbon: 5, munition: 6 },
@@ -89,7 +93,7 @@ export const rollRoomSearch = (
   rollDie: () => number = () => Math.floor(Math.random() * 6) + 1,
   survivorKind: SurvivorKind = 'military',
 ) => {
-  const results = (Object.keys(resourceLabels) as ResourceType[]).map((resource) => {
+  const results = roomResourceTypes.map((resource) => {
     const value = rollDie()
     const threshold = Math.max(2, resourceThresholds[difficulty][resource] - (survivorKind === 'stealth' ? 1 : 0))
     return { resource, value, threshold, found: value >= threshold }

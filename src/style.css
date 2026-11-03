@@ -250,6 +250,26 @@ button, a { color: inherit; }
 .reset-button:hover { background: rgba(189, 121, 88, 0.18); }
 .reset-button:focus-visible { outline: 2px solid #bd7958; outline-offset: 2px; }
 
+.pixelart-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(208, 213, 224, 0.16);
+  color: #aeb5bd;
+  font: 500 9px var(--mono);
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  transition: border-color .18s ease, color .18s ease, background .18s ease;
+}
+.pixelart-link:hover {
+  border-color: rgba(189, 152, 120, .45);
+  background: rgba(189, 152, 120, .08);
+  color: #ead8c7;
+}
+.pixelart-link:focus-visible { outline: 2px solid #bd9878; outline-offset: 2px; }
+
 @media (max-width: 720px) {
   .game { grid-template-rows: 58px minmax(0, 1fr) 42px; padding: 0 16px; }
   .hud { gap: 12px; }
@@ -1408,7 +1428,7 @@ button, a { color: inherit; }
 }
 .global-resource-row {
   display: grid;
-  grid-template-columns: minmax(76px, 1.3fr) repeat(5, minmax(30px, .7fr)) minmax(34px, .8fr);
+  grid-template-columns: minmax(76px, 1.3fr) repeat(7, minmax(30px, .7fr)) minmax(34px, .8fr);
   align-items: center;
   gap: 4px;
   min-width: 0;
@@ -1503,3 +1523,60 @@ button, a { color: inherit; }
     max-width: 76px;
   }
 }
+
+
+/* Secondary navigation in the game sidebar */
+.game-panel .pixelart-link {
+  align-self: flex-start;
+  margin: -8px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #9ba6ad;
+  font: 500 12px 'DM Sans', sans-serif;
+  letter-spacing: 0;
+  text-decoration: none;
+}
+.game-panel .pixelart-link:hover {
+  background: transparent;
+  color: #d69a7a;
+}
+.game-panel .pixelart-link span {
+  color: #bd9878;
+  font-size: 13px;
+}
+.game-panel .pixelart-link:focus-visible {
+  outline: 2px solid #bd9878;
+  outline-offset: 4px;
+}
+
+/* Contextual resource exchange, aligned with the sidebar inventory. */
+.trade-disclosure { display: grid; gap: 10px; min-width: 0; padding-top: 16px; border-top: 1px solid rgba(225, 231, 235, .14); }
+.trade-disclosure[hidden] { display: none; }
+.trade-disclosure .sidebar-section-heading { margin-bottom: 0; }
+.trade-disclosure .sidebar-section-heading h2 { font-size: 16px; }
+.trade-form { display: grid; gap: 12px; }
+.trade-recipient { display: grid; gap: 7px; color: #aeb8bf; font: 600 12px 'DM Sans', sans-serif; }
+.trade-recipient select { width: 100%; min-height: 40px; padding: 8px 11px; border: 1px solid rgba(225, 231, 235, .16); border-radius: 10px; background: #242c31; color: #f1f3f4; font: 500 13px 'DM Sans', sans-serif; }
+.trade-resources { display: grid; gap: 6px; }
+.trade-resource { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #c4cdd2; font: 500 12px 'DM Sans', sans-serif; }
+.trade-resource input { width: 76px; min-height: 34px; padding: 5px 8px; border: 1px solid rgba(225, 231, 235, .14); border-radius: 9px; background: rgba(255,255,255,.045); color: #fff; font: 600 13px 'DM Sans', sans-serif; text-align: right; }
+.trade-resource input:focus-visible, .trade-recipient select:focus-visible { outline: 2px solid #bd9878; outline-offset: 2px; }
+.trade-resource input:disabled { opacity: .4; }
+.trade-submit { min-height: 42px; padding: 10px 14px; border: 1px solid #d99570; border-radius: 12px; background: #a85f40; color: #fff8f4; font: 600 13px 'DM Sans', sans-serif; cursor: pointer; }
+.trade-submit:disabled { cursor: not-allowed; opacity: .4; }
+
+/* Scientist-only crafting, using the same compact sidebar controls as trading. */
+.craft-disclosure { display: grid; gap: 10px; min-width: 0; padding-top: 16px; border-top: 1px solid rgba(225, 231, 235, .14); }
+.craft-disclosure[hidden] { display: none; }
+.craft-disclosure .sidebar-section-heading { margin-bottom: 0; }
+.craft-disclosure .sidebar-section-heading h2 { font-size: 16px; }
+.craft-recipes { display: grid; gap: 12px; }
+.craft-recipe { display: grid; gap: 8px; }
+.craft-recipe-details { display: grid; gap: 3px; }
+.craft-recipe-details strong { color: #e8ecee; font: 600 12px 'DM Sans', sans-serif; }
+.craft-recipe-details span { color: #aeb8bf; font: 500 11px 'DM Sans', sans-serif; }
+.craft-submit { min-height: 38px; padding: 8px 12px; border: 1px solid rgba(189, 152, 120, .42); border-radius: 10px; background: rgba(189, 152, 120, .1); color: #e6c4aa; font: 600 12px 'DM Sans', sans-serif; cursor: pointer; }
+.craft-submit:hover:not(:disabled) { border-color: #bd9878; background: rgba(189, 152, 120, .18); }
+.craft-submit:focus-visible { outline: 2px solid #bd9878; outline-offset: 2px; }
+.craft-submit:disabled { cursor: not-allowed; opacity: .4; }

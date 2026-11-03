@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { CORRIDOR_PIXEL_CONFIG } from './src/game/corridor-pixel-config'
 
@@ -49,6 +49,17 @@ const corridorModelsPlugin = () => ({
         } catch {
           response.statusCode = 404
           response.end('Committed game save not found or invalid')
+        }
+        return
+      }
+      if (url.pathname === '/__game-state' && request.method === 'DELETE') {
+        try {
+          await rm(gameSavePath, { force: true })
+          response.setHeader('Content-Type', 'application/json')
+          response.end(JSON.stringify({ reset: true }))
+        } catch {
+          response.statusCode = 500
+          response.end('Unable to reset game state')
         }
         return
       }

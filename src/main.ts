@@ -35,6 +35,8 @@ const createResourceInventory = (source?: Partial<Record<ResourceType, number>>)
   citron: source?.citron ?? 0,
   bonbon: source?.bonbon ?? 0,
   munition: source?.munition ?? 0,
+  vie: source?.vie ?? 0,
+  bombe: source?.bombe ?? 0,
 })
 const resourceOwnerOnLegacySave = savedGameState?.activeSurvivorKind ?? 'stealth'
 const resourcesBySurvivor: Record<SurvivorKind, Record<ResourceType, number>> = {
@@ -97,6 +99,66 @@ const boardTiles: BoardTile[] = [{
 }]
 
 let currentTile = boardTiles[0]
+
+type SurvivorMovementAnimation = {
+  characterStart: THREE.Vector3
+  characterEnd: THREE.Vector3
+  ringStart: THREE.Vector3
+  ringEnd: THREE.Vector3
+  elapsed: number
+  duration: number
+}
+let survivorMovementAnimation: SurvivorMovementAnimation | null = null
+
+const moveActiveSurvivorTo = (
+  targetGroup: THREE.Group,
+  characterTarget: THREE.Vector3,
+  ringTarget: THREE.Vector3,
+) => {
+  const characterWorldPosition = activeCharacter.getWorldPosition(new THREE.Vector3())
+  const ringWorldPosition = activeRing.getWorldPosition(new THREE.Vector3())
+  const characterStart = targetGroup.worldToLocal(characterWorldPosition)
+  const ringStart = targetGroup.worldToLocal(ringWorldPosition)
+
+  activeCharacter.parent?.remove(activeCharacter)
+  activeRing.parent?.remove(activeRing)
+  characterKeyLight.parent?.remove(characterKeyLight)
+  characterFillLight.parent?.remove(characterFillLight)
+  warmRimLight.parent?.remove(warmRimLight)
+  targetGroup.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
+
+  activeCharacter.position.copy(characterStart)
+  activeRing.position.copy(ringStart)
+  survivorMovementAnimation = {
+    characterStart,
+    characterEnd: characterTarget.clone(),
+    ringStart,
+    ringEnd: ringTarget.clone(),
+    elapsed: 0,
+    duration: 0.28,
+  }
+}
+
+const updateSurvivorMovementAnimation = (delta: number) => {
+  if (!survivorMovementAnimation) return
+
+  const animation = survivorMovementAnimation
+  animation.elapsed = Math.min(animation.elapsed + delta, animation.duration)
+  const progress = animation.elapsed / animation.duration
+  const eased = progress * progress * (3 - 2 * progress)
+  const bounce = Math.sin(progress * Math.PI) * 0.12
+
+  activeCharacter.position.lerpVectors(animation.characterStart, animation.characterEnd, eased)
+  activeCharacter.position.y += bounce
+  activeRing.position.lerpVectors(animation.ringStart, animation.ringEnd, eased)
+
+  if (progress === 1) {
+    activeCharacter.position.copy(animation.characterEnd)
+    activeRing.position.copy(animation.ringEnd)
+    survivorMovementAnimation = null
+  }
+}
+
 const characterModels: Record<SurvivorKind, THREE.Group> = {
   stealth: activeCharacter,
   heavy: otherCharacters.find((item) => item.kind === 'heavy')!.character,
@@ -161,6 +223,8 @@ const resourceElements: Record<ResourceType, HTMLElement | null> = {
   citron: document.querySelector<HTMLElement>('#resource-citron'),
   bonbon: document.querySelector<HTMLElement>('#resource-bonbon'),
   munition: document.querySelector<HTMLElement>('#resource-munition'),
+  vie: document.querySelector<HTMLElement>('#resource-vie'),
+  bombe: document.querySelector<HTMLElement>('#resource-bombe'),
 }
 const statusElement = document.querySelector<HTMLParagraphElement>('#game-status')
 const drawButton = document.querySelector<HTMLElement>('#draw-cc')
@@ -181,11 +245,16 @@ const getSurvivorLabel = (kind: SurvivorKind) => ({
   stealth: 'Furtif', heavy: 'Costaud', military: 'Militaire', scientist: 'Scientifique', injured: 'Blessé',
 })[kind]
 
+const craftSectionElement = document.querySelector<HTMLElement>('#resource-craft')
+const craftControlsElement = document.querySelector<HTMLDivElement>('#resource-craft-controls')
+const tradeSectionElement = document.querySelector<HTMLElement>('#resource-trade')
+const tradeControlsElement = document.querySelector<HTMLDivElement>('#resource-trade-controls')
+let selectedTradeRecipient: SurvivorKind | null = null
 const globalResourceInventoryElement = document.querySelector<HTMLDivElement>('#global-resource-inventory')
 const survivorKinds: SurvivorKind[] = ['stealth', 'heavy', 'military', 'scientist', 'injured']
 const renderGlobalResourceInventory = () => {
   if (!globalResourceInventoryElement) return
-  const resourceOrder: ResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition']
+  const resourceOrder: ResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition', 'vie', 'bombe']
   const totals = createResourceInventory()
   survivorKinds.forEach((kind) => {
     resourceOrder.forEach((resource) => { totals[resource] += resourcesBySurvivor[kind][resource] })
@@ -707,9 +776,11 @@ const searchCurrentRoom = () => {
 
 const returnToCorridor = () => {
   if (phase !== 'actions' || activeSurvivorKind === 'injured' || currentRoomId === null || actionsRemaining <= 0) return
-  currentTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  activeCharacter.position.set(0, 0.19, 0.16)
-  activeRing.position.set(0, 0.183, 0.16)
+  moveActiveSurvivorTo(
+    currentTile.group,
+    new THREE.Vector3(0, 0.19, 0.16),
+    new THREE.Vector3(0, 0.183, 0.16),
+  )
   currentRoomId = null
   survivorPositions[activeSurvivorKind].roomId = null
   spendAction()
@@ -733,10 +804,11 @@ const enterRoom = (room: RoomTile) => {
   currentRoomId = room.id
   survivorPositions[activeSurvivorKind] = { x: currentTile.x, z: currentTile.z, roomId: room.id }
   spendAction()
-  currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  room.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  activeCharacter.position.set(0, 0.19, 0)
-  activeRing.position.set(0, 0.183, 0)
+  moveActiveSurvivorTo(
+    room.group,
+    new THREE.Vector3(0, 0.19, 0),
+    new THREE.Vector3(0, 0.183, 0),
+  )
   selectedCardId = null
   placementPreview = null
 
@@ -751,6 +823,116 @@ const enterRoom = (room: RoomTile) => {
   }
   saveGameState()
   renderGameUi()
+}
+
+const renderCraftSection = () => {
+  if (!craftSectionElement || !craftControlsElement) return
+  craftSectionElement.hidden = activeSurvivorKind !== 'scientist'
+  if (craftSectionElement.hidden) {
+    craftControlsElement.replaceChildren()
+    return
+  }
+
+  const canCraft = phase === 'actions' && actionsRemaining > 0 && !pendingDraw && !pendingRoomDraw
+  const recipes: Array<{
+    resource: 'vie' | 'bombe'
+    label: string
+    ingredients: Array<{ resource: 'cafe' | 'citron' | 'bonbon'; amount: number }>
+  }> = [
+    { resource: 'vie', label: 'Point de vie', ingredients: [{ resource: 'cafe', amount: 1 }, { resource: 'croissant', amount: 2 }] },
+    { resource: 'bombe', label: 'Bombe', ingredients: [{ resource: 'citron', amount: 1 }, { resource: 'bonbon', amount: 2 }] },
+  ]
+
+  const list = document.createElement('div')
+  list.className = 'craft-recipes'
+  recipes.forEach((recipe) => {
+    const row = document.createElement('div')
+    row.className = 'craft-recipe'
+    const details = document.createElement('div')
+    details.className = 'craft-recipe-details'
+    const name = document.createElement('strong')
+    name.textContent = recipe.label
+    const ingredients = document.createElement('span')
+    ingredients.textContent = recipe.ingredients
+      .map(({ resource, amount }) => `${amount} ${resourceLabels[resource]}`)
+      .join(' + ')
+    details.append(name, ingredients)
+
+    const canAfford = recipe.ingredients.every(({ resource, amount }) => resourcesBySurvivor.scientist[resource] >= amount)
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'craft-submit'
+    button.textContent = 'Fabriquer · 1 action'
+    button.disabled = !canCraft || !canAfford
+    button.addEventListener('click', () => {
+      if (activeSurvivorKind !== 'scientist' || phase !== 'actions' || actionsRemaining <= 0 || pendingDraw || pendingRoomDraw) return
+      if (!recipe.ingredients.every(({ resource, amount }) => resourcesBySurvivor.scientist[resource] >= amount)) return
+
+      recipe.ingredients.forEach(({ resource, amount }) => {
+        resourcesBySurvivor.scientist[resource] -= amount
+      })
+      resourcesBySurvivor.scientist[recipe.resource] += 1
+      spendAction()
+      setStatus(`${recipe.label} fabriqué. 1 action dépensée.`)
+      saveGameState()
+      renderGameUi()
+    })
+    row.append(details, button)
+    list.append(row)
+  })
+  craftControlsElement.replaceChildren(list)
+}
+
+const renderTradeSection = () => {
+  if (!tradeSectionElement || !tradeControlsElement) return
+  const activePosition = survivorPositions[activeSurvivorKind]
+  const coLocatedSurvivors = survivorKinds.filter((kind) => {
+    if (kind === activeSurvivorKind) return false
+    const position = survivorPositions[kind]
+    return position.x === activePosition.x && position.z === activePosition.z && position.roomId === activePosition.roomId
+  })
+  tradeSectionElement.hidden = activeSurvivorKind === 'injured' || coLocatedSurvivors.length === 0
+  if (tradeSectionElement.hidden) { selectedTradeRecipient = null; tradeControlsElement.replaceChildren(); return }
+  if (!selectedTradeRecipient || !coLocatedSurvivors.includes(selectedTradeRecipient)) selectedTradeRecipient = coLocatedSurvivors[0]
+  const canTrade = phase === 'actions' && actionsRemaining > 0 && !pendingDraw && !pendingRoomDraw && activeSurvivorKind !== 'injured'
+  const form = document.createElement('form')
+  form.className = 'trade-form'
+  const recipientLabel = document.createElement('label')
+  recipientLabel.className = 'trade-recipient'
+  recipientLabel.textContent = 'Donner à'
+  const recipientSelect = document.createElement('select')
+  recipientSelect.name = 'recipient'
+  recipientSelect.disabled = !canTrade
+  coLocatedSurvivors.forEach((kind) => { const option = document.createElement('option'); option.value = kind; option.textContent = getSurvivorLabel(kind); option.selected = kind === selectedTradeRecipient; recipientSelect.append(option) })
+  recipientSelect.addEventListener('change', () => { selectedTradeRecipient = recipientSelect.value as SurvivorKind; renderTradeSection() })
+  recipientLabel.append(recipientSelect)
+  const resourceList = document.createElement('div')
+  resourceList.className = 'trade-resources'
+  const resourceOrder: ResourceType[] = ['cafe', 'croissant', 'citron', 'bonbon', 'munition', 'vie', 'bombe']
+  const amountInputs: Partial<Record<ResourceType, HTMLInputElement>> = {}
+  resourceOrder.forEach((resource) => {
+    const row = document.createElement('label'); row.className = 'trade-resource'
+    const name = document.createElement('span'); name.textContent = resourceLabels[resource]
+    const input = document.createElement('input'); input.type = 'number'; input.name = resource; input.min = '0'; input.max = String(resourcesBySurvivor[activeSurvivorKind][resource]); input.step = '1'; input.value = '0'; input.inputMode = 'numeric'
+    input.disabled = !canTrade || resourcesBySurvivor[activeSurvivorKind][resource] === 0
+    input.setAttribute('aria-label', 'Quantité de ' + resourceLabels[resource] + ' à donner')
+    amountInputs[resource] = input; row.append(name, input); resourceList.append(row)
+  })
+  const submit = document.createElement('button'); submit.type = 'submit'; submit.className = 'trade-submit'; submit.textContent = 'Donner · 1 action'; submit.disabled = !canTrade
+  form.addEventListener('submit', (event) => {
+    event.preventDefault()
+    const recipient = selectedTradeRecipient
+    if (!recipient || !coLocatedSurvivors.includes(recipient) || !canTrade) return
+    const transfer = createResourceInventory(); let totalTransferred = 0
+    resourceOrder.forEach((resource) => { const raw = Number(amountInputs[resource]?.value ?? 0); const amount = Number.isFinite(raw) ? Math.floor(raw) : 0; transfer[resource] = Math.max(0, Math.min(amount, resourcesBySurvivor[activeSurvivorKind][resource])); totalTransferred += transfer[resource] })
+    if (totalTransferred === 0) { setStatus('Choisissez au moins une ressource à donner.'); return }
+    resourceOrder.forEach((resource) => { const amount = transfer[resource]; resourcesBySurvivor[activeSurvivorKind][resource] -= amount; resourcesBySurvivor[recipient][resource] += amount })
+    spendAction()
+    const summary = resourceOrder.filter((resource) => transfer[resource] > 0).map((resource) => transfer[resource] + ' ' + resourceLabels[resource]).join(', ')
+    setStatus('Ressources données à ' + getSurvivorLabel(recipient) + ' : ' + summary + '. 1 action dépensée.')
+    saveGameState(); renderGameUi()
+  })
+  form.append(recipientLabel, resourceList, submit); tradeControlsElement.replaceChildren(form)
 }
 
 const renderGameUi = () => {
@@ -800,6 +982,8 @@ const renderGameUi = () => {
     if (element) element.textContent = String(personalResources[resource])
   }
   renderGlobalResourceInventory()
+  renderCraftSection()
+  renderTradeSection()
 
   if (turnLabel) turnLabel.textContent = `TOUR ${String(turnNumber).padStart(2, '0')}`
 
@@ -1312,10 +1496,11 @@ renderer.domElement.addEventListener('click', (event) => {
     }
   }
 
-  currentTile.group.remove(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  targetTile.group.add(activeCharacter, activeRing, characterKeyLight, characterFillLight, warmRimLight)
-  activeCharacter.position.set(0, 0.19, 0.16)
-  activeRing.position.set(0, 0.183, 0.16)
+  moveActiveSurvivorTo(
+    targetTile.group,
+    new THREE.Vector3(0, 0.19, 0.16),
+    new THREE.Vector3(0, 0.183, 0.16),
+  )
   currentTile = targetTile
   survivorPositions[activeSurvivorKind] = { x: currentTile.x, z: currentTile.z, roomId: null }
   if (activeSurvivorKind === 'injured') injuredMovedThisTurn = true
@@ -1362,10 +1547,18 @@ rotateBoardCardButton?.addEventListener('click', () => {
   setStatus('Orientation de la carte modifiée.')
 })
 
-document.querySelector<HTMLButtonElement>('#reset-game')?.addEventListener('click', () => {
-  const confirmed = window.confirm('Réinitialiser la partie ? Le plateau actuel sera perdu.')
+document.querySelector<HTMLButtonElement>('#reset-game')?.addEventListener('click', async () => {
+  const confirmed = window.confirm('Réinitialiser la partie ? Le plateau actuel et toute la progression seront perdus.')
   if (!confirmed) return
-  window.location.reload()
+
+  try {
+    const response = await fetch('/__game-state', { method: 'DELETE' })
+    if (!response.ok) throw new Error('Unable to reset saved game')
+
+    window.location.reload()
+  } catch {
+    setStatus('Impossible de réinitialiser la partie. Réessayez.')
+  }
 })
 
 document.querySelector<HTMLButtonElement>('#rotate-left')?.addEventListener('click', () => {
@@ -1393,6 +1586,7 @@ const animate = () => {
   camera.zoom = currentZoom
   camera.updateProjectionMatrix()
   beacon.scale.y = 1 + Math.sin(elapsed * 2.2) * 0.07
+  updateSurvivorMovementAnimation(delta)
   if (placementActions && !placementActions.hidden && placementPreview) {
     camera.updateMatrixWorld()
     const projected = new THREE.Vector3(placementPreview.x * 1.18, 1.1, placementPreview.z * 1.18).project(camera)
